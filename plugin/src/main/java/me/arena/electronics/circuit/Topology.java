@@ -81,6 +81,8 @@ public final class Topology {
                 return "NOT".equalsIgnoreCase(safe(def.logic())) ? 3 : 4;
             case POT:
                 return 3;
+            case RELAY:
+                return 4;      // катушка вдоль оси + контакт вбок
             case BREADBOARD:
                 return 0;
             case WIRE:

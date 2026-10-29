@@ -119,6 +119,15 @@ public final class Components {
         d.internalResistance = Json.num(o, "internal_resistance", 0);
         d.backEmfPerVolt = Json.num(o, "back_emf_per_volt", 0);
         d.winding = Json.num(o, "winding", 0);
+        d.inductance = Json.num(o, "inductance", 0);
+        d.fieldPerAmp = Json.num(o, "field_per_amp", 0);
+        d.fieldMt = Json.num(o, "field_mt", 0);
+        d.operateMa = Json.num(o, "operate_ma", 0);
+        d.releaseMa = Json.num(o, "release_ma", 0);
+        d.operateMt = Json.num(o, "operate_mt", 0);
+        d.lightDependent = Json.bool(o, "light_dependent", false);
+        d.bConstant = Json.num(o, "b_constant", 0);
+        d.selfHeat = Json.num(o, "self_heat", 0);
         d.orientable = Json.bool(o, "orientable", false);
         d.stack = Json.bool(o, "stack", false);
         d.hub = Json.bool(o, "hub", false) || d.kind == Kind.GROUND || d.kind == Kind.DISTRIBUTOR;
@@ -147,6 +156,8 @@ public final class Components {
 
     private static int defaultPins(Kind kind, boolean spdt) {
         return switch (kind) {
+            case RELAY -> 4;              // 0/1 — катушка, 2/3 — контакт
+            case MAGNET -> 0;
             case TRANSISTOR, POT -> 3;
             case GATE -> 3;
             case SWITCH -> spdt ? 3 : 2;

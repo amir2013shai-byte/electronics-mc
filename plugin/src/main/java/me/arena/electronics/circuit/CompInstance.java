@@ -62,6 +62,10 @@ public final class CompInstance {
     /** Для приборов (вольтметр/амперметр/мультиметр). */
     public double reading;
     public double vcPrev;
+    /** Ток через катушку на прошлом шаге (L: I = I_prev + dt/(L+dt*R)*U). */
+    public double iPrev;
+    /** Суммарное магнитное поле соседей, мТл (для геркона). */
+    public double field;
     public double speedPrev;
     /** Индекс состояния модели ресурспака (0..stateModels). */
     public int modelState;

@@ -77,11 +77,18 @@ public final class Def {
     public String iconTexture = "";
 
     public boolean hasGlow() {
-        return kind == Kind.LED || kind == Kind.LAMP || kind == Kind.BUZZER || kind == Kind.PROBE;
+        return kind == Kind.LED || kind == Kind.LAMP || kind == Kind.BUZZER || kind == Kind.PROBE
+                || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY;
     }
 
     public boolean isTimeDependent() {
-        return kind == Kind.CAPACITOR || kind == Kind.GENERATOR || kind == Kind.MOTOR || kind == Kind.LAMP;
+        return kind == Kind.CAPACITOR || kind == Kind.GENERATOR || kind == Kind.MOTOR || kind == Kind.LAMP
+                || kind == Kind.INDUCTOR || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY;
+    }
+
+    /** Катушка: ток в ней — это «память», без неё шаг по времени бессмыслен. */
+    public boolean isInductive() {
+        return inductance > 0 && (kind == Kind.INDUCTOR || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY);
     }
 
     /** Максимум визуальных состояний, которые есть у компонента. */
@@ -137,6 +144,14 @@ public final class Def {
             case RESISTOR, FUSE, AMMETER, VOLTMETER -> "R=" + trim(resistance) + " Ом";
             case SOURCE, GENERATOR, SOLAR -> "U=" + trim(voltage) + " В";
             case CAPACITOR -> "C=" + trim(capacitance) + " Ф";
+            case INDUCTOR -> "L=" + (inductance >= 1 ? trim(inductance) + " Гн"
+                    : trim(inductance * 1000) + " мГн") + ", R=" + trim(resistance) + " Ом";
+            case ELECTROMAGNET -> "R=" + trim(resistance) + " Ом, L=" + trim(inductance * 1000)
+                    + " мГн, " + trim(fieldPerAmp) + " мТл/А";
+            case RELAY -> "катушка " + trim(resistance) + " Ом; втягивание " + trim(operateMa)
+                    + " мА, отпускание " + trim(releaseMa) + " мА";
+            case REED -> "замыкается от поля " + trim(operateMt) + " мТл";
+            case MAGNET -> trim(fieldMt) + " мТл у полюса";
             case LED, DIODE -> "U=" + trim(vForward > 0 ? vForward : vDrop) + " В";
             case TRANSISTOR -> "h21e=" + trim(beta);
             default -> "";

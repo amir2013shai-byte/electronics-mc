@@ -3,9 +3,9 @@
     "namespace": "electronics",
     "mc_version": "1.21.11",
     "resource_pack_format": 75,
-    "state_model_count": 1758,
+    "state_model_count": 2046,
     "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
-    "component_count": 52
+    "component_count": 60
   },
   "kinds": [
     "BOARD",
@@ -1209,6 +1209,33 @@
         "#f7dc6f"
       ],
       "en": "Blank Circuit Board"
-    }
+    },
+    {"id": "magnet", "ru": "Постоянный магнит", "en": "Permanent Magnet", "kind": "MAGNET",
+     "shape": "magnet", "size": [12, 6, 12], "palette": ["#26364f", "#8b97a6", "#c0392b"],
+     "stack": true, "states": 6, "field_mt": 1.4},
+    {"id": "electromagnet", "ru": "Электромагнит", "en": "Electromagnet", "kind": "ELECTROMAGNET",
+     "shape": "coil", "size": [12, 10, 12], "palette": ["#b3541e", "#f0c27b", "#5d6b7a"],
+     "resistance": 60.0, "inductance": 0.02, "field_per_amp": 0.9, "rated_voltage": 12.0,
+     "rated_power": 1.0, "orientable": true, "states": 6},
+    {"id": "inductor_10mh", "ru": "Катушка 10 мГн", "en": "Inductor 10 mH", "kind": "INDUCTOR",
+     "shape": "coil", "size": [11, 9, 11], "palette": ["#c9772f", "#7f8c9a"],
+     "resistance": 8.0, "inductance": 0.01, "rated_power": 1.0, "orientable": true, "states": 6},
+    {"id": "choke_10h", "ru": "Дроссель 10 Гн", "en": "Choke 10 H", "kind": "INDUCTOR",
+     "shape": "coil", "size": [13, 11, 13], "palette": ["#3d5a80", "#c9772f"],
+     "resistance": 150.0, "inductance": 10.0, "rated_power": 2.0, "orientable": true, "states": 6},
+    {"id": "relay_5v", "ru": "Реле 5 В", "en": "Relay 5 V", "kind": "RELAY",
+     "shape": "relay", "size": [13, 10, 13], "palette": ["#1e2b3a", "#c9772f", "#e0e0e0"],
+     "resistance": 120.0, "inductance": 0.05, "pins": 4, "operate_ma": 15.0, "release_ma": 8.0,
+     "rated_power": 0.4, "orientable": true, "states": 6},
+    {"id": "reed_switch", "ru": "Геркон", "en": "Reed Switch", "kind": "REED",
+     "shape": "reed", "size": [13, 5, 7], "palette": ["#dfe6ea", "#8b97a6"],
+     "operate_mt": 0.7, "orientable": true, "stack": true, "states": 6},
+    {"id": "photoresistor", "ru": "Фоторезистор", "en": "Photoresistor", "kind": "RESISTOR",
+     "shape": "photo", "size": [11, 8, 11], "palette": ["#2e7d5b", "#e8d9a0"],
+     "resistance": 100000.0, "light_dependent": true, "rated_power": 0.125, "states": 6},
+    {"id": "thermistor_ntc", "ru": "Термистор NTC", "en": "NTC Thermistor", "kind": "RESISTOR",
+     "shape": "thermistor", "size": [9, 9, 9], "palette": ["#1f1f24", "#c0392b"],
+     "resistance": 10000.0, "b_constant": 3950.0, "self_heat": 40.0, "rated_power": 0.25,
+     "states": 6}
   ]
 }

@@ -71,10 +71,11 @@ jobs:
             release/sha1sums.txt
           if-no-files-found: error
 
+      # ВАЖНО: permissions на уровне *шага* GitHub не принимает (ран падает ещё
+      # до запуска джоба с сообщением «Invalid workflow file»). Права на создание
+      # релиза объявлены на уровне job — их хватает.
       - name: GitHub Release (только на теге v*)
         if: startsWith(github.ref, 'refs/tags/v')
-        permissions:
-          contents: write
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
