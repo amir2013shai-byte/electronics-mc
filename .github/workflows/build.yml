@@ -1,0 +1,90 @@
+name: build
+
+# Собирает плагин и ресурспак, прогоняет офлайн-тесты и сверку ссылок пака.
+# На теге v* дополнительно выкладывает GitHub Release с артефактами.
+#
+# Зачем: build/ и plugin/target/ не переживают пересоздание песочницы, а артефакты
+# нужны постоянные. Пусть их собирает GitHub.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # нужно только для шага "GitHub Release" на теге
+    env:
+      SPIGOT_API: 1.21.11-R0.2-SNAPSHOT
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21 + кэш ~/.m2
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Python + Pillow (нужен генератор текстур)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install --quiet Pillow
+
+      - name: Плагин
+        working-directory: plugin
+        run: mvn -B -ntp -DskipTests package
+
+      - name: Ресурспак, датапак, превью, артефакты в release/
+        run: bash tools/publish.sh
+
+      - name: Тесты ядра + сверка ссылок пака
+        run: bash tools/run_tests.sh
+
+      - name: Проверка, что ресурспак совпадает с pack_format 75
+        run: |
+          python3 - <<'PY'
+          import json
+          m = json.load(open('build/resourcepack/pack.mcmeta'))
+          pf = m['pack']['pack_format']
+          assert pf == 75, f"pack_format={pf}, ждали 75 (1.21.11)"
+          print("pack_format:", pf, "| supported_formats:", m['pack'].get('supported_formats'))
+          PY
+
+      - name: Артефакты сборки
+        uses: actions/upload-artifact@v4
+        with:
+          name: electronics-1.21.11
+          path: |
+            release/Electronics-1.0.0.jar
+            release/electronics-resourcepack.zip
+            release/electronics-recipes-datapack.zip
+            release/preview.png
+            release/sha1sums.txt
+          if-no-files-found: error
+
+      - name: GitHub Release (только на теге v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        permissions:
+          contents: write
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release/Electronics-1.0.0.jar \
+            release/electronics-resourcepack.zip \
+            release/electronics-recipes-datapack.zip \
+            release/preview.png \
+            release/sha1sums.txt \
+            --title "Electronics $GITHUB_REF_NAME (Minecraft 1.21.11)" \
+            --notes "Плагин собран против spigot-api $SPIGOT_API, ресурспак — pack_format 75.
+          Ставить: jar в \`plugins/\`, архив — в \`resource-pack.url\` (или вручную клиенту).
+          Контрольные цифры с живого Paper 1.21.11 build 132 — в README. Хэши — в sha1sums.txt."
