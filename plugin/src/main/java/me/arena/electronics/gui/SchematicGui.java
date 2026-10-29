@@ -62,6 +62,7 @@ public final class SchematicGui implements Gui {
     private final int[] orient = new int[CELLS];
     private final boolean[] closed = new boolean[CELLS];
     private final double[] solvedVoltage = new double[CELLS];
+    private final double[] solvedPotential = new double[CELLS];
     private final double[] solvedCurrent = new double[CELLS];
     private final String[] solvedNote = new String[CELLS];
     private List<CompInstance> last = List.of();
@@ -231,6 +232,10 @@ public final class SchematicGui implements Gui {
         lore.add(Items.color("&7ориентация: &f" + Orientation.byIndex(orient[cell]).name()
                 + (closed[cell] ? " &a(замкнуто)" : "")));
         if (solvedNote[cell] != null) {
+            if (d.hub) {
+                lore.add(Items.color("&7потенциал узла: &f" + Num.volt(solvedPotential[cell])
+                        + (solvedPotential[cell] < 0.05 ? " &8(земля)" : "")));
+            }
             lore.add(Items.color("&e" + solvedNote[cell]));
             lore.add(Items.color(String.format("&7U = &f%s &7| I = &f%s &7| P = &f%s",
                     Num.volt(solvedVoltage[cell]), Num.amp(solvedCurrent[cell]),
@@ -242,7 +247,7 @@ public final class SchematicGui implements Gui {
         if (meta != null) {
             meta.setLore(lore);
             // подсветка имени по потенциалу: сразу видно, где «плюс», где земля
-            double v = solvedVoltage[cell];
+            double v = d.hub ? solvedPotential[cell] : solvedVoltage[cell];
             String color = islands < 0 ? "&f" : bucket(v);
             meta.setDisplayName(Items.color(color + "⚡ " + d.nameRu + " &7" + slotName(cell)));
             stack.setItemMeta(meta);
@@ -307,6 +312,7 @@ public final class SchematicGui implements Gui {
             }
             CompInstance inst = list.get(cellOf[cell]);
             solvedVoltage[cell] = inst.voltage;
+            solvedPotential[cell] = Math.max(Math.abs(inst.pinVoltage[0]), Math.abs(inst.voltage));
             solvedCurrent[cell] = inst.current;
             String text = Simulation.describe(inst);
             solvedNote[cell] = text == null || text.isEmpty()
