@@ -14,8 +14,8 @@
 |---|---|
 | `electronics/build/`, `plugin/target/` | `bash tools/publish.sh` (артефакты кладёт в `release/`) |
 | `/usr/lib/jvm/java-21-openjdk-amd64` | `sudo apt-get install -y openjdk-21-jdk-headless` |
-| бит `+x` у `tools/maven/bin/mvn` | `chmod +x tools/maven/bin/*` |
 | скачанные jar в `tools/repo` (spigot-api, joml) | `mvn` дотянет сам, если дать `-Dmaven.repo.local=/home/user/tools/repo` |
+| сам `tools/maven` (снимок доехал не полностью: нет `boot/plexus-classworlds`, `lib/maven-embedder` → `ClassNotFoundException: org.apache.maven.cli.MavenCli`) | `sudo apt-get install -y maven` (3.9.9, `/usr/bin/mvn`) — проще, чем чинить копию |
 | `/tmp/*.log` прогоны сервера | они не нужны; результаты зафиксированы в `README.md` |
 
 Отсюда и репозиторий: `release/` (jar + оба архива + превью + `sha1sums.txt`)
@@ -25,11 +25,9 @@
 ## Порядок действий в свежей песочнице
 
 ```bash
-# 0. JAVA_HOME/maven
-sudo -n apt-get install -y -q openjdk-21-jdk-headless
+# 0. JAVA_HOME + maven (проверено: пересборка занимает ~10 с, сеть не деградировала)
+sudo -n apt-get install -y -q openjdk-21-jdk-headless maven
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-export PATH=$JAVA_HOME/bin:/home/user/tools/maven/bin:$PATH
-chmod +x /home/user/tools/maven/bin/*
 
 # 1. ресурспак + датапак + превью + артефакты в release/
 bash tools/publish.sh
@@ -38,7 +36,7 @@ bash tools/publish.sh
 bash tools/run_tests.sh
 
 # 3. плагин
-(cd plugin && mvn -B -Dmaven.repo.local=/home/user/tools/repo -DskipTests package)
+(cd plugin && mvn -B -U -Dmaven.repo.local=/home/user/tools/repo -DskipTests package)
 
 # 4. (.gitignore не трогать) srv/ в репозиторий не входит
 ```
@@ -76,6 +74,11 @@ cd /home/user/srv && rm -rf plugins/Electronics/builds plugins/Electronics/regis
 `led_red U=2.305 В b=1.00`. Перед каждым новым прогоном удаляй
 `plugins/Electronics/builds` и `registry.json`, иначе файлы из прошлый раз
 перехватят `builds/*.json` у jar-копии.
+
+Jar не бинарно-воспроизводим: внутри лежат mtime записей, поэтому у
+пересобранного `Electronics-1.0.0.jar` другой sha1 при том же размере
+(163 634 Б) и том же коде. В `release/` лежит копия, которая реально
+прогонялась на сервере — её sha1 и есть эталон.
 
 ## Если нужно залить в GitHub
 
