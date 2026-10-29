@@ -1,0 +1,7 @@
+name: probe
+on: [push, workflow_dispatch]
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "runner ok; python: $(python3 -V); java: $(java -version 2>&1 | head -1)"
