@@ -104,7 +104,10 @@ public final class Components {
         d.voltage = Json.num(o, "voltage", 0);
         d.vForward = Json.num(o, "v_forward", 0);
         d.vDrop = Json.num(o, "v_drop", 0);
-        d.vReverseMax = Json.num(o, "v_rev_max", 0);
+        // обе орфографии: 52 def-а используют v_reverse_max, diode — v_rev_max;
+        // раньше читалась только одна, и у LED лимит обратного напряжения молча
+        // оставался 0 (защита от лавинного пробоя не срабатывала вовсе)
+        d.vReverseMax = Json.num(o, "v_rev_max", Json.num(o, "v_reverse_max", 0));
         d.ratedPower = Json.num(o, "rated_power", 0);
         d.ratedVoltage = Json.num(o, "rated_voltage", 0);
         d.maxCurrent = Json.num(o, "max_current", 0);

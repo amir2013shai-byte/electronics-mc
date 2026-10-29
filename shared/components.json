@@ -3,7 +3,7 @@
     "namespace": "electronics",
     "mc_version": "1.21.11",
     "resource_pack_format": 75,
-    "state_model_count": 1338,
+    "state_model_count": 1758,
     "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
     "component_count": 52
   },
@@ -382,7 +382,12 @@
       "rated_power": 0.125,
       "orientable": true,
       "states": 6,
-      "en": "Resistor 10 Ω"
+      "en": "Resistor 10 Ω",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "resistor_100r",
@@ -402,7 +407,12 @@
       "rated_power": 0.125,
       "orientable": true,
       "states": 6,
-      "en": "Resistor 100 Ω"
+      "en": "Resistor 100 Ω",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "resistor_220r",
@@ -422,7 +432,12 @@
       "rated_power": 0.125,
       "orientable": true,
       "states": 6,
-      "en": "Resistor 220 Ω"
+      "en": "Resistor 220 Ω",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "resistor_330r",
@@ -441,7 +456,13 @@
       "resistance": 330.0,
       "rated_power": 0.125,
       "orientable": true,
-      "en": "Resistor 330 Ω"
+      "en": "Resistor 330 Ω",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "resistor_1k",
@@ -460,7 +481,13 @@
       "resistance": 1000.0,
       "rated_power": 0.125,
       "orientable": true,
-      "en": "Resistor 1 kΩ"
+      "en": "Resistor 1 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "resistor_4k7",
@@ -479,7 +506,13 @@
       "resistance": 4700.0,
       "rated_power": 0.125,
       "orientable": true,
-      "en": "Resistor 4.7 kΩ"
+      "en": "Resistor 4.7 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "resistor_10k",
@@ -498,7 +531,13 @@
       "resistance": 10000.0,
       "rated_power": 0.125,
       "orientable": true,
-      "en": "Resistor 10 kΩ"
+      "en": "Resistor 10 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "resistor_100k",
@@ -517,7 +556,13 @@
       "resistance": 100000.0,
       "rated_power": 0.125,
       "orientable": true,
-      "en": "Resistor 100 kΩ"
+      "en": "Resistor 100 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "potentiometer",
@@ -537,7 +582,12 @@
       "resistance": 10000.0,
       "orientable": true,
       "states": 6,
-      "en": "Potentiometer 10 kΩ"
+      "en": "Potentiometer 10 kΩ",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
     },
     {
       "id": "cap_100nf",
@@ -598,7 +648,8 @@
       "rated_voltage": 16.0,
       "polar": true,
       "stack": true,
-      "en": "Electrolytic 1000 µF"
+      "en": "Electrolytic 1000 µF",
+      "states": 6
     },
     {
       "id": "diode",
@@ -893,7 +944,7 @@
       ],
       "logic": "AND",
       "orientable": true,
-      "states": 2,
+      "states": 6,
       "en": "IC AND"
     },
     {
@@ -912,7 +963,7 @@
       ],
       "logic": "OR",
       "orientable": true,
-      "states": 2,
+      "states": 6,
       "en": "IC OR"
     },
     {
@@ -931,7 +982,7 @@
       ],
       "logic": "XOR",
       "orientable": true,
-      "states": 2,
+      "states": 6,
       "en": "IC XOR"
     },
     {
@@ -950,7 +1001,7 @@
       ],
       "logic": "NOT",
       "orientable": true,
-      "states": 2,
+      "states": 6,
       "en": "IC NOT"
     },
     {
@@ -969,7 +1020,7 @@
       ],
       "logic": "CMP",
       "orientable": true,
-      "states": 2,
+      "states": 6,
       "en": "Comparator"
     },
     {
@@ -988,7 +1039,7 @@
       ],
       "rated_voltage": 5.0,
       "min_current": 0.005,
-      "states": 2,
+      "states": 6,
       "en": "Buzzer"
     },
     {
@@ -1008,7 +1059,7 @@
       "back_emf_per_volt": 0.55,
       "winding": 24.0,
       "rated_voltage": 12.0,
-      "states": 2,
+      "states": 6,
       "en": "Electric Motor"
     },
     {
@@ -1049,7 +1100,7 @@
       ],
       "internal_resistance": 100000.0,
       "orientable": true,
-      "states": 2,
+      "states": 6,
       "en": "Voltmeter"
     },
     {
@@ -1069,7 +1120,7 @@
       ],
       "internal_resistance": 0.5,
       "orientable": true,
-      "states": 2,
+      "states": 6,
       "en": "Ammeter"
     },
     {
@@ -1139,7 +1190,7 @@
         "#ecf0f1",
         "#e74c3c"
       ],
-      "states": 2,
+      "states": 6,
       "en": "LED Test Probe"
     },
     {

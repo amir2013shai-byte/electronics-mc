@@ -46,7 +46,7 @@ build/resourcepack/
 ├── assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png  # перекраска платы
 ├── assets/electronics/lang/{ru_ru,en_us}.json
 ├── assets/electronics/items/<id>.json                    # 52: выбор состояния модели
-├── assets/electronics/models/item/<id>[_<state>].json    # 223: модель + display-трансформы
+├── assets/electronics/models/item/<id>[_<state>].json    # 293: модель + display-трансформы
 └── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 669 текстур 32×32
 ```
 
