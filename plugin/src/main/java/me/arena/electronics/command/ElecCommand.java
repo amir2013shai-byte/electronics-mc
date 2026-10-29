@@ -52,6 +52,8 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             case "recipe" -> recipe(s);
             case "reload" -> reload(s);
             case "rescan" -> rescan(s);
+            case "show" -> show(s, args);
+            case "selftest" -> selftest(s);
             case "schematic" -> schematic(s, args);
             case "build" -> build(s, args);
             case "dump" -> dump(s, args);
@@ -358,6 +360,90 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         p.sendMessage(Items.color("&aПолное сканирование: найдено записей " + n));
     }
 
+    /**
+     * Самопроверка без игрока: рисует тестовую цепь в редакторе схемы, гоняет
+     * её через решатель и сверяет показания, плюс проверяет каталог.
+     */
+    /** Публично: вызывает Config при selftest: true на старте сервера. */
+    public void selftest(CommandSender s) {
+        // (0) минимальный контур: источник и резистор в двух соседних клетках
+        me.arena.electronics.gui.SchematicGui g0 =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        g0.put(0, 0, "battery_9", 1);
+        g0.put(0, 1, "resistor_330r", 1);
+        g0.recalcQuiet();
+        double i0 = g0.currentAt(0, 1);
+        s.sendMessage(Items.color("&7два узла в ряд (цепь разомкнута): I = &f" + Num.amp(i0)
+                + " &7U = &f" + Num.volt(g0.voltageAt(0, 1)) + " &8— должно быть ~0: без возврата тока нет"));
+        s.sendMessage(Items.color("&8nets batt: &f" + g0.netsAt(0, 0) + " &8| res: &f" + g0.netsAt(0, 1)
+                + " &8| U_res = &f" + Num.volt(g0.voltageAt(0, 1))));
+        me.arena.electronics.gui.SchematicGui g =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        // контур: батарейка 9 В -> 330 Ом -> светодиод -> провод по периметру -> земля
+        g.put(0, 0, "wire_red", 0);
+        g.put(0, 1, "battery_9", 1);
+        g.put(0, 2, "wire_red", 0);
+        g.put(0, 3, "resistor_330r", 1);
+        g.put(0, 4, "wire_red", 0);
+        g.put(0, 5, "led_red", 1);
+        g.put(0, 6, "wire_red", 0);
+        g.put(1, 6, "wire_black", 0);
+        g.put(2, 6, "wire_black", 0);
+        g.put(2, 5, "wire_black", 0);
+        g.put(2, 4, "ground_bus", 0);
+        g.put(2, 3, "wire_black", 0);
+        g.put(2, 2, "wire_black", 0);
+        g.put(2, 1, "wire_black", 0);
+        g.put(1, 0, "wire_black", 0);
+        g.put(2, 0, "wire_black", 0);
+        g.recalcQuiet();
+        double u = g.voltageAt(0, 5);
+        double i = g.currentAt(0, 5);
+        boolean pass = i > 0.015 && i < 0.026 && u > 1.9 && u < 2.8 && g.islands() >= 1;
+        s.sendMessage(Items.color((pass ? "&aPASS " : "&cFAIL ")
+                + "&7редактор схемы: LED &f" + Num.volt(u) + " &7при токе &f" + Num.amp(i)
+                + "&7, островков &f" + g.islands() + " &8(ожидалось ~20 мА, ~2.3 В)"));
+        for (int row = 0; row < 3; row++) {
+            StringBuilder sb = new StringBuilder();
+            for (int col = 0; col < 9; col++) {
+                String note = g.noteAt(row, col);
+                if (note != null) {
+                    sb.append("[").append(row).append(",").append(col).append("] ")
+                            .append(g.netsAt(row, col)).append(" | ").append(note).append("  ");
+                }
+            }
+            if (sb.length() > 0) {
+                s.sendMessage(Items.color("&8" + sb));
+            }
+        }
+
+        int missing = 0;
+        for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {
+            if (me.arena.electronics.gui.CatalogGui.whatIs(d).isEmpty()) {
+                if (missing < 6) {
+                    s.sendMessage(Items.color("&eнет описания для kind &f" + d.kind.name()));
+                }
+                missing++;
+            }
+            if (plugin.items().componentItem(d, 1) == null) {
+                missing++;
+            }
+        }
+        s.sendMessage(Items.color((missing == 0 ? "&aPASS " : "&cFAIL ")
+                + "&7каталог: &f" + me.arena.electronics.registry.Components.size()
+                + " &7предметов, описаний не хватает у &f" + missing));
+    }
+
+    /** Каталог всех предметов плагина в GUI (то же, что /electro show). */
+    private void show(CommandSender s, String[] args) {
+        if (!(s instanceof Player p)) {
+            s.sendMessage(Items.color("&cКаталог открывается только игроку. "
+                    + "Списком в чате: /elec list"));
+            return;
+        }
+        me.arena.electronics.gui.CatalogGui.open(p, args.length > 1 ? parseInt(args[1], 0) : 0);
+    }
+
     private void schematic(CommandSender s, String[] args) {
         if (!(s instanceof Player p)) {
             s.sendMessage(Items.color("&cТолько для игроков."));
@@ -365,7 +451,8 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         }
         CompInstance c = lookAt(p);
         if (c == null) {
-            s.sendMessage(Items.color("&cНаведите на компонент (или на плату с компонентом)."));
+            // ничего под прицелом — рисуем новую схему на листе (GUI-редактор)
+            me.arena.electronics.gui.SchematicGui.open(plugin, p);
             return;
         }
         List<CompInstance> island = Simulation.islandWith(plugin.circuit(), c);

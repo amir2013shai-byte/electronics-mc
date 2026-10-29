@@ -74,8 +74,14 @@ public final class ElectronicsPlugin extends JavaPlugin {
         }, 40L, 40L);
 
         getServer().getPluginManager().registerEvents(new Events(this), this);
-        registerCommand("elec", new ElecCommand(this));
+        ElecCommand elecCmd = new ElecCommand(this);
+        registerCommand("elec", elecCmd);
         registerCommand("lab", new LabCommand(this));
+        if (config.selftestOnEnable) {
+            // через 3 секунды: чанки уже подгружены, есть чем свериться
+            Bukkit.getScheduler().runTaskLater(this,
+                    () -> elecCmd.selftest(Bukkit.getConsoleSender()), 60L);
+        }
 
         long period = 1L;
         Bukkit.getScheduler().runTaskTimer(this, () -> {
@@ -102,6 +108,7 @@ public final class ElectronicsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        me.arena.electronics.gui.SchematicGui.clearSessions();
         if (renderer != null) {
             renderer.dropAll();
         }

@@ -61,6 +61,17 @@ public final class BuildLoader {
         }
     }
 
+    /** Публичная фабрика: сборку строит и редактор схемы, а не только JSON-файл. */
+    public static Entry entry(String defId, int dx, int dy, int dz, int orientation,
+                              double tune, boolean host) {
+        return new Entry(defId, dx, dy, dz, orientation, tune, host);
+    }
+
+    /** Пустая сборка для заполнения из GUI-редактора. */
+    public Build newBuild(String name, String title) {
+        return new Build(name, title);
+    }
+
     public static final class Build {
         public final String name;
         public final String title;

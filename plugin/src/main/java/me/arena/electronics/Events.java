@@ -56,16 +56,22 @@ public final class Events implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent e) {
+        Player p = e.getPlayer();
+        Def held = Items.defOf(p.getInventory().getItemInMainHand());
+        // «Пустая схема» в руке: ПКМ в воздух — открыть лист-редактор.
+        if (held != null && held.kind == Kind.SCHEMATIC && !e.getAction().name().contains("BLOCK")) {
+            e.setCancelled(true);
+            me.arena.electronics.gui.SchematicGui.open(plugin, p);
+            return;
+        }
         if (e.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
-        Player p = e.getPlayer();
         Block b = e.getClickedBlock();
         if (b == null) {
             return;
         }
         CompInstance existing = plugin.circuit().get(b);
-        Def held = Items.defOf(p.getInventory().getItemInMainHand());
 
         // (1) устанавливаем компонент из руки на подставку/плату
         if (held != null && existing == null) {
@@ -99,8 +105,32 @@ public final class Events implements Listener {
                     info(p, existing);
                 }
             }
-            case SCHEMATIC -> plugin.labs().onSchematicClick(p, existing);
+            case SCHEMATIC -> {
+                // планшет без привязанной лабораторной = лист для рисования
+                if (existing.lab.isEmpty()) {
+                    me.arena.electronics.gui.SchematicGui.open(plugin, p);
+                } else {
+                    plugin.labs().onSchematicClick(p, existing);
+                }
+            }
             default -> info(p, existing);
+        }
+    }
+
+    /** Любой клик внутри GUI плагина: окно наше, предметы не таскаются. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onGuiClick(org.bukkit.event.inventory.InventoryClickEvent e) {
+        if (e.getInventory().getHolder() instanceof me.arena.electronics.gui.Gui gui
+                && e.getWhoClicked() instanceof Player p) {
+            e.setCancelled(true);
+            gui.onClick(p, e);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onGuiDrag(org.bukkit.event.inventory.InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof me.arena.electronics.gui.Gui) {
+            e.setCancelled(true);
         }
     }
 

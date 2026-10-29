@@ -50,13 +50,36 @@ public final class Simulation {
 
     /** Пересчёт всех цепей; возвращает число обработанных островков. */
     public static int run(ElectronicsPlugin plugin, Circuit circuit, int budget) {
-        Config cfg = plugin.config();
         pruneInvalid(plugin, circuit);
+        return solve(plugin, c -> circuit.world(c.key.worldName()),
+                new ArrayList<>(circuit.all()), budget, true);
+    }
 
+    /**
+     * Расчёт «виртуальной» цепи — для редактора схемы в GUI. Физика ровно та
+     * же (тот же solveIsland/stampAll/finish), но компоненты живут в
+     * синтетических координатах и никакие блоки мира не трогаются, а
+     * «кто с кем соединён» считает та же Topology по сетке.
+     *
+     * @param byPos «мировая карта» песочницы: Circuit.pos(x,y,z) -> компонент
+     * @return число островков, которые удалось решить
+     */
+    public static int solveVirtual(ElectronicsPlugin plugin, Map<String, CompInstance> byPos,
+                                  List<CompInstance> components) {
+        return solve(plugin, c -> byPos, components, Integer.MAX_VALUE, false);
+    }
+
+    /** Соседи компонента (для «стопки на проводе»); в мире — чанк, в GUI — сетка. */
+    private interface Neighbors {
+        Map<String, CompInstance> of(CompInstance c);
+    }
+
+    private static int solve(ElectronicsPlugin plugin, Neighbors neighbors,
+                             List<CompInstance> components, int budget, boolean notify) {
+        Config cfg = plugin.config();
         Map<String, List<CompInstance>> byNet = new HashMap<>();
-        List<CompInstance> components = new ArrayList<>(circuit.all());
         for (CompInstance c : components) {
-            Circuit.resolvePins(c, circuit.world(c.key.worldName()));
+            Circuit.resolvePins(c, neighbors.of(c));
             addNet(byNet, c.anchorNet, c);
             for (int i = 0; i < 6; i++) {
                 addNet(byNet, c.pinNet[i], c);
@@ -71,16 +94,23 @@ public final class Simulation {
                 continue;
             }
             if (processed >= budget) {
-                circuit.markDirty();
-                break;
+                if (notify) {
+                    plugin.circuit().markDirty();
+                }
+                break;            // не успели — дорешаем в следующий тик
             }
-            Island isl = collectIsland(circuit, start, byNet, cfg, assigned);
+            Island isl = collectIsland(start, byNet, cfg, assigned);
             if (isl.comps.isEmpty()) {
                 continue;
             }
             processed += isl.comps.size();
             islands++;
-            solveIsland(plugin, cfg, isl);
+            if (cfg.debug) {
+                plugin.getLogger().info("[isl] comps=" + isl.comps.size() + " nets=" + isl.parent.size()
+                        + " nodeCount=" + isl.nodeCount + " grounds=" + isl.grounds.size()
+                        + " src=" + isl.hasSource + " hint=" + isl.hint);
+            }
+            solveIsland(plugin, cfg, isl, notify);
         }
 
         if (cfg.debug) {
@@ -104,7 +134,7 @@ public final class Simulation {
             c.reading = 0;
             c.vcPrev = 0;
             c.modelState = ModelState.of(c);
-            if (changed) {
+            if (changed && notify) {
                 plugin.renderer().requestUpdate(c);
             }
         }
@@ -149,7 +179,7 @@ public final class Simulation {
         }
     }
 
-    private static Island collectIsland(Circuit circuit, CompInstance start,
+    private static Island collectIsland(CompInstance start,
                                         Map<String, List<CompInstance>> byNet, Config cfg,
                                         Map<CompInstance, Island> assigned) {
         Island isl = new Island();
@@ -233,7 +263,7 @@ public final class Simulation {
 
     // ------------------------------------------------------------------ решатель
 
-    private static void solveIsland(ElectronicsPlugin plugin, Config cfg, Island isl) {
+    private static void solveIsland(ElectronicsPlugin plugin, Config cfg, Island isl, boolean notify) {
         double dt = Math.max(0.005, cfg.dt());
         Map<String, Double> v = Map.of();
 
@@ -252,7 +282,7 @@ public final class Simulation {
             stampAll(plugin, cfg, isl, mna, dt, v);
             v = mna.solve();
             if (pass == cfg.solvePasses - 1) {
-                finish(plugin, cfg, isl, mna, v);
+                finish(plugin, cfg, isl, mna, v, notify);
             }
         }
     }
@@ -327,8 +357,12 @@ public final class Simulation {
                         // Thévenin: ЭДС emf и внутреннее сопротивление r между «-» (b) и «+» (a)
                         double emf = sourceVoltage(plugin, cfg, c);
                         double r = Math.max(1e-3, d.rInt);
-                        double un = prev.getOrDefault(b, 0.0);
-                        mna.stamp(b, a, 1.0 / r, (emf + un) / r);
+                        // Тевенин -> Нортон: проводимость 1/r между выводами и
+                        // источник тока emf/r. Без члена «с предыдущего прохода»
+                        // система сходится за один проход и честно отдаёт ЭДС
+                        // на разомкнутом выводе (иначе холостой источник
+                        // расходится до 2*emf и больше).
+                        mna.stamp(b, a, 1.0 / r, emf / r);
                     }
                 }
                 case POT -> {
@@ -446,7 +480,8 @@ public final class Simulation {
 
     // ------------------------------------------------------------------ измерения
 
-    private static void finish(ElectronicsPlugin plugin, Config cfg, Island isl, Mna mna, Map<String, Double> v) {
+    private static void finish(ElectronicsPlugin plugin, Config cfg, Island isl, Mna mna,
+                               Map<String, Double> v, boolean notify) {
         double gndV = isl.grounds.isEmpty() ? 0 : v.getOrDefault(isl.grounds.get(0), 0.0);
         boolean burned = false;
         for (CompInstance c : isl.comps) {
@@ -463,9 +498,11 @@ public final class Simulation {
                 burned = true;
             }
             c.modelState = ModelState.of(c);
-            plugin.renderer().requestUpdate(c);
+            if (notify) {
+                plugin.renderer().requestUpdate(c);
+            }
         }
-        if (burned) {
+        if (burned && notify) {
             plugin.circuit().markDirty();
         }
     }
@@ -616,6 +653,11 @@ public final class Simulation {
             return day ? cfg.solarDayVoltage : cfg.solarNightVoltage;
         }
         return c.tunedVoltage();
+    }
+
+    /** Узел «как он называется» без имени мира — для диагностики. */
+    public static String netShort(String net) {
+        return shortNet(net);
     }
 
     private static String shortNet(String net) {

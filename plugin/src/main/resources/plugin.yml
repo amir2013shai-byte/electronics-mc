@@ -8,8 +8,8 @@ load: POSTWORLD
 
 commands:
   elec:
-    description: Управление электроникой
-    aliases: [electronics, el, circuit, schet]
+    description: Управление электроникой (show — каталог предметов, schematic — редактор)
+    aliases: [electro, electronics, el, circuit, schet]
     usage: "/elec help"
   lab:
     description: Практические работы (лабораторные схемы)

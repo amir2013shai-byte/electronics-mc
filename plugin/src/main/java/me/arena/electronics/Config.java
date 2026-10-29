@@ -47,6 +47,8 @@ public final class Config {
     public String resourcePackUrl = "";
     public String resourcePackHash = "";
     public boolean debug = false;
+    /** Проверить сборку на старте (GUI-редактор + каталог) без игрока. */
+    public boolean selftestOnEnable = false;
 
     private final ElectronicsPlugin plugin;
 
@@ -95,6 +97,7 @@ public final class Config {
         resourcePackUrl = c.getString("resource-pack.url", resourcePackUrl);
         resourcePackHash = c.getString("resource-pack.sha1", resourcePackHash);
         debug = c.getBoolean("debug", debug);
+        selftestOnEnable = c.getBoolean("selftest", selftestOnEnable);
     }
 
     public void save() {
