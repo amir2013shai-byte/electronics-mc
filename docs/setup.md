@@ -14,8 +14,8 @@
 |---|---|
 | `electronics/build/`, `plugin/target/` | `bash tools/publish.sh` (артефакты кладёт в `release/`) |
 | `/usr/lib/jvm/java-21-openjdk-amd64` | `sudo apt-get install -y openjdk-21-jdk-headless` |
-| скачанные jar в `tools/repo` (spigot-api, joml) | `mvn` дотянет сам, если дать `-Dmaven.repo.local=/home/user/tools/repo` |
-| сам `tools/maven` (снимок доехал не полностью: нет `boot/plexus-classworlds`, `lib/maven-embedder` → `ClassNotFoundException: org.apache.maven.cli.MavenCli`) | `sudo apt-get install -y maven` (3.9.9, `/usr/bin/mvn`) — проще, чем чинить копию |
+| скачанные jar (spigot-api, joml) | `mvn` дотянет сам; `tools/run_tests.sh` сам ищет их в `$REPO` → `~/.m2/repository` → `/home/user/tools/repo`, а не найдя — зовёт `mvn dependency:build-classpath` |
+| сам `tools/maven` (снимок доехал не полностью: нет `boot/plexus-classworlds`, `lib/maven-embedder` → `ClassNotFoundException: org.apache.maven.cli.MavenCli`) | `sudo apt-get install -y maven` (3.9.9, `/usr/bin/mvn`) — проще, чем чинить копию. В этой песочнице `tools/` в итоге удалён совсем: 29 МБ на скачанные jar, которые maven тянет за 10 с |
 | `/tmp/*.log` прогоны сервера | они не нужны; результаты зафиксированы в `README.md` |
 
 Отсюда и репозиторий: `release/` (jar + оба архива + превью + `sha1sums.txt`)
