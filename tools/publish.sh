@@ -12,6 +12,7 @@ cd "$(dirname "$0")/.."
 python3 tools/gen_pack.py
 python3 tools/preview.py
 python3 tools/check_pack_refs.py | tail -1
+python3 tools/sheets.py | tail -1   # раздаточные листы в release/textures/
 
 mkdir -p release
 cp build/electronics-resourcepack.zip release/
@@ -31,8 +32,8 @@ fi
 cd release
 rm -f sha1sums.txt
 sha1sum Electronics-1.0.0.jar electronics-resourcepack.zip \
-        electronics-recipes-datapack.zip preview.png > sha1sums.txt 2>/dev/null || \
-  sha1sum * > sha1sums.txt
+        electronics-recipes-datapack.zip preview.png textures/*.png > sha1sums.txt 2>/dev/null || \
+  sha1sum * textures/*.png > sha1sums.txt
 cd ..
 echo "== release/ =="
 ls -la release | tail -n +2

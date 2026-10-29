@@ -69,6 +69,7 @@ jobs:
             release/electronics-recipes-datapack.zip
             release/preview.png
             release/sha1sums.txt
+            release/textures/*.png
           if-no-files-found: error
 
       # ВАЖНО: permissions на уровне *шага* GitHub не принимает (ран падает ещё
@@ -85,6 +86,11 @@ jobs:
             release/electronics-recipes-datapack.zip \
             release/preview.png \
             release/sha1sums.txt \
+            release/textures/sheet-01.png \
+            release/textures/sheet-02.png \
+            release/textures/sheet-03.png \
+            release/textures/sheet-04.png \
+            release/textures/sheet-05.png \
             --title "Electronics $GITHUB_REF_NAME (Minecraft 1.21.11)" \
             --notes "Плагин собран против spigot-api $SPIGOT_API, ресурспак — pack_format 75.
           Ставить: jar в \`plugins/\`, архив — в \`resource-pack.url\` (или вручную клиенту).

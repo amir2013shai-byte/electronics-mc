@@ -1,4 +1,9 @@
 bb4eed156e73a5132ba918aa3d7d2caac4c200e4  Electronics-1.0.0.jar
-761b24f97823a541678393ce601582825fced18a  electronics-resourcepack.zip
-b4089f4d2a62fd83d91d5bb4277634744990b6d9  electronics-recipes-datapack.zip
+56a27f8bf3db46a54d6667ddf6e2d07f025ef84b  electronics-resourcepack.zip
+c45c318da604f6fea9fec935f73bc330e4527342  electronics-recipes-datapack.zip
 4cccd74edea1847f6af9beebb05fbb5c5d66b7fd  preview.png
+e6f12ab21c99ee242d96312e57e9fd962de6d50a  textures/sheet-01.png
+98e5a0ad21e3e42d54bd30c36914f902d501ea49  textures/sheet-02.png
+f9bb8796d0ebe9889346a070b9e57d9b7e825162  textures/sheet-03.png
+d69721da7e4800918260a0c67558d0f55f24c679  textures/sheet-04.png
+97f98c38d68881a63de2134dc030c8ec0a5d9142  textures/sheet-05.png
