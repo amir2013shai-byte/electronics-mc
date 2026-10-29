@@ -1,0 +1,143 @@
+package me.arena.electronics.circuit;
+
+import me.arena.electronics.registry.Def;
+import me.arena.electronics.registry.LocationKey;
+import me.arena.electronics.registry.Orientation;
+import org.bukkit.NamespacedKey;
+
+/**
+ * Экземпляр компонента в мире + результаты последнего расчёта.
+ *
+ * Топология: у 2-полюсника контакты — это блоки, в которые «смотрят» его
+ * контакты по направлению {@link #orientation} (плюс верх/низ, если включён
+ * режим extra_pins). Два компонента соединены, если их контакты попали в один
+ * и тот же узел (net). Провод/шина земли/замкнутый ключ объединяют узлы.
+ */
+public final class CompInstance {
+
+    public static final NamespacedKey PDC_DEF = new NamespacedKey("electronics", "def");
+    public static final NamespacedKey PDC_ORIENT = new NamespacedKey("electronics", "orient");
+    public static final NamespacedKey PDC_STATE = new NamespacedKey("electronics", "state");
+    public static final NamespacedKey PDC_TUNE = new NamespacedKey("electronics", "tune");
+    public static final NamespacedKey PDC_FAULT = new NamespacedKey("electronics", "fault");
+    public static final NamespacedKey PDC_LAB = new NamespacedKey("electronics", "lab");
+    public static final NamespacedKey PDC_NETLIST = new NamespacedKey("electronics", "netlist");
+    public static final NamespacedKey PDC_NOTE = new NamespacedKey("electronics", "note");
+
+    /** 4 стороны + верх/низ. */
+    public static final org.bukkit.block.BlockFace[] FACES = {
+            org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.EAST,
+            org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.WEST,
+            org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN
+    };
+
+    public final LocationKey key;
+    public Def def;
+    public Orientation orientation = Orientation.NORTH;
+
+    /** 0 выкл / 1 тускло / 2 горит / 3 сгорел / 4 обратное включение / 5 замкнут. */
+    public int state;
+    public String fault = "";
+    /** Подстройка (напряжение БП, ползунок) 0..1000. */
+    public int tune = 1000;
+    /** Имя схемы для SCHEMATIC. */
+    public String lab = "";
+
+    // --- результаты расчёта ---
+    /** Узел (net) для каждого из контактов FACES[]; null — контакт в никуда. */
+    public String[] pinNet = new String[6];
+    /** Направление вывода для каждого контакта. */
+    public org.bukkit.block.BlockFace[] pinFaces = new org.bukkit.block.BlockFace[6];
+    /** Якорный узел: {блок, блок под ним}. */
+    public String anchorNet;
+    /** Стоим ли на проводящей опоре (провод/шина) — тогда узел общий. */
+    public boolean stackedOnConductor;
+    /** Узел контакта после union-find (для построения схем). */
+    public String[] pinNets = new String[6];
+    public double[] pinVoltage = new double[6];
+    public double voltage;
+    public double current;
+    public double power;
+    public double brightness;
+    /** Для приборов (вольтметр/амперметр/мультиметр). */
+    public double reading;
+    public double vcPrev;
+    public double speedPrev;
+    /** Индекс состояния модели ресурспака (0..stateModels). */
+    public int modelState;
+
+    public CompInstance(LocationKey key, Def def) {
+        this.key = key;
+        this.def = def;
+    }
+
+    public boolean burnt() {
+        return state == 3;
+    }
+
+    public boolean isClosed() {
+        return state == CompStates.CLOSED;
+    }
+
+    /** Проводящий «сквозь себя» элемент, который объединяет узлы (wire/bus/closed switch). */
+    public boolean isConductor() {
+        if (burnt()) {
+            return false;
+        }
+        if (def.hub) {
+            return true;   // провод / шина земли / шина питания
+        }
+        return switch (def.kind) {
+            case SWITCH, BUTTON, TOGGLE, PROBE -> isClosed();
+            default -> false;
+        };
+    }
+
+    /** Является ли блок «бесполезной» подставкой (её узлы не объединяются). */
+    public boolean isHostOnly() {
+        return def.kind == me.arena.electronics.registry.Kind.BOARD
+                || def.kind == me.arena.electronics.registry.Kind.EMPTY
+                || def.kind == me.arena.electronics.registry.Kind.SCHEMATIC;
+    }
+
+    public double tunedVoltage() {
+        if (def.tunable) {
+            return def.voltage * (tune / 1000.0);
+        }
+        return def.voltage;
+    }
+
+    public double tuneFraction() {
+        return tune / 1000.0;
+    }
+
+    public void setTune(double fraction) {
+        tune = (int) Math.round(Math.max(0, Math.min(1, fraction)) * 1000);
+    }
+
+    public void burn(String reason) {
+        if (state == 3) {
+            return;
+        }
+        state = 3;
+        fault = reason;
+        brightness = 0;
+        voltage = 0;
+        current = 0;
+        power = 0;
+    }
+
+    public void clearFault() {
+        state = 0;
+        fault = "";
+    }
+
+    public boolean needsTick() {
+        return def.isTimeDependent();
+    }
+
+    @Override
+    public String toString() {
+        return def.id + "@" + key;
+    }
+}

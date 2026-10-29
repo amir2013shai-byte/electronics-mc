@@ -1,0 +1,30 @@
+name: Electronics
+version: 1.0.0
+main: me.arena.electronics.ElectronicsPlugin
+api-version: '1.21'
+author: Arena
+description: Учебная электроника (светодиоды, диоды, блоки питания, схемы) для 1.21.11 без клиентских модов.
+load: POSTWORLD
+
+commands:
+  elec:
+    description: Управление электроникой
+    aliases: [electronics, el, circuit, schet]
+    usage: "/elec help"
+  lab:
+    description: Практические работы (лабораторные схемы)
+    usage: "/lab help"
+
+permissions:
+  electronics.use:
+    description: Базовое использование (собирать, тыкать, мерить)
+    default: true
+  electronics.build:
+    description: Ставить и ломать компоненты
+    default: true
+  electronics.give:
+    description: Выдавать компоненты себе
+    default: op
+  electronics.admin:
+    description: Полный доступ (repair all, burn, clear, reload, lab save)
+    default: op
