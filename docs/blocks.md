@@ -1,8 +1,8 @@
-/home/user/electronics/docs/blocks.md: 60 блоков, 341 состояний, 2046 индексов
+/home/user/electronics/docs/blocks.md: 64 блоков, 345 состояний, 2070 индексов
 son` — не правь руками.
 
 * Minecraft **1.21.11**, `pack_format: 75`
-* компонентов: **60**, визуальных состояний: **341**, индексов состояния модели: **2046** = Σ(`states` × 6 ориентаций)
+* компонентов: **64**, визуальных состояний: **345**, индексов состояния модели: **2070** = Σ(`states` × 6 ориентаций)
 * namespace: `electronics` — ключ модели выглядит как `electronics:<id><суффикс состояния>`
 
 ## Состояния модели
@@ -275,6 +275,10 @@ Companion-модель `C/dt` (явный Эйлер, шаг — `simulation.tim
 | `choke_10h` | `INDUCTOR` | Дроссель 10 Гн |
 | `relay_5v` | `RELAY` | Реле 5 В |
 | `reed_switch` | `REED` | Геркон |
+| `soldering_station` | `STATION` | Паяльный стол |
+| `soldering_iron` | `TOOL` | Паяльник |
+| `solder` | `SUPPLY` | Припой |
+| `flux` | `SUPPLY` | Флюс (канифоль) |
 
 ## Текстуры и модели
 

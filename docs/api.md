@@ -15,7 +15,7 @@ ep.builds();        // готовые сборки-пресеты (BuildLoader)
 ep.recipes();       // регистрация крафтов (Recipes)
 ep.persistence();   // JSON-реестр вместо PDC (Persistence)
 ep.forceSimulate(); // пересчитать сейчас
-ep.stateModelCount();  // 2046 — сколько состояний модели у ресурспака
+ep.stateModelCount();  // 2070 — сколько состояний модели у ресурспака
 ```
 
 ### Компоненты и «реестр состояний модели»
@@ -31,7 +31,7 @@ String name    = ModelState.describe(modelIndex); // "led_red [on/east]"
   5 closed` (`CompStates`); `Def#clampState` не даёт выйти за
   `states` компонента.
 * `orient` — `0 north, 1 east, 2 south, 3 west, 4 up, 5 down`.
-* Сумма `states × 6` по всем 60 видам = 2046; `Components.stateModels()`.
+* Сумма `states × 6` по всем 64 видам = 2070; `Components.stateModels()`.
 * Ключ модели в ресурспаке: `electronics:<id>` для `off` и
   `electronics:<id>_<off|dim|on|burnt|rev|closed>` для остальных — см.
   `Items#applyModel`, имена синхронизированы с `tools/gen_pack.py`
@@ -124,7 +124,12 @@ Map<String,String> nets = Simulation.mergedNets(ep.circuit());
    `tools/gen_pack.py`, затем `python3 tools/gen_pack.py` и
    `python3 tools/check_pack_refs.py`;
 4. крафт: словарь `RECIPES` в `gen_pack.py` (датапак) и `DEFS` в
-   `recipes/Recipes.java` (серверный).
+   `recipes/Recipes.java` (серверный). Списки должны совпадать id-в-id —
+   `tools/run_tests.sh` это сверяет;
+5. если деталь надо паять, а не клеить в верстаке — добавить её id в
+   `meta.soldered` в `shared/components.json` (его читают и `Recipes.register`,
+   и `tools/gen_pack.py`, так что датапак и сервер расходятся не могут),
+   а объяснение для каталога — в `WHAT`/`WHAT_ID` в `gui/CatalogGui.java`.
 
 Индексная арифметика (`base + state*6 + orient`) обновится сама: она считается
 по порядку и полям `states` в `components.json` — и в Java, и в генераторе.

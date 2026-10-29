@@ -3,9 +3,10 @@
     "namespace": "electronics",
     "mc_version": "1.21.11",
     "resource_pack_format": 75,
-    "state_model_count": 2046,
+    "soldered": ["solar_cell", "resistor_10r", "resistor_100r", "resistor_220r", "resistor_330r", "resistor_1k", "resistor_4k7", "resistor_10k", "resistor_100k", "potentiometer", "cap_100nf", "cap_100uf", "cap_1000uf", "diode", "led_red", "led_green", "led_blue", "led_yellow", "led_white", "lamp", "button", "switch_spst", "switch_spdt", "transistor_npn", "transistor_pnp", "gate_and", "gate_or", "gate_xor", "gate_not", "comparator", "buzzer", "motor", "fuse", "voltmeter", "ammeter", "multimeter", "electromagnet", "inductor_10mh", "choke_10h", "relay_5v", "reed_switch", "photoresistor", "thermistor_ntc"],
+    "state_model_count": 2070,
     "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
-    "component_count": 60
+    "component_count": 64
   },
   "kinds": [
     "BOARD",
@@ -37,7 +38,7 @@
     "SOLAR",
     "DISTRIBUTOR",
     "EMPTY"
-  ],
+  , "MAGNET", "ELECTROMAGNET", "INDUCTOR", "RELAY", "REED", "STATION", "TOOL", "SUPPLY"],
   "orientations": [
     {
       "index": 0,
@@ -1237,5 +1238,9 @@
      "shape": "thermistor", "size": [9, 9, 9], "palette": ["#1f1f24", "#c0392b"],
      "resistance": 10000.0, "b_constant": 3950.0, "self_heat": 40.0, "rated_power": 0.25,
      "states": 6}
-  ]
+,
+    {"id": "soldering_station", "ru": "Паяльный стол", "en": "Soldering Station", "kind": "STATION", "shape": "station", "size": [16, 9, 16], "palette": ["#2f3b45", "#7f8c8d", "#e8b04b", "#c0392b"], "stack": false, "solid": true, "states": 1},
+    {"id": "soldering_iron", "ru": "Паяльник", "en": "Soldering Iron", "kind": "TOOL", "shape": "tool", "size": [14, 2, 2], "palette": ["#bdc3c7", "#e67e22", "#f5f5f5"], "stack": false, "states": 1},
+    {"id": "solder", "ru": "Припой", "en": "Solder", "kind": "SUPPLY", "shape": "supply", "size": [12, 6, 12], "palette": ["#95a5a6", "#d6dbdf", "#7f8c8d"], "stack": true, "states": 1},
+    {"id": "flux", "ru": "Флюс (канифоль)", "en": "Rosin Flux", "kind": "SUPPLY", "shape": "supply", "size": [10, 6, 10], "palette": ["#e8c39e", "#b9770e", "#f7dc6f"], "stack": true, "states": 1}  ]
 }

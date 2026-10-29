@@ -16,9 +16,9 @@ brightness, burnt parts. No client mod.
 | Resource pack format | **75** (75.0–75.1) |
 | Data pack format (recipes) | **94** |
 | Client mod | not required |
-| Components | 60 ids (53 electrical + boards/tools/schematic), RU + EN display names |
-| Built pack | 1451 files: 1023 item textures, 360 models (60 × 6), 60 `items/*.json` |
-| Resource-pack model states | **2046** = 341 visual states × 6 orientations |
+| Components | 64 ids (53 electrical + boards/tools/schematic + soldering), RU + EN display names |
+| Built pack | 1491 files: 1035 item textures, 384 models (64 × 6), 64 `items/*.json` |
+| Resource-pack model states | **2070** = 345 visual states × 6 orientations |
 
 ## Why the "modify the player" trick became a state-model registry
 
@@ -28,12 +28,12 @@ Spigot's `Player` exposes no write channel to entity NBT/state (only NMS
 `Player#sendActionBar(String)` does not exist in this API. So the "800+
 mutable states" are implemented where the vanilla client actually reads them:
 
-1. **2046 resource-pack `items` definitions** — one per
+1. **2070 resource-pack `items` definitions** — one per
    (component, visual state, orientation), selected by the server through the
    `minecraft:item_model` item component; `custom_model_data[0]` carries the
    state index for `range_dispatch` on lamp-like parts.
 2. **Orientation + state** live server-side in the plugin registry and are
-   pushed on every render: 6 orientations × 341 states = 2046 addresses ≥ 800.
+   pushed on every render: 6 orientations × 345 states = 2070 addresses ≥ 800.
 3. **World visuals** via `ItemDisplay`/`TextDisplay` entities (vanilla, no
    client changes): the model floats above the board, meters show their reading.
 4. `render.mode: none` drops displays entirely — item models + the retextured
@@ -44,7 +44,7 @@ mutable states" are implemented where the vanilla client actually reads them:
 ```
 plugins/Electronics-1.0.0.jar                         # or: cd plugin && mvn -DskipTests package
 build/electronics-resourcepack.zip                     # resource pack (set resource-pack.url or apply manually)
-build/electronics-recipes-datapack.zip                 # optional: 60 vanilla crafting recipes
+build/electronics-recipes-datapack.zip                 # optional: 21 vanilla crafting recipes (43 more are soldered)
 ```
 
 First start writes `config.yml`, three lab worksheets into `labs/`, two preset
@@ -133,16 +133,42 @@ and the schematic GUI has a «Симулировать 20 тиков» button th
 without resetting capacitor charges or coil currents — the transient is visible
 in the tooltip numbers.
 
+## Soldering is the crafting gate
+
+43 of the 64 ids (everything with leads — resistors, capacitors, LEDs, diodes,
+transistors, gates, relay, reed, coils, motor, buzzer, meters, switches, solar
+cell) cannot be crafted in a crafting table at all: `Recipes.register()` skips
+them and the data pack ships only the remaining 21 recipes, which the startup
+log states as `recipes: 21 (soldering: 43, skipped 0)`. The list itself lives in
+`shared/components.json` → `meta.soldered`, so plugin and pack generator share it.
+
+* **soldering station** — `P P / PFP / ICI` (planks, furnace, iron nuggets,
+  copper); a hot block (furnace, campfire, lava, magma) must touch it;
+* **soldering iron** — `  C /  I / S  ` (copper tip, iron shaft, stick handle),
+  64 joints of durability shown as a normal damage bar; right-clicking a hot
+  block with it heats the tip to 100°, which then cools at ~1.2°/s, so
+  «heat» and «solder» stay two separate actions;
+* **solder** — 2 iron nuggets + flint; 1 per two-lead part, 2 per three/four-lead;
+* **flux** — glowstone dust + honey bottle, mandatory for heat-sensitive bodies
+  (LEDs, lamps, diodes, transistors, gates, relay, reed, coils, capacitors,
+  motor, buzzer, meters).
+
+60…99° gives a proper joint, 20…59° a **cold joint** (solder burnt, part not
+produced, blanks kept), below 20° the attempt is refused. `/elec solder` opens
+the station GUI by hand for a lesson. Every rule lives in the pure function
+`recipes/Soldering.evaluate(...)`, and `/elec selftest` asserts exactly that
+function, so GUI and tests cannot drift apart.
+
 ## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), topology and
   circuit solve `OK=25 FAIL=0` (9 V / 220 Ω / LED loop: 28.46 mA against the
   hand-computed 28.9 mA), and the pack checker
-  `OK: все 60×6 ссылок на модели и текстуры разрешаются` (also standalone:
+  `OK: все 64×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
 * `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.0.0.jar`.
-* Live run on Paper 1.21.11 build 132: plugin enables — 60 components, 2046
-  model states, 60 recipes, 3 worksheets;
+* Live run on Paper 1.21.11 build 132: plugin enables — 64 components, 2070
+  model states, `recipes: 21 (soldering: 43, skipped 0)`, 3 worksheets;
   `/elec build` placed both presets (12 + 12 parts, 13 + 13 hosts),
   `/elec sim` reported `islands=1` for a single loop and `islands=2` for the
   two independent ones, `/elec dump` printed U/I/P per part.

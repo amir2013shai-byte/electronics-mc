@@ -71,6 +71,17 @@ public final class Events implements Listener {
         if (b == null) {
             return;
         }
+        // (0) паяльник и расходники в мир не ставятся: ПКМ по горячему блоку греет жало
+        if (held != null && (held.kind == Kind.TOOL || held.kind == Kind.SUPPLY)) {
+            e.setCancelled(true);
+            if (held.kind == Kind.TOOL) {
+                me.arena.electronics.recipes.Soldering.reheat(p, b);
+            } else {
+                Items.message(p, "&7«" + held.nameRu + "» — расходник паяльного стола: "
+                        + "держи его в инвентаре и нажми ПКМ по паяльному столу.");
+            }
+            return;
+        }
         CompInstance existing = plugin.circuit().get(b);
 
         // (1) устанавливаем компонент из руки на подставку/плату
@@ -105,6 +116,7 @@ public final class Events implements Listener {
                     info(p, existing);
                 }
             }
+            case STATION -> me.arena.electronics.gui.SolderGui.open(plugin, p, b, true);
             case SCHEMATIC -> {
                 // планшет без привязанной лабораторной = лист для рисования
                 if (existing.lab.isEmpty()) {

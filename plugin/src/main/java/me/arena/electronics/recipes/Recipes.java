@@ -36,6 +36,32 @@ public final class Recipes {
         this.plugin = plugin;
     }
 
+    /**
+     * Ингредиенты id как мультимножество — по ним паяльный стол сверяет, что
+     * игрок положил в сетку заготовок (и что списать при успехе).
+     */
+    public static Map<Material, Integer> ingredientsOf(String id) {
+        Map<Material, Integer> out = new java.util.LinkedHashMap<>();
+        Object spec = DEFS.get(id);
+        if (spec instanceof Shaped sh) {
+            for (String row : sh.pattern()) {
+                for (int i = 0; i < row.length(); i++) {
+                    Material m = sh.key().get(row.charAt(i));
+                    if (m != null && m != Material.AIR) {
+                        out.merge(m, 1, Integer::sum);
+                    }
+                }
+            }
+        } else if (spec instanceof Shapeless sl) {
+            for (Material m : sl.ingredients()) {
+                if (m != null && m.isItem()) {
+                    out.merge(m, 1, Integer::sum);
+                }
+            }
+        }
+        return out;
+    }
+
     private static Map<Character, Material> map(Object... pairs) {
         Map<Character, Material> m = new HashMap<>();
         for (int i = 0; i + 1 < pairs.length; i += 2) {
@@ -94,6 +120,14 @@ public final class Recipes {
                 map("G", Material.GLASS, "S", Material.GLOWSTONE_DUST, "C", Material.COPPER_INGOT)));
         DEFS.put("thermistor_ntc", new Shapeless(List.of(Material.CLAY_BALL, Material.COPPER_INGOT,
                 Material.COPPER_INGOT, Material.REDSTONE)));
+        DEFS.put("soldering_station", new Shaped(new String[]{"P P", "PFP", "ICI"},
+                map("P", Material.OAK_PLANKS, "F", Material.FURNACE,
+                        "I", Material.IRON_NUGGET, "C", Material.COPPER_INGOT)));
+        DEFS.put("soldering_iron", new Shaped(new String[]{"  C", " I ", "S  "},
+                map("C", Material.COPPER_INGOT, "I", Material.IRON_NUGGET, "S", Material.STICK)));
+        DEFS.put("solder", new Shapeless(List.of(Material.IRON_NUGGET, Material.IRON_NUGGET,
+                Material.FLINT)));
+        DEFS.put("flux", new Shapeless(List.of(Material.GLOWSTONE_DUST, Material.HONEY_BOTTLE)));
         DEFS.put("potentiometer", new Shaped(new String[]{" R ", "RCR", " I "},
                 map("R", Material.RESIN_CLUMP, "C", Material.COPPER_INGOT, "I", Material.IRON_NUGGET)));
         DEFS.put("cap_100nf", new Shapeless(List.of(Material.COPPER_INGOT, Material.PAPER)));
@@ -166,10 +200,15 @@ public final class Recipes {
         }
         int ok = 0;
         int skip = 0;
+        int soldered = 0;
         for (Def d : Components.all()) {
             Object spec = DEFS.get(d.id);
             if (spec == null) {
                 skip++;
+                continue;
+            }
+            if (Components.isSoldered(d.id)) {
+                soldered++;          // только пайкой на столе: ванильного рецепта нет
                 continue;
             }
             ItemStack result = plugin.items().componentItem(d, 1);
@@ -201,7 +240,8 @@ public final class Recipes {
                 }
             }
         }
-        plugin.getLogger().info("зарегистрировано рецептов: " + ok + " (пропущено " + skip + ")");
+        plugin.getLogger().info("зарегистрировано рецептов: " + ok + " (пайка: " + soldered
+                + ", пропущено " + skip + ")");
     }
 
     private void registerRecipe(Recipe recipe, NamespacedKey key) {

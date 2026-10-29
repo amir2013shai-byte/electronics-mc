@@ -45,12 +45,12 @@ build/resourcepack/
 ├── assets/minecraft/atlases/blocks.json     # «шейте мои текстуры»
 ├── assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png  # перекраска платы
 ├── assets/electronics/lang/{ru_ru,en_us}.json
-├── assets/electronics/items/<id>.json                    # 60: выбор состояния модели
-├── assets/electronics/models/item/<id>[_<state>].json    # 360: модель + display-трансформы
-└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1023 текстуры 32×32
+├── assets/electronics/items/<id>.json                    # 64: выбор состояния модели
+├── assets/electronics/models/item/<id>[_<state>].json    # 384: модель + display-трансформы
+└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1035 текстур 32×32
 ```
 
-Всего 1451 файл, zip ≈ 0.8 МБ (`build/electronics-resourcepack.zip`).
+Всего 1491 файл, zip ≈ 0.8 МБ (`build/electronics-resourcepack.zip`).
 Состояние модели = `baseModelIndex + state·6 + orientation` — та же арифметика
 в `registry/Components.java` (плагин) и в `tools/gen_pack.py` (пак); индекс
 можно посмотреть командой `/elec model <id> <состояние> <ориентация>`.

@@ -3,6 +3,7 @@ package me.arena.electronics;
 import me.arena.electronics.circuit.CompInstance;
 import me.arena.electronics.registry.Components;
 import me.arena.electronics.registry.Def;
+import me.arena.electronics.registry.Kind;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -38,9 +39,18 @@ public final class Items {
         return m == null ? Material.POLISHED_BLACKSTONE : m;
     }
 
+    /**
+     * Ванильный «носитель» предмета. Для деталей это базовый блок (визуал даёт
+     * item_model), для инструмента — BRUSH: у него есть прочность, и шкала
+     * износа жала видна прямо в инвентаре.
+     */
+    public Material itemMaterial(Def def) {
+        return def != null && def.kind == Kind.TOOL ? Material.BRUSH : baseMaterial();
+    }
+
     /** Предмет компонента для инвентаря/дропа. */
     public ItemStack componentItem(Def def, int count) {
-        ItemStack stack = new ItemStack(baseMaterial(), Math.max(1, count));
+        ItemStack stack = new ItemStack(itemMaterial(def), Math.max(1, count));
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return stack;
@@ -52,8 +62,18 @@ public final class Items {
             lore.add(color("&7" + nominal));
         }
         lore.add(color("&8" + def.kind.name()));
-        lore.add(color("&eПКМ &7— установить на блок-подставку или макетку"));
-        lore.add(color("&eShift+ПКМ &7— повернуть компонент"));
+        if (def.kind == Kind.TOOL) {
+            lore.add(color("&eПКМ по печи, костру или лаве &7— прогреть жало"));
+            lore.add(color("&7Износ жала — по шкале прочности"));
+        } else if (def.kind == Kind.SUPPLY) {
+            lore.add(color("&7Расходник для паяльного стола"));
+        } else if (def.kind == Kind.STATION) {
+            lore.add(color("&eПКМ &7— установить как блок; рядом нужен источник тепла"));
+            lore.add(color("&eПКМ по столу &7— открыть пайку"));
+        } else {
+            lore.add(color("&eПКМ &7— установить на блок-подставку или макетку"));
+            lore.add(color("&eShift+ПКМ &7— повернуть компонент"));
+        }
         meta.setLore(lore);
         meta.getPersistentDataContainer().set(CompInstance.PDC_DEF, PersistentDataType.STRING, def.id);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES,
@@ -110,6 +130,13 @@ public final class Items {
 
     public ItemStack giveItem(Def def) {
         return componentItem(def, 1);
+    }
+
+    /** Одно сообщение с цветами (пусто — молчим). */
+    public static void message(org.bukkit.command.CommandSender who, String text) {
+        if (who != null && text != null && !text.isEmpty()) {
+            who.sendMessage(color(text));
+        }
     }
 
     public static String color(String s) {

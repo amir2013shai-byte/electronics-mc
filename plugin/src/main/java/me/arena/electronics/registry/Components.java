@@ -34,6 +34,8 @@ public final class Components {
     public static final String[] STATE_NAMES = {"off", "dim", "on", "burnt", "rev", "closed"};
 
     private static final Map<String, Def> BY_ID = new LinkedHashMap<>();
+    /** Id, которые нельзя скрафтить ванильно — только пайкой на столе. */
+    private static final java.util.Set<String> SOLDERED = new java.util.LinkedHashSet<>();
     private static final List<Def> ORDER = new ArrayList<>();
     private static int totalModels = 0;
 
@@ -44,6 +46,15 @@ public final class Components {
         BY_ID.clear();
         ORDER.clear();
         load(jarResource, extraDir);
+    }
+
+    /** Требуется ли для id пайка на столе (meta.soldered в components.json). */
+    public static boolean isSoldered(String id) {
+        return id != null && SOLDERED.contains(id);
+    }
+
+    public static java.util.Set<String> soldered() {
+        return java.util.Collections.unmodifiableSet(SOLDERED);
     }
 
     public static synchronized void load(InputStream jarResource, File extraDir) {
@@ -82,6 +93,11 @@ public final class Components {
 
     private static void parse(String json) {
         Map<String, Object> root = Json.objectOf(json);
+        for (Object o : Json.arr(root.get("meta") instanceof Map ? (Map<String, Object>) root.get("meta") : root, "soldered")) {
+            if (o instanceof String s2) {
+                SOLDERED.add(s2);
+            }
+        }
         for (Map<String, Object> o : Json.objs(root, "components")) {
             Def d = fromJson(o);
             if (BY_ID.putIfAbsent(d.id, d) == null) {
@@ -157,7 +173,7 @@ public final class Components {
     private static int defaultPins(Kind kind, boolean spdt) {
         return switch (kind) {
             case RELAY -> 4;              // 0/1 — катушка, 2/3 — контакт
-            case MAGNET -> 0;
+            case MAGNET, STATION, TOOL, SUPPLY -> 0;
             case TRANSISTOR, POT -> 3;
             case GATE -> 3;
             case SWITCH -> spdt ? 3 : 2;

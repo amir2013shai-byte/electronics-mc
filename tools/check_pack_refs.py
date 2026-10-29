@@ -50,7 +50,7 @@ if missing_model or missing_tex:
     sys.exit(1)
 # --- целостность самого реестра (этот класс багов уже ловил: states < 6 обрезает
 #     запросы _on/_burnt через clampState, и деталь никогда не покажет свечение) ---
-INERT = {"BOARD", "CUTTER", "EMPTY", "SCHEMATIC"}
+INERT = {"BOARD", "CUTTER", "EMPTY", "SCHEMATIC", "STATION", "TOOL", "SUPPLY"}
 bad_states = [f"{c['id']}({c.get('kind')}):{c.get('states', 1)}"
               for c in comps if c.get("kind") not in INERT and int(c.get("states", 1)) != 6]
 for msg in bad_states:

@@ -50,6 +50,7 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             case "rotate" -> rotate(s);
             case "mode" -> mode(s, args);
             case "recipe" -> recipe(s);
+            case "solder" -> solder(s);
             case "reload" -> reload(s);
             case "rescan" -> rescan(s);
             case "show" -> show(s, args);
@@ -75,6 +76,7 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color("&e/elec rotate &7— повернуть компонент под прицелом"));
         s.sendMessage(Items.color("&e/elec mode <display|none> &7— способ отрисовки"));
         s.sendMessage(Items.color("&e/elec recipe &7— рецепты предмета под прицелом/в руке"));
+        s.sendMessage(Items.color("&e/elec solder &7— открыть паяльный стол (для урока; в мире — ПКМ по столу)"));
         s.sendMessage(Items.color("&e/elec schematic save|check|print <имя> &7— работа с «пустой схемой»"));
         s.sendMessage(Items.color("&e/elec build list|<имя>|save <имя> &7— готовые сборки (учебные примеры)"));
         s.sendMessage(Items.color("&e/elec dump [мир] [число] &7— U/I/P каждой детали (удобно с консоли)"));
@@ -296,6 +298,15 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color("&aРежим рендера: " + plugin.config().renderMode));
     }
 
+    /** Открыть стол пайки руками (урок/отладка): требования к теплу мягкие. */
+    private void solder(CommandSender s) {
+        if (!(s instanceof Player p)) {
+            s.sendMessage(Items.color("&cТолько для игроков: в мире открывай стол ПКМ по нему."));
+            return;
+        }
+        me.arena.electronics.gui.SolderGui.open(plugin, p, null, false);
+    }
+
     private void recipe(CommandSender s) {
         if (!(s instanceof Player p)) {
             s.sendMessage(Items.color("&cТолько для игроков."));
@@ -308,6 +319,19 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         }
         if (def == null) {
             s.sendMessage(Items.color("&cВозьмите компонент в руку или наведите на него."));
+            return;
+        }
+        if (me.arena.electronics.registry.Components.isSoldered(def.id)) {
+            s.sendMessage(Items.color("&a⚡ «" + def.nameRu + "» &7паяется на столе&8, "
+                    + "в верстаке этого нет"));
+            s.sendMessage(Items.color("&7Заготовка: &f"
+                    + me.arena.electronics.recipes.Soldering.ingredientText(def.id)));
+            s.sendMessage(Items.color("&7Припой: &f×"
+                    + me.arena.electronics.recipes.Soldering.solderCost(def)
+                    + (me.arena.electronics.recipes.Soldering.needsFlux(def) ? "&7, нужен &fфлюс ×1"
+                    : "&7, флюс не нужен")
+                    + " &7| жало: &f" + me.arena.electronics.recipes.Soldering.HEAT_HOT + "°+"));
+            s.sendMessage(Items.color("&8/elec solder &7— открыть стол руками"));
             return;
         }
         org.bukkit.inventory.Recipe r = plugin.recipes().byResult(def);
@@ -450,10 +474,51 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         double i1 = Math.abs(gl.currentAt(0, 2));
         gl.recalcSteps(null, 20);
         double i20 = Math.abs(gl.currentAt(0, 2));
-        boolean ramp = i20 > i1 && i20 > 0.010 && i20 < 0.030 && i1 > 0;
+        // рядом с катушкой ставим паяльный стол: он должен быть электрически мёртвым
+        gl.put(1, 2, "soldering_station", 0);
+        gl.recalcSteps(null, 20);
+        double iStation = Math.abs(gl.currentAt(0, 2));
+        boolean inert = Math.abs(iStation - i20) < 5e-4;
+        boolean ramp = i20 > i1 && i20 > 0.010 && i20 < 0.030 && i1 > 0 && inert;
         s.sendMessage(Items.color((ramp ? "&aPASS " : "&cFAIL ")
                 + "&7дроссель 10 Гн: шаг 1 -> &f" + Num.amp(i1) + "&7, 20 шагов -> &f" + Num.amp(i20)
-                + " &8(ток растёт: L против изменения)"));
+                + " &8(ток растёт: L против изменения)"
+                + "&7; стол рядом не меняет цепь: &f" + Num.amp(iStation) + " &8("
+                + (inert ? "ок" : "РАСЧЁТ СЪЕХАЛ") + ")"));
+
+        // (4) пайка: те же правила, по которым работает GUI стола (Soldering.evaluate)
+        Def led = Components.byId("led_red");
+        java.util.Map<org.bukkit.Material, Integer> kit =
+                me.arena.electronics.recipes.Recipes.ingredientsOf("led_red");
+        java.util.Map<org.bukkit.Material, Integer> none =
+                new java.util.EnumMap<>(org.bukkit.Material.class);
+        me.arena.electronics.recipes.Soldering.Attempt att =
+                new me.arena.electronics.recipes.Soldering.Attempt(led, kit, 4, 2, 10);
+        var cold = me.arena.electronics.recipes.Soldering.evaluate(att);
+        var warm = me.arena.electronics.recipes.Soldering.evaluate(
+                new me.arena.electronics.recipes.Soldering.Attempt(led, kit, 4, 2, 30));
+        var good = me.arena.electronics.recipes.Soldering.evaluate(
+                new me.arena.electronics.recipes.Soldering.Attempt(led, kit, 4, 2, 90));
+        var noFlux = me.arena.electronics.recipes.Soldering.evaluate(
+                new me.arena.electronics.recipes.Soldering.Attempt(led, kit, 4, 0, 90));
+        var noKit = me.arena.electronics.recipes.Soldering.evaluate(
+                new me.arena.electronics.recipes.Soldering.Attempt(led, none, 4, 2, 90));
+        var notSoldered = me.arena.electronics.recipes.Soldering.evaluate(
+                new me.arena.electronics.recipes.Soldering.Attempt(Components.byId("wire_red"),
+                        none, 4, 2, 90));
+        boolean noVanilla = plugin.recipes().byResult(led) == null
+                && plugin.recipes().byResult(Components.byId("wire_red")) != null;
+        boolean solderRules = !cold.allowed() && cold.message().contains("холодное")
+                && warm.allowed() && warm.coldJoint() && warm.solder() == 1
+                && good.allowed() && !good.coldJoint() && good.consume().equals(kit)
+                && !noFlux.allowed() && noFlux.message().contains("флюс")
+                && !noKit.allowed() && noKit.message().contains("не хватает")
+                && !notSoldered.allowed() && notSoldered.message().contains("верстаке")
+                && noVanilla;
+        s.sendMessage(Items.color((solderRules ? "&aPASS " : "&cFAIL ")
+                + "&7пайка: 10° — «" + cold.message() + "», 30° — холодная пайка (припой ×1 в утиль), "
+                + "90° — заготовок ×" + good.consume().size() + " + припой ×" + good.solder()
+                + " + флюс; ванильного рецепта светодиода нет: " + noVanilla));
 
         int missing = 0;
         for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {

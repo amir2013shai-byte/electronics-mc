@@ -84,6 +84,9 @@ public final class Topology {
             case RELAY:
                 return 4;      // катушка вдоль оси + контакт вбок
             case BREADBOARD:
+            case STATION:
+            case TOOL:
+            case SUPPLY:
                 return 0;
             case WIRE:
                 return 6;      // «крест»: 4 стороны + вверх/вниз (провод = сетка)

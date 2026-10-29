@@ -242,6 +242,31 @@ def base_canvas(comp):
         rect(2, 5, 13, 10, body)
         rect(9, 6, 15, 9, shade(detail, 0.9))
         rect(2, 6, 4, 9, shade(accent, 1.1))
+    elif shape == "station":
+        # корпус стола: столешница, силиконовый коврик, подставка под паяльник
+        rect(0, 2, 15, 4, shade(body, 0.7))
+        rect(0, 4, 15, 11, body)
+        rect(1, 5, 14, 10, shade(body, 1.15))
+        rect(3, 6, 11, 9, shade(accent, 0.72))
+        rect(4, 7, 10, 8, shade(accent, 0.9))
+        rect(12, 3, 15, 4, shade(detail, 1.1))
+        d.line([5 * 2, 7 * 2, 9 * 2, 7 * 2], fill=(245, 245, 250, 255), width=2)
+        d.line([9 * 2, 7 * 2, 11 * 2, 6 * 2], fill=(255, 150, 60, 255), width=2)
+    elif shape == "tool":
+        # паяльник: рукоять, корпус, жало с нагревателем
+        rect(1, 6, 5, 9, shade(accent, 0.85))
+        rect(5, 6, 10, 9, body)
+        rect(10, 7, 13, 8, shade(detail, 1.2))
+        rect(13, 7, 15, 8, (255, 158, 62, 255))
+        d.line([6 * 2, 7 * 2, 9 * 2, 7 * 2], fill=shade(body, 0.6) + (255,), width=1)
+    elif shape == "supply":
+        # моток припоя / баночка флюса
+        rect(2, 5, 13, 11, body)
+        rect(3, 6, 12, 10, shade(body, 1.3))
+        for i in range(4, 12, 2):
+            d.line([i * 2, 6 * 2, i * 2, 10 * 2], fill=shade(accent, 0.8) + (255,), width=1)
+        rect(4, 3, 11, 5, shade(detail, 1.05))
+        rect(5, 4, 10, 4, shade(detail, 0.8))
     else:  # box
         rect(1, 3, 14, 12, body)
         rect(2, 4, 13, 8, shade(body, 1.3))
@@ -433,6 +458,17 @@ RECIPES = {
                       "note": "сернистый кадмий под стеклом: темнота = большое R"},
     "thermistor_ntc": {"type": "shapeless", "ing": {"clay_ball": 1, "copper_ingot": 2, "redstone": 1},
                        "count": 2, "note": "керамический диск с выводами"},
+    "soldering_station": {"shape": ["P P", "PFP", "ICI"],
+                          "key": {"P": "oak_planks", "F": "furnace", "I": "iron_nugget",
+                                  "C": "copper_ingot"},
+                          "note": "столешница + горелка + медь: паять нужно у тепла"},
+    "soldering_iron": {"shape": ["  C", " I ", "S  "],
+                       "key": {"C": "copper_ingot", "I": "iron_nugget", "S": "stick"},
+                       "note": "медное жало, железный стержень, деревянная рукоять"},
+    "solder": {"type": "shapeless", "ing": {"iron_nugget": 2, "flint": 1}, "count": 2,
+               "note": "мягкий металл + абразивная присадка"},
+    "flux": {"type": "shapeless", "ing": {"glowstone_dust": 1, "honey_bottle": 1}, "count": 2,
+             "note": "канифоль со растворителем: без флюса площадка окислится"},
 }
 
 
@@ -623,8 +659,14 @@ def main():
         json.dump({"pack": {"pack_format": 94, "description": desc}}, f, ensure_ascii=False, indent=2)
     nrecipes = 0
     missing = []
+    # meta.soldered — то же правило читает плагин (Recipes.register их не регистрирует)
+    soldered = set(((SHARED.get("meta") or {}).get("soldered")) or [])
+    skipped_solder = 0
     for comp in COMPONENTS:
         cid = comp["id"]
+        if cid in RECIPES and cid in soldered:
+            skipped_solder += 1
+            continue
         if cid in RECIPES:
             write_recipe(DP, cid, RECIPES[cid])
             nrecipes += 1
@@ -644,7 +686,8 @@ def main():
 
     files = sum(len(fs) for _, _, fs in os.walk(RP))
     print(f"компонентов: {len(COMPONENTS)}; индексов состояния модели: {state_models}")
-    print(f"файлов ресурспака: {files}; рецептов в датапаке: {nrecipes}")
+    print(f"файлов ресурспака: {files}; рецептов в датапаке: {nrecipes} "
+          f"(через пайку: {skipped_solder})")
     if missing:
         print("рецепт не задан для:", ", ".join(missing))
     print("zip:", os.path.join(BUILD, "electronics-resourcepack.zip"))
