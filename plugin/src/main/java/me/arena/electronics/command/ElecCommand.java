@@ -417,6 +417,44 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             }
         }
 
+        // (2) геркон и магнит: без поля цепь разомкнута, с полком — горит
+        me.arena.electronics.gui.SchematicGui gr =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintReedLoop(gr, false);
+        gr.recalcQuiet();
+        double iOpen = gr.currentAt(0, 4);
+        paintReedLoop(gr, true);
+        gr.recalcQuiet();
+        double iClosed = gr.currentAt(0, 4);
+        boolean reed = Math.abs(iOpen) < 1e-4 && Math.abs(iClosed) > 0.012 && Math.abs(iClosed) < 0.03;
+        s.sendMessage(Items.color((reed ? "&aPASS " : "&cFAIL ")
+                + "&7геркон: без магнита I = &f" + Num.amp(iOpen) + "&7, с магнитом I = &f"
+                + Num.amp(iClosed) + " &8(ожидание: 0 и ~20 мА)"));
+
+        // (3) разгон тока в дросселе: первый шаг меньше установившегося
+        me.arena.electronics.gui.SchematicGui gl =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        gl.put(0, 0, "wire_red", 0);
+        gl.put(0, 1, "battery_9", 1);
+        gl.put(0, 2, "choke_10h", 1);
+        gl.put(0, 3, "resistor_330r", 1);
+        gl.put(0, 4, "wire_red", 0);
+        gl.put(1, 4, "wire_black", 0);
+        gl.put(2, 4, "wire_black", 0);
+        gl.put(2, 3, "wire_black", 0);
+        gl.put(2, 2, "wire_black", 0);
+        gl.put(2, 1, "wire_black", 0);
+        gl.put(1, 0, "wire_black", 0);
+        gl.put(2, 0, "wire_black", 0);
+        gl.recalcQuiet();
+        double i1 = Math.abs(gl.currentAt(0, 2));
+        gl.recalcSteps(null, 20);
+        double i20 = Math.abs(gl.currentAt(0, 2));
+        boolean ramp = i20 > i1 && i20 > 0.010 && i20 < 0.030 && i1 > 0;
+        s.sendMessage(Items.color((ramp ? "&aPASS " : "&cFAIL ")
+                + "&7дроссель 10 Гн: шаг 1 -> &f" + Num.amp(i1) + "&7, 20 шагов -> &f" + Num.amp(i20)
+                + " &8(ток растёт: L против изменения)"));
+
         int missing = 0;
         for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {
             if (me.arena.electronics.gui.CatalogGui.whatIs(d).isEmpty()) {
@@ -432,6 +470,25 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color((missing == 0 ? "&aPASS " : "&cFAIL ")
                 + "&7каталог: &f" + me.arena.electronics.registry.Components.size()
                 + " &7предметов, описаний не хватает у &f" + missing));
+    }
+
+    /** Контур «батарейка -> резистор -> геркон -> светодиод» и магнит рядом с герконом. */
+    private void paintReedLoop(me.arena.electronics.gui.SchematicGui g, boolean withMagnet) {
+        g.put(0, 0, "wire_red", 0);
+        g.put(0, 1, "battery_9", 1);
+        g.put(0, 2, "resistor_330r", 1);
+        g.put(0, 3, "reed_switch", 1);
+        g.put(0, 4, "led_red", 1);
+        g.put(0, 5, "wire_red", 0);
+        g.put(1, 5, "wire_black", 0);
+        g.put(2, 5, "wire_black", 0);
+        g.put(2, 4, "wire_black", 0);
+        g.put(2, 3, "ground_bus", 0);
+        g.put(2, 2, "wire_black", 0);
+        g.put(2, 1, "wire_black", 0);
+        g.put(2, 0, "wire_black", 0);
+        g.put(1, 0, "wire_black", 0);
+        g.put(1, 3, withMagnet ? "magnet" : null, 0);
     }
 
     /** Каталог всех предметов плагина в GUI (то же, что /electro show). */

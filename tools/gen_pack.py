@@ -110,6 +110,25 @@ def base_canvas(comp):
         rect(0, 9, 15, 9, shade(body, 0.7))
         rect(0, 6, 1, 9, shade(detail, 1.1))
         rect(14, 6, 15, 9, shade(detail, 1.1))
+    elif shape == "coil":
+        # каркас с витками: медный «блин» и сердечник по центру
+        d.ellipse([10, 10, 54, 54], fill=shade(body, 0.85), outline=shade(body, 0.6))
+        d.ellipse([16, 16, 48, 48], fill=body)
+        for a in range(0, 360, 24):
+            import math as _m
+            x0 = 32 + 21 * _m.cos(_m.radians(a)); y0 = 32 + 21 * _m.sin(_m.radians(a))
+            x1 = 32 + 13 * _m.cos(_m.radians(a)); y1 = 32 + 13 * _m.sin(_m.radians(a))
+            d.line([x0, y0, x1, y1], fill=shade(accent, 1.15) + (255,), width=2)
+        d.ellipse([24, 24, 40, 40], fill=shade(detail, 0.9), outline=(20, 22, 26, 255))
+    elif shape == "magnet":
+        # подковообразный: два полюса, между ними зазор
+        d.ellipse([6, 6, 58, 58], fill=body, outline=shade(body, 0.7))
+        d.ellipse([18, 18, 46, 46], fill=(0, 0, 0, 0))
+        rect(2, 2, 6, 13, (200, 60, 55, 255))
+        rect(10, 2, 14, 13, (60, 96, 190, 255))
+        rect(2, 2, 14, 3, shade(body, 1.25))
+        d.text((4, 11), "N", fill=(255, 255, 255, 255))
+        d.text((11, 11), "S", fill=(255, 255, 255, 255))
     elif shape == "battery":
         rect(0, 3, 15, 12, body)
         rect(1, 4, 15, 11, shade(body, 1.15))
@@ -395,6 +414,25 @@ RECIPES = {
     "cap_100nf": {"type": "shapeless", "ing": {"copper_ingot": 1, "paper": 1}, "count": 3},
     "cap_100uf": {"shape": ["P", "C", "P"], "key": {"P": "paper", "C": "copper_ingot"}, "count": 2},
     "cap_1000uf": {"shape": ["PCP"], "key": {"P": "paper", "C": "copper_ingot"}},
+    # --- магниты, катушки, реле и чувствительные резисторы: материал = функция
+    "magnet": {"shape": ["IRI"], "key": {"I": "iron_ingot", "R": "redstone_block"},
+               "note": "сталь намагничивают редстоуном: без этого это просто брусок"},
+    "electromagnet": {"shape": [" C ", "CIC", " C "], "key": {"C": "copper_ingot", "I": "iron_ingot"},
+                      "note": "медь вокруг сердечника — как в реальной катушке"},
+    "inductor_10mh": {"shape": ["S", "I", "S"], "key": {"S": "string", "I": "iron_nugget"},
+                      "count": 2, "note": "витки провода на сердечнике"},
+    "choke_10h": {"shape": ["CCC", "CIC", " C "], "key": {"C": "copper_ingot", "I": "iron_block"},
+                  "note": "большой дроссель: много меди и железный сердечник"},
+    "relay_5v": {"shape": ["CR", "RI", "CG"], "key": {"C": "copper_ingot", "R": "redstone",
+                                                       "I": "iron_ingot", "G": "gold_nugget"},
+                 "note": "катушка + сердечник + золотой контакт"},
+    "reed_switch": {"shape": ["G", "I", "G"], "key": {"G": "glass", "I": "iron_nugget"},
+                    "note": "герметичная колба с двумя контактами"},
+    "photoresistor": {"shape": ["G", "S", "C"], "key": {"G": "glass", "S": "glowstone_dust",
+                                                         "C": "copper_ingot"}, "count": 2,
+                      "note": "сернистый кадмий под стеклом: темнота = большое R"},
+    "thermistor_ntc": {"type": "shapeless", "ing": {"clay_ball": 1, "copper_ingot": 2, "redstone": 1},
+                       "count": 2, "note": "керамический диск с выводами"},
 }
 
 
@@ -522,7 +560,7 @@ def main():
         # custom_model_data (индекс = состояние), остальным — базовая модель:
         # состояние в мире всё равно задаёт плагин через item_model.
         dispatch_kinds = {"LED", "SWITCH", "BUTTON", "TOGGLE", "FUSE", "LAMP", "DIODE", "PROBE", "VOLTMETER",
-                          "AMMETER"}
+                          "AMMETER", "RELAY", "REED"}
         if comp["kind"] in dispatch_kinds and nstates > 1:
             entries = []
             for st in range(nstates):

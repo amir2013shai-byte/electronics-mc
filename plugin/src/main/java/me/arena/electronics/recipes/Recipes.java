@@ -77,6 +77,23 @@ public final class Recipes {
         DEFS.put("resistor_4k7", new Shapeless(List.of(Material.COPPER_INGOT, Material.TERRACOTTA)));
         DEFS.put("resistor_10k", new Shapeless(List.of(Material.COPPER_INGOT, Material.AMETHYST_SHARD)));
         DEFS.put("resistor_100k", new Shapeless(List.of(Material.COPPER_INGOT, Material.QUARTZ)));
+        DEFS.put("magnet", new Shaped(new String[]{"IRI"},
+                map("I", Material.IRON_INGOT, "R", Material.REDSTONE_BLOCK)));
+        DEFS.put("electromagnet", new Shaped(new String[]{" C ", "CIC", " C "},
+                map("C", Material.COPPER_INGOT, "I", Material.IRON_INGOT)));
+        DEFS.put("inductor_10mh", new Shaped(new String[]{"S", "I", "S"},
+                map("S", Material.STRING, "I", Material.IRON_NUGGET)));
+        DEFS.put("choke_10h", new Shaped(new String[]{"CCC", "CIC", " C "},
+                map("C", Material.COPPER_INGOT, "I", Material.IRON_BLOCK)));
+        DEFS.put("relay_5v", new Shaped(new String[]{"CR", "RI", "CG"},
+                map("C", Material.COPPER_INGOT, "R", Material.REDSTONE, "I", Material.IRON_INGOT,
+                        "G", Material.GOLD_NUGGET)));
+        DEFS.put("reed_switch", new Shaped(new String[]{"G", "I", "G"},
+                map("G", Material.GLASS, "I", Material.IRON_NUGGET)));
+        DEFS.put("photoresistor", new Shaped(new String[]{"G", "S", "C"},
+                map("G", Material.GLASS, "S", Material.GLOWSTONE_DUST, "C", Material.COPPER_INGOT)));
+        DEFS.put("thermistor_ntc", new Shapeless(List.of(Material.CLAY_BALL, Material.COPPER_INGOT,
+                Material.COPPER_INGOT, Material.REDSTONE)));
         DEFS.put("potentiometer", new Shaped(new String[]{" R ", "RCR", " I "},
                 map("R", Material.RESIN_CLUMP, "C", Material.COPPER_INGOT, "I", Material.IRON_NUGGET)));
         DEFS.put("cap_100nf", new Shapeless(List.of(Material.COPPER_INGOT, Material.PAPER)));

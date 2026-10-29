@@ -52,6 +52,24 @@ public final class Def {
     /** Для мотора: доля противо-ЭДС от напряжения на якоре. */
     public double backEmfPerVolt = 0.0;
     public double winding = 0.0;
+    /** Индуктивность, Гн (INDUCTOR / ELECTROMAGNET / RELAY). */
+    public double inductance = 0.0;
+    /** мТл на ампер витка (электромагнит). */
+    public double fieldPerAmp = 0.0;
+    /** Собственное поле постоянного магнита, мТл. */
+    public double fieldMt = 0.0;
+    /** Ток притяжения якоря реле, мА. */
+    public double operateMa = 0.0;
+    /** Ток отпускания реле (гистерезис), мА. */
+    public double releaseMa = 0.0;
+    /** Порог поля геркона, мТл. */
+    public double operateMt = 0.0;
+    /** Сопротивление зависит от освещённости (фоторезистор). */
+    public boolean lightDependent = false;
+    /** Бета NTC-термистора, К. */
+    public double bConstant = 0.0;
+    /** Градусы нагрева на ватт рассеивания (саморазогрев термистора). */
+    public double selfHeat = 0.0;
     /** Может ли компонент быть повернут (4 ориентации). */
     public boolean orientable = true;
     /** Ставится «стопкой» на другой компонент (резистор/конденсатор на макетке). */

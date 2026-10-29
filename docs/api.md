@@ -15,7 +15,7 @@ ep.builds();        // готовые сборки-пресеты (BuildLoader)
 ep.recipes();       // регистрация крафтов (Recipes)
 ep.persistence();   // JSON-реестр вместо PDC (Persistence)
 ep.forceSimulate(); // пересчитать сейчас
-ep.stateModelCount();  // 1758 — сколько состояний модели у ресурспака
+ep.stateModelCount();  // 2046 — сколько состояний модели у ресурспака
 ```
 
 ### Компоненты и «реестр состояний модели»
@@ -31,7 +31,7 @@ String name    = ModelState.describe(modelIndex); // "led_red [on/east]"
   5 closed` (`CompStates`); `Def#clampState` не даёт выйти за
   `states` компонента.
 * `orient` — `0 north, 1 east, 2 south, 3 west, 4 up, 5 down`.
-* Сумма `states × 6` по всем 52 видам = 1758; `Components.stateModels()`.
+* Сумма `states × 6` по всем 60 видам = 2046; `Components.stateModels()`.
 * Ключ модели в ресурспаке: `electronics:<id>` для `off` и
   `electronics:<id>_<off|dim|on|burnt|rev|closed>` для остальных — см.
   `Items#applyModel`, имена синхронизированы с `tools/gen_pack.py`

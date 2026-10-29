@@ -66,6 +66,7 @@ public final class SchematicGui implements Gui {
     private final double[] solvedCurrent = new double[CELLS];
     private final String[] solvedNote = new String[CELLS];
     private List<CompInstance> last = List.of();
+    private Map<String, CompInstance> lastByPos = new HashMap<>();
     private final int[] cellOf = new int[CELLS];
     private int brush = 0;
     private int page = 0;
@@ -93,7 +94,7 @@ public final class SchematicGui implements Gui {
         return row * COLS + col;
     }
 
-    /** Положить деталь в клетку (для самопроверки и скриптов). */
+    /** Положить деталь в клетку (для самопроверки и скриптов); null — стереть. */
     public void put(int row, int col, String defId, int orientation) {
         int cell = cellIndex(row, col);
         this.defId[cell] = defId;
@@ -190,8 +191,9 @@ public final class SchematicGui implements Gui {
         inv.setItem(a, Gui.button(Material.BOOK, "&aПересчитать схему",
                 "&7Решает цепь методом узловых потенциалов",
                 "&7и вписывает U/I/P в подсказки деталей.",
-                "&8В редакторе конденсатор всегда стартует",
-                "&8с нуля — это «момент подачи питания»."));
+                "&8В редакторе конденсатор всегда стартует с нуля —",
+                "&8это «момент подачи питания». Для переходного",
+                "&8процесса нажми «Симулировать 20 тиков»."));
         inv.setItem(a + 1, Gui.button(Material.GRASS_BLOCK, "&aПоставить в мире",
                 "&7Строит нарисованное блоками там, куда",
                 "&7смотришь (нужно право electronics.build)."));
@@ -203,6 +205,10 @@ public final class SchematicGui implements Gui {
                 "&7Выбрать ластик: ЛКМ по клетке стирает её.",
                 "&7Shift+ПКМ — стереть всегда, ПКМ — повернуть.",
                 "&7Shift+ЛКМ на ключе — замкнуть/разомкнуть."));
+        inv.setItem(a + 6, Gui.button(Material.REPEATER, "&aСимулировать 20 тиков",
+                "&7Прогоняет цепь на 20 шагов по 50 мс, не сбрасывая",
+                "&7заряды конденсаторов и ток катушек: видно, как",
+                "&7разгоняется дроссель и заряжается конденсатор."));
         inv.setItem(a + 5, Gui.button(Material.OAK_SIGN, "&eКак это работает",
                 "&7Узел — пара соседних клеток, как в мире:",
                 "&7стоящие вплотную детали соединены, провод",
@@ -283,8 +289,8 @@ public final class SchematicGui implements Gui {
     // ------------------------------------------------------------------ расчёт
 
     /** Собирает из сетки компоненты и гоняет их через «взрослый» решатель. */
-    private void recalc(org.bukkit.command.CommandSender who) {
-        Map<String, CompInstance> byPos = new HashMap<>();
+    private List<CompInstance> buildGrid() {
+        lastByPos = new HashMap<>();
         List<CompInstance> list = new ArrayList<>();
         for (int cell = 0; cell < CELLS; cell++) {
             cellOf[cell] = -1;
@@ -300,19 +306,29 @@ public final class SchematicGui implements Gui {
             inst.orientation = Orientation.byIndex(orient[cell]);
             inst.state = closed[cell] ? CompStates.CLOSED : CompStates.OFF;
             list.add(inst);
-            byPos.put(Circuit.pos(c, 0, r), inst);
+            lastByPos.put(Circuit.pos(c, 0, r), inst);
             cellOf[cell] = list.size() - 1;
         }
-        islands = Simulation.solveVirtual(plugin, byPos, list);
         last = list;
+        return list;
+    }
+
+    /** Один прогон решателя на текущей сетке. */
+    private int solveOnce(List<CompInstance> list) {
+        return Simulation.solveVirtual(plugin, lastByPos, list);
+    }
+
+    private void annotate(List<CompInstance> list) {
         for (int cell = 0; cell < CELLS; cell++) {
             solvedNote[cell] = null;
-            if (cellOf[cell] < 0) {
+            if (cellOf[cell] < 0 || cellOf[cell] >= list.size()) {
                 continue;
             }
             CompInstance inst = list.get(cellOf[cell]);
             solvedVoltage[cell] = inst.voltage;
-            solvedPotential[cell] = Math.max(Math.abs(inst.pinVoltage[0]), Math.abs(inst.voltage));
+            solvedPotential[cell] = inst.def.hub
+                    ? Math.max(Math.abs(inst.pinVoltage[0]), Math.abs(inst.voltage))
+                    : Math.abs(inst.voltage);
             solvedCurrent[cell] = inst.current;
             String text = Simulation.describe(inst);
             solvedNote[cell] = text == null || text.isEmpty()
@@ -337,6 +353,12 @@ public final class SchematicGui implements Gui {
                 break;
             }
         }
+    }
+
+    private void recalc(org.bukkit.command.CommandSender who) {
+        List<CompInstance> list = buildGrid();
+        islands = solveOnce(list);
+        annotate(list);
         redraw();
         if (who != null) {
             who.sendMessage(Items.color("&aСхема пересчитана: &f" + list.size()
@@ -345,6 +367,34 @@ public final class SchematicGui implements Gui {
         }
     }
 
+    /**
+     * Прогон нескольких шагов по времени на одних и тех же экземплярах:
+     * переходный процесс конденсаторов и катушек (заряд/разряд, разгон тока
+     * в дросселе). Кнопка «Симулировать 20 тиков» и /elec selftest.
+     */
+    public void recalcSteps(org.bukkit.command.CommandSender who, int steps) {
+        List<CompInstance> list = buildGrid();
+        islands = solveOnce(list);
+        for (int i = 0; i < Math.max(1, steps); i++) {
+            islands = solveOnce(list);
+        }
+        annotate(list);
+        redraw();
+        if (who != null) {
+            who.sendMessage(Items.color("&aПрогон &f" + Math.max(1, steps)
+                    + " &7шагов по &f" + (int) (plugin.config().dt() * 1000)
+                    + " мс&7; ток/напряжение — в подсказках деталей."));
+        }
+    }
+
+    /** Сколько шагов показал последний прогон (для самопроверки). */
+    public double currentAbsMax() {
+        double m = 0;
+        for (CompInstance inst : last) {
+            m = Math.max(m, Math.abs(inst.current));
+        }
+        return m;
+    }
     /** Компоненты того же листа, но для раскладки в мире/файле. */
     private BuildLoader.Build toBuild(String name, String title) {
         BuildLoader.Build b = plugin.builds().newBuild(name, title);
@@ -462,6 +512,10 @@ public final class SchematicGui implements Gui {
             brush = -1;                       // ластик
             redraw();
             who.sendMessage(Items.color("&eЛастик выбран &7(ЛКМ по клетке стирает)"));
+            return;
+        }
+        if (raw == a + 6) {
+            recalcSteps(who, 20);
             return;
         }
         if (raw == a + 5) {

@@ -60,4 +60,4 @@ if meta_total is not None and meta_total != total:
     print(f"ПОЗОР: meta.state_model_count = {meta_total}, а по факту Σ(states*6) = {total}")
 if bad_states or (meta_total is not None and meta_total != total):
     sys.exit(1)
-print("OK: все 52×6 ссылок на модели и текстуры разрешаются")
+print(f"OK: все {len(comps)}×6 ссылок на модели и текстуры разрешаются")

@@ -59,7 +59,27 @@ public final class CatalogGui implements Gui {
         WHAT.put("BREADBOARD", "Макетка: ряды контактов отдельными сетями.");
         WHAT.put("SCHEMATIC", "Планшет-схема: открыть редактор (ПКМ с предметом в руке).");
         WHAT.put("CUTTER", "Инструмент: снять провод, не сломав подставку.");
+        WHAT.put("MAGNET", "Поле 1.4 мТл у полюса; цепь не замыкает, но рядом с ним "
+                + "срабатывает геркон. Ставится и на деталь, и в клетку рядом.");
+        WHAT.put("ELECTROMAGNET", "Катушка на сердечнике: R + L, поле = мТл/А × ток. "
+                + "Притягивает геркон и якорь реле, но не мгновенно (L тормозит ток).");
+        WHAT.put("INDUCTOR", "L против изменения тока: I = I_prev + dt/(L + dt·R)·(U − R·I_prev). "
+                + "Первый пересчёт — почти обрыв, дальше разгон.");
+        WHAT.put("RELAY", "Катушка (вдоль оси) + нормально разомкнутый контакт (вбок). "
+                + "Якорь притягивается при токе выше operate_ma и держит до release_ma — гистерезис.");
+        WHAT.put("REED", "Колба с контактами: замыкается, если рядом магнит или "
+                + "намагниченная катушка (порог operate_mt в мТл).");
         WHAT.put("EMPTY", "Заглушка реестра.");
+    }
+
+    /** Точечные подписи там, где kind общий (фоторезистор и резистор — один kind). */
+    private static final Map<String, String> WHAT_ID = new HashMap<>();
+
+    static {
+        WHAT_ID.put("photoresistor", "Фоторезистор: R падает на свету (в темноте ~50× номинала). "
+                + "В мире смотрит на освещённость блока сверху, в редакторе — «день».");
+        WHAT_ID.put("thermistor_ntc", "NTC-термистор: R = R25·exp(B(1/T − 1/298)); греется током "
+                + "сам и от лавы/огня рядом — можно увидеть тепловой пробой.");
     }
 
     private static final int PER_PAGE = 36;
@@ -126,7 +146,7 @@ public final class CatalogGui implements Gui {
         if (!nominal.isEmpty()) {
             lore.add(Items.color("&7Электрика: &f" + nominal));
         }
-        String what = WHAT.getOrDefault(d.kind.name(), "");
+        String what = WHAT_ID.getOrDefault(d.id, WHAT.getOrDefault(d.kind.name(), ""));
         if (!what.isEmpty()) {
             for (String line : wrap(what)) {
                 lore.add(Items.color("&b" + line));
@@ -196,7 +216,7 @@ public final class CatalogGui implements Gui {
             if (!nominal.isEmpty()) {
                 who.sendMessage(Items.color("&7Электрика: &f" + nominal));
             }
-            String what = WHAT.getOrDefault(def.kind.name(), "");
+            String what = WHAT_ID.getOrDefault(def.id, WHAT.getOrDefault(def.kind.name(), ""));
             if (!what.isEmpty()) {
                 who.sendMessage(Items.color("&b" + what));
             }

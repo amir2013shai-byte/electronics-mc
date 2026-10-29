@@ -110,7 +110,7 @@ public final class Simulation {
                         + " nodeCount=" + isl.nodeCount + " grounds=" + isl.grounds.size()
                         + " src=" + isl.hasSource + " hint=" + isl.hint);
             }
-            solveIsland(plugin, cfg, isl, notify);
+            solveIsland(plugin, cfg, isl, notify, neighbors);
         }
 
         if (cfg.debug) {
@@ -263,28 +263,105 @@ public final class Simulation {
 
     // ------------------------------------------------------------------ решатель
 
-    private static void solveIsland(ElectronicsPlugin plugin, Config cfg, Island isl, boolean notify) {
+    private static void solveIsland(ElectronicsPlugin plugin, Config cfg, Island isl, boolean notify,
+                                    Neighbors neighbors) {
         double dt = Math.max(0.005, cfg.dt());
         Map<String, Double> v = Map.of();
 
         for (int pass = 0; pass < Math.max(1, cfg.solvePasses); pass++) {
-            Mna mna = new Mna();
-            for (String net : isl.parent.keySet()) {
-                mna.node(net);
+            boolean commit = pass == Math.max(1, cfg.solvePasses) - 1;
+            v = iterate(plugin, cfg, isl, dt, v, notify, commit);
+        }
+        // Реле и геркон: поле зависит от тока, а ток — от замкнутого контакта.
+        // Пока состояния не сошлись, пересобираем матрицу (не больше 3 раз):
+        // иначе первый «Пересчитать» в GUI всегда показывал бы разомкнутый геркон.
+        for (int extra = 0; extra < 3; extra++) {
+            if (!refreshMagnetics(isl, neighbors)) {
+                break;
             }
-            for (String g : isl.grounds) {
-                mna.ground(g);
-            }
-            boolean floating = isl.grounds.isEmpty();
-            if (floating && !isl.parent.isEmpty()) {
-                mna.ground(isl.parent.keySet().iterator().next());
-            }
-            stampAll(plugin, cfg, isl, mna, dt, v);
-            v = mna.solve();
-            if (pass == cfg.solvePasses - 1) {
-                finish(plugin, cfg, isl, mna, v, notify);
+            v = iterate(plugin, cfg, isl, dt, v, notify, true);
+        }
+    }
+
+    /** Одна сборка и решение матрицы для острова. */
+    private static Map<String, Double> iterate(ElectronicsPlugin plugin, Config cfg, Island isl,
+                                               double dt, Map<String, Double> prev, boolean notify,
+                                               boolean commit) {
+        Mna mna = new Mna();
+        for (String net : isl.parent.keySet()) {
+            mna.node(net);
+        }
+        for (String g : isl.grounds) {
+            mna.ground(g);
+        }
+        if (isl.grounds.isEmpty() && !isl.parent.isEmpty()) {
+            mna.ground(isl.parent.keySet().iterator().next());
+        }
+        stampAll(plugin, cfg, isl, mna, dt, prev);
+        Map<String, Double> v = mna.solve();
+        if (commit) {
+            finish(plugin, cfg, isl, mna, v, notify);
+        }
+        return v;
+    }
+
+    /**
+     * Пересчитывает поле у герконов и состояние якоря реле.
+     *
+     * @return true, если хоть одно переключение изменилось (тогда надо решить ещё раз)
+     */
+    private static boolean refreshMagnetics(Island isl, Neighbors neighbors) {
+        boolean changed = false;
+        for (CompInstance c : isl.comps) {
+            Def d = c.def;
+            if (d.kind == Kind.REED) {
+                c.field = fieldAt(neighbors == null ? null : neighbors.of(c), c);
+                double need = d.operateMt > 0 ? d.operateMt : 0.6;
+                int want = c.field >= need ? CompStates.CLOSED : CompStates.OFF;
+                if (c.state != want) {
+                    c.state = want;
+                    changed = true;
+                }
+            } else if (d.kind == Kind.RELAY) {
+                double i = Math.abs(c.current) * 1000;          // мА
+                double need = Math.max(1, c.state == CompStates.CLOSED ? d.releaseMa : d.operateMa);
+                int want = i >= need ? CompStates.CLOSED : CompStates.OFF;
+                if (c.state != want) {
+                    c.state = want;
+                    changed = true;
+                }
             }
         }
+        return changed;
+    }
+
+    /**
+     * Магнитное поле в клетке компонента, мТл: постоянные магниты рядом дают
+     * своё, катушки — «мТл на ампер» × ток. Соседство — те же шесть сторон, что
+     * и у проводов, поэтому в редакторе схемы (где «мир» — сетка листа) правило
+     * то же самое.
+     */
+    private static double fieldAt(Map<String, CompInstance> world, CompInstance c) {
+        if (world == null) {
+            return 0;
+        }
+        double sum = 0;
+        for (int d = -1; d < 6; d++) {      // -1 — своя клетка (стопка «магнит сверху»)
+            int dx = d < 0 ? 0 : Topology.DX[d];
+            int dy = d < 0 ? 0 : Topology.DY[d];
+            int dz = d < 0 ? 0 : Topology.DZ[d];
+            CompInstance n = world.get(Circuit.pos(c.key.x + dx, c.key.y + dy, c.key.z + dz));
+            if (n == null || n == c || n.def == null) {
+                continue;
+            }
+            Def nd = n.def;
+            if (nd.kind == Kind.MAGNET) {
+                sum += nd.fieldMt > 0 ? nd.fieldMt : 1.2;
+            } else if ((nd.kind == Kind.ELECTROMAGNET || nd.kind == Kind.RELAY) && nd.fieldPerAmp > 0) {
+                sum += nd.fieldPerAmp * Math.abs(nd.inductance > 0 ? n.iPrev : n.current);
+            }
+        }
+        return sum;
     }
 
     private static void stampAll(ElectronicsPlugin plugin, Config cfg, Island isl, Mna mna,
@@ -320,8 +397,27 @@ public final class Simulation {
                 }
                 case RESISTOR -> {
                     if (b != null) {
-                        mna.stamp(a, b, 1.0 / Math.max(1e-3, d.resistance), 0);
+                        mna.stamp(a, b, 1.0 / Math.max(1e-3, d.resistance * resistorScale(c, d)), 0);
                     }
+                }
+                case REED -> {
+                    if (b != null) {
+                        mna.stamp(a, b, c.state == CompStates.CLOSED ? cfg.gConductor() : cfg.gLeak(), 0);
+                    }
+                }
+                case RELAY -> {
+                    // 0/1 — катушка (R + L), 2/3 — нормально разомкнутый контакт
+                    stampInductive(mna, c, a, b, dt, Math.max(1.0, d.resistance), d.inductance);
+                    String c2 = rep(isl, c.pinNet[2]);
+                    String c3 = rep(isl, c.pinNet[3]);
+                    if (c2 != null && c3 != null) {
+                        mna.stamp(c2, c3, c.isClosed() ? cfg.gConductor() : cfg.gLeak(), 0);
+                    }
+                }
+                case INDUCTOR -> stampInductive(mna, c, a, b, dt, Math.max(0.01, d.resistance), d.inductance);
+                case ELECTROMAGNET -> {
+                    stampInductive(mna, c, a, b, dt, Math.max(1.0, d.resistance), d.inductance);
+                    c.field = d.fieldPerAmp * Math.abs(c.iPrev);
                 }
                 case LAMP -> {
                     if (b != null) {
@@ -492,6 +588,10 @@ public final class Simulation {
             c.voltage = v0 - v1;
             double i = branchCurrent(c, mna, isl, v);
             c.current = i;
+            if (c.def.isInductive()) {
+                // история катушки: по ней считается следующий шаг dt
+                c.iPrev = inductorCurrent(c, isl, v, Math.max(0.005, cfg.dt()));
+            }
             c.power = Math.abs(c.voltage * i);
             updateState(plugin, cfg, c, i);
             if (protect(cfg, c, isl)) {
@@ -553,6 +653,14 @@ public final class Simulation {
                 c.state = c.speedPrev > 0.05 ? CompStates.ON : CompStates.OFF;
             }
             case RESISTOR -> c.state = c.power > Math.max(0.01, d.ratedPower) * 0.6 ? CompStates.ON : CompStates.OFF;
+            case INDUCTOR -> c.state = Math.abs(i) > 0.01 ? CompStates.ON : CompStates.OFF;
+            case ELECTROMAGNET -> {
+                c.brightness = d.fieldPerAmp > 0
+                        ? Math.min(1, c.field / (d.fieldPerAmp * 20)) : (Math.abs(i) > 0.02 ? 1 : 0);
+                c.state = Math.abs(i) > 0.005 ? CompStates.ON : CompStates.OFF;
+            }
+            case REED -> c.brightness = c.state == CompStates.CLOSED ? 1 : 0;
+            case RELAY -> c.brightness = c.state == CompStates.CLOSED ? 1 : 0;
             case FUSE -> c.state = CompStates.CLOSED;
             case TRANSISTOR -> c.state = Math.abs(i) > 0.0004 ? CompStates.ON : CompStates.OFF;
             case GATE -> c.state = c.voltage > 2.0 ? CompStates.ON : CompStates.OFF;
@@ -627,6 +735,69 @@ public final class Simulation {
             return Math.abs(Mna.branchCurrent(s, v, b));
         }
         return Math.abs(mna.netInflow(a, v));
+    }
+
+    /**
+     * Последовательные R и L одним companion-узлом (обратный Эйлер):
+     *   I = I_prev + dt/(L + dt*R) * (U - R*I_prev)
+     * При L -> 0 это просто R, при dt -> 0 — обрыв, то есть катушка ведёт себя
+     * как на уроке: в первый момент ток через неё не течёт, потом разгоняется.
+     */
+    private static void stampInductive(Mna mna, CompInstance c, String a, String b,
+                                       double dt, double r, double l) {
+        double rr = Math.max(0.01, r);
+        double ll = Math.max(1e-6, l);
+        double g = dt / (ll + dt * rr);
+        mna.stamp(a, b, g, -(1 - g * rr) * c.iPrev);
+    }
+
+    /** Ток катушки «как он получился» — та же формула, что в stemпе. */
+    private static double inductorCurrent(CompInstance c, Island isl, Map<String, Double> v, double dt) {
+        double u = nodeVoltage(isl, v, c.pinNet, 0) - nodeVoltage(isl, v, c.pinNet, 1);
+        double r = Math.max(0.01, c.def.resistance);
+        double g = dt / (Math.max(1e-6, c.def.inductance) + dt * r);
+        return g * u + (1 - g * r) * c.iPrev;
+    }
+
+    /**
+     * Модификатор сопротивления для фоторезистора и термистора. В мире смотрим
+     * на свет блока сверху и на соседей-источники тепла; в редакторе схемы блока
+     * нет — считаем, что деталь лежит на столе под лампой (0.8).
+     */
+    private static double resistorScale(CompInstance c, Def d) {
+        double k = 1;
+        org.bukkit.block.Block b = c.key.block();
+        if (d.lightDependent) {
+            double lux = 0.8;
+            if (b != null) {
+                lux = Math.max(0, b.getRelative(org.bukkit.block.BlockFace.UP).getLightLevel() / 15.0);
+            }
+            k *= 1 / (0.02 + 1.6 * lux);
+        }
+        if (d.bConstant > 0) {
+            double t = 298.15 + Math.max(0, c.power) * Math.max(0, d.selfHeat);
+            if (b != null) {
+                t += ambientHeat(b);
+            }
+            k *= Math.exp(d.bConstant * (1 / Math.max(120, t) - 1 / 298.15));
+        }
+        return k;
+    }
+
+    /** Степень «меня греют»: лава/огонь/факел рядом дают +60..+400 К. */
+    private static double ambientHeat(org.bukkit.block.Block b) {
+        double heat = 0;
+        for (org.bukkit.block.BlockFace f : CompInstance.FACES) {
+            String name = b.getRelative(f).getType().name();
+            if (name.contains("LAVA")) {
+                heat = Math.max(heat, 400);
+            } else if (name.contains("FIRE") || name.contains("MAGMA")) {
+                heat = Math.max(heat, 250);
+            } else if (name.contains("TORCH") || name.contains("LANTERN")) {
+                heat = Math.max(heat, 60);
+            }
+        }
+        return heat;
     }
 
     private static double lampResistance(CompInstance c, Map<String, Double> prev, String a, String b) {
