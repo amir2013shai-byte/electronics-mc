@@ -374,5 +374,11 @@ tools/preview.py           — PNG-монтаж текстур для ревью
 `pack_format == 75`; артефакты уходят и в artifacts раннера, и (на теге `v*`)
 в GitHub Release. Сборка воспроизводима: в `pom.xml` задан
 `project.build.outputTimestamp`, поэтому два подряд `clean package` дают
-**одинаковый** `Electronics-1.0.0.jar` (проверено: `0805afc5e21a0d3d5db00680a7ad9f460f17c9e1`
-в обоих прогонов) — sha1 из `release/sha1sums.txt` имеет смысл.
+**одинаковый** `Electronics-1.0.0.jar` (проверено: `bb4eed156e73a5132ba918aa3d7d2caac4c200e4`
+в обоих прогонов, 217 620 Б) — sha1 из `release/sha1sums.txt` имеет смысл.
+
+**Готовые файлы:** Releases → **v1.1.0** → Assets: `Electronics-1.0.0.jar`,
+`electronics-resourcepack.zip` (ставить в `resource-pack.url` на сервере или в
+`.minecraft/resourcepacks`), `electronics-recipes-datapack.zip`, `preview.png`
+(все 64 предмета на одном листе) и `sha1sums.txt`. Тот же набор лежит в
+артефактах любого рана Actions (`electronics-1.21.11`).
