@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -63,7 +64,60 @@ public final class Soldering {
             Kind.MOTOR, Kind.BUZZER, Kind.VOLTMETER, Kind.AMMETER, Kind.MULTIMETER, Kind.DIODE,
             // полупроводниковые сборки и обмотки: без флюса пайка «сухая» —
             // 4 диода в мосту, кристалл стабилизатора и выводы трансформатора
-            Kind.BRIDGE, Kind.REGULATOR, Kind.TRANSFORMER);
+            Kind.BRIDGE, Kind.REGULATOR, Kind.TRANSFORMER, Kind.MCU);
+
+    /**
+     * Кому кроме ванильных заготовок нужны наши предметы. Это и есть цепочка
+     * «жила → кусок → слиток → провод → деталь»: без разведки недр микроконтроллер
+     * или воздушно-цинковый элемент не спаять, сколько припоя ни имей.
+     */
+    private static final Map<String, Map<String, Integer>> OUR_INGREDIENTS = new LinkedHashMap<>();
+
+    static {
+        OUR_INGREDIENTS.put("wire_bare", Map.of("ingot_copper", 2));
+        OUR_INGREDIENTS.put("wire_tinned", Map.of("wire_bare", 1));
+        OUR_INGREDIENTS.put("battery_zinc", Map.of("ingot_zinc", 2));
+        OUR_INGREDIENTS.put("mcu_atmega328", Map.of("wire_tinned", 1, "crystal_16mhz", 1));
+    }
+
+    /** Наши ингредиенты детали (пусто, если их не нужно). */
+    public static Map<String, Integer> oursOf(String id) {
+        Map<String, Integer> m = OUR_INGREDIENTS.get(id);
+        return m == null ? Map.of() : m;
+    }
+
+    /** null, если всё лежит в инвентаре; иначе — что принести. */
+    public static String oursMissing(Player p, Def d) {
+        Map<String, Integer> need = oursOf(d == null ? "" : d.id);
+        if (need.isEmpty()) {
+            return null;
+        }
+        List<String> miss = new ArrayList<>();
+        for (Map.Entry<String, Integer> e : new java.util.TreeMap<>(need).entrySet()) {
+            Def od = me.arena.electronics.registry.Components.byId(e.getKey());
+            String name = od == null ? e.getKey() : od.nameRu;
+            int have = countOf(p, e.getKey());
+            if (have < e.getValue()) {
+                miss.add(name + " ×" + (e.getValue() - have));
+            }
+        }
+        return miss.isEmpty() ? null : "из инвентаря нужно: " + String.join(", ", miss);
+    }
+
+    /** Сколько всего наших деталей ушло в пайку (для подсказки и для теста). */
+    public static int oursTotal(String id) {
+        int n = 0;
+        for (int v : oursOf(id).values()) {
+            n += v;
+        }
+        return n;
+    }
+
+    public static void takeOurs(Player p, Def d) {
+        for (Map.Entry<String, Integer> e : oursOf(d == null ? "" : d.id).entrySet()) {
+            removeOurs(p, e.getKey(), e.getValue());
+        }
+    }
 
     private Soldering() {
     }
@@ -116,7 +170,7 @@ public final class Soldering {
                     Map.of(), 0, 0, a.heat());
         }
         Map<Material, Integer> need = Recipes.ingredientsOf(d.id);
-        if (need.isEmpty()) {
+        if (need.isEmpty() && oursOf(d.id).isEmpty()) {
             return new Result(false, false, "для «" + d.nameRu + "» нет заготовки-рецепта",
                     Map.of(), 0, 0, a.heat());
         }
@@ -167,6 +221,13 @@ public final class Soldering {
             return "нет заготовки";
         }
         List<String> parts = new ArrayList<>();
+        for (Map.Entry<String, Integer> e : new java.util.TreeMap<>(oursOf(id)).entrySet()) {
+            Def od = Components.byId(e.getKey());
+            parts.add((od == null ? e.getKey() : od.nameRu) + " ×" + e.getValue());
+        }
+        if (need.isEmpty()) {
+            return parts.isEmpty() ? "нет заготовки" : String.join(", ", parts);
+        }
         for (Map.Entry<Material, Integer> e : need.entrySet()) {
             parts.add(pretty(e.getKey()) + (e.getValue() > 1 ? " ×" + e.getValue() : ""));
         }
@@ -394,6 +455,14 @@ public final class Soldering {
             }
             have.merge(s.getType(), s.getAmount(), Integer::sum);
         }
+        String oursWhy = oursMissing(p, target);
+        if (oursWhy != null) {
+            // проверяем до evaluate: нечестно сжигать припой из-за того, что
+            // в инвентаре нет слитка
+            Items.message(p, "&c✗ " + oursWhy);
+            return new Result(false, false, oursWhy, Map.of(), 0, 0, heat(
+                    slot < 0 ? null : iron));
+        }
         Result r = evaluate(new Attempt(target, have, countOf(p, SOLDER_ID), countOf(p, FLUX_ID),
                 heat(iron)));
         if (!r.allowed()) {
@@ -414,13 +483,16 @@ public final class Soldering {
         if (r.flux() > 0) {
             removeOurs(p, FLUX_ID, r.flux());
         }
+        takeOurs(p, target);
         p.getInventory().addItem(plugin.items().componentItem(target, 1));
         wearIron(plugin, p);
         p.updateInventory();
         p.getWorld().playSound(p.getLocation(), org.bukkit.Sound.BLOCK_ANVIL_USE, 0.8f, 1.4f);
+        int ours = oursTotal(target.id);
         Items.message(p, "&a⚡ Спаяно: &f" + target.nameRu + "&7 (припой ×" + r.solder()
                 + (r.flux() > 0 ? ", флюс ×1" : "") + ", " + r.heat() + "°)&8 — "
-                + r.consume().size() + " вида заготовок ушло");
+                + r.consume().size() + " вида заготовок ушло"
+                + (ours > 0 ? "&7 и &f" + ours + " &7нашей детали" : ""));
         return r;
     }
 }

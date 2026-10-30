@@ -88,6 +88,8 @@ public final class Topology {
                 return 4;      // плечи вдоль оси + два боковых (у моста «+»/«−», у тр-ра вторичка)
             case REGULATOR:
                 return 3;      // IN/OUT вдоль оси, GND вбок — как у транзистора
+            case MCU:
+                return 6;      // VCC/GND по оси, PIN1..PIN4 — вбок и вверх/вниз
             case BREADBOARD:
             case STATION:
             case TOOL:

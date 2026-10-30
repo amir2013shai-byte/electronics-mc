@@ -198,7 +198,8 @@ public final class SolderGui implements Gui {
     /** Есть ли у id заготовка-рецепт (иначе паять нечего). */
     private static final class Recipes0 {
         static boolean has(String id) {
-            return !me.arena.electronics.recipes.Recipes.ingredientsOf(id).isEmpty();
+            return !me.arena.electronics.recipes.Recipes.ingredientsOf(id).isEmpty()
+                    || !Soldering.oursOf(id).isEmpty();     // рудная цепочка: только наши детали
         }
     }
 }

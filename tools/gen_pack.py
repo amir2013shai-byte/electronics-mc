@@ -430,6 +430,20 @@ def model_of(comp):
 # ---------------------------------------------------------------------------- recipes
 RECIPES = {
     "bench": {"type": "shapeless", "ing": {"paper": 1, "repeater": 1}, "count": 2},
+    # разведка недр, зачистка и кварц на тактовую частоту — только руками,
+    # их не паяют (содержимое обязано совпадать с Recipes.DEFS)
+    "crystal_16mhz": {"type": "shapeless", "ing": {"quartz": 2, "gold_nugget": 1}},
+    "geoprobe": {"shape": ["Q", "I", "S"], "key": {"Q": "quartz", "I": "iron_ingot", "S": "stick"}},
+    "wire_stripper": {"shape": ["SI", "CF"], "key": {"S": "shears", "I": "iron_ingot",
+                                                    "C": "copper_ingot", "F": "flint"}},
+    # станочные заготовки рудной цепочки: в датапак они не попадают (id в
+    # meta.soldered), но таблица обязана совпадать с Recipes.DEFS
+    "wire_bare": {"type": "shapeless", "ing": {"string": 2}},
+    "wire_tinned": {"type": "shapeless", "ing": {"sand": 1}},
+    "battery_zinc": {"type": "shapeless", "ing": {"coal": 1, "string": 1}},
+    "mcu_atmega328": {"type": "shapeless", "ing": {"quartz": 1, "gold_nugget": 1}},
+    "programmer_usb": {"shape": ["IG", "CR"], "key": {"I": "iron_nugget", "G": "gold_nugget",
+                                                     "C": "copper_ingot", "R": "repeater"}},
     "breadboard": {"shape": ["HRH", "RRR", "RSR"], "key": {"H": "hopper", "R": "repeater", "S": "redstone"}},
     "wire_red": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "redstone": 1}, "count": 4},
     "wire_black": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "ink_sac": 1}, "count": 4},
@@ -662,7 +676,7 @@ def main():
         # custom_model_data (индекс = состояние), остальным — базовая модель:
         # состояние в мире всё равно задаёт плагин через item_model.
         dispatch_kinds = {"LED", "SWITCH", "BUTTON", "TOGGLE", "FUSE", "LAMP", "DIODE", "PROBE", "VOLTMETER",
-                          "AMMETER", "RELAY", "REED", "PTC", "VARISTOR", "BRIDGE", "REGULATOR", "TRANSFORMER"}
+                          "AMMETER", "RELAY", "REED", "PTC", "VARISTOR", "BRIDGE", "REGULATOR", "TRANSFORMER", "MCU"}
         if comp["kind"] in dispatch_kinds and nstates > 1:
             entries = []
             for st in range(nstates):
@@ -754,6 +768,9 @@ def main():
     print(f"компонентов: {len(COMPONENTS)}; индексов состояния модели: {state_models}")
     print(f"файлов ресурспака: {files}; рецептов в датапаке: {nrecipes} "
           f"(через пайку: {skipped_solder})")
+    BY_DESIGN = {"raw_copper_chunk", "raw_tin_chunk", "raw_zinc_chunk",
+                 "ingot_copper", "ingot_tin", "ingot_zinc"}
+    missing = [m for m in missing if m not in BY_DESIGN]
     if missing:
         print("рецепт не задан для:", ", ".join(missing))
     print("zip:", os.path.join(BUILD, "electronics-resourcepack.zip"))

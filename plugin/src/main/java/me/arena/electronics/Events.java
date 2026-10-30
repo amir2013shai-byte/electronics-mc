@@ -64,11 +64,39 @@ public final class Events implements Listener {
             me.arena.electronics.gui.SchematicGui.open(plugin, p);
             return;
         }
+        // «Зачистка/лужение»: ПКМ в воздухе с инструментом в руке — без цели,
+        // чтобы не спорить с установкой блоков и с открытием столов.
+        if (held != null && held.id.equals("wire_stripper")
+                && e.getAction().name().contains("AIR") && p.isSneaking()) {
+            e.setCancelled(true);
+            stripWires(p, held);
+            return;
+        }
+        // «USB-программатор»: ПКМ по поставленному программатору — окно прошивки.
+        if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            Block pb = e.getClickedBlock();
+            if (pb != null) {
+                me.arena.electronics.circuit.CompInstance pc = plugin.circuit().get(pb);
+                if (pc != null && pc.def != null && pc.def.kind == me.arena.electronics.registry.Kind.STATION
+                        && pc.def.id.equals("programmer_usb")) {
+                    e.setCancelled(true);
+                    me.arena.electronics.gui.McuGui.open(plugin, p, pb);
+                    return;
+                }
+            }
+        }
         if (e.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
         Block b = e.getClickedBlock();
         if (b == null) {
+            return;
+        }
+        // (00) геозонд: ПКМ по породе — разведка недр. Дешевле сделать это до
+        // ветки «тул в руке греет жало», иначе зонд грел бы паяльник.
+        if (held != null && held.id.equals("geoprobe")) {
+            e.setCancelled(true);
+            prospect(p, b);
             return;
         }
         // (0) паяльник и расходники в мир не ставятся: ПКМ по горячему блоку греет жало
@@ -298,6 +326,7 @@ public final class Events implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent e) {
         Block b = e.getBlock();
+        veinBonus(e, b);
         CompInstance c = plugin.circuit().get(b);
         if (c != null) {
             e.setCancelled(true);
@@ -339,6 +368,154 @@ public final class Events implements Listener {
             return;
         }
         e.blockList().removeIf(b -> plugin.circuit().get(b) != null || plugin.circuit().persistence().isHost(b));
+    }
+
+    // --------------------------------------------------------- руды и инструменты
+
+    /**
+     * Куски руды из вскрытой жилы. Обычная порода вокруг тоже ломается, но руда
+     * идёт только пока точка внутри пояса живой (вскрытой и не выбранной) жилы:
+     * drops=false, и вместо булыжника сыпется наш предмет.
+     */
+    @SuppressWarnings("unused")
+    private void veinBonus(BlockBreakEvent e, Block b) {
+        me.arena.electronics.deposit.Deposits d = plugin.deposits();
+        if (d == null || !d.enabled() || e.isCancelled()) {
+            return;
+        }
+        if (!isRock(b.getType())) {
+            return;
+        }
+        me.arena.electronics.deposit.Deposits.Vein vein = d.veinAt(b.getX(), b.getZ());
+        if (!d.productive(vein, b.getY())) {
+            return;
+        }
+        org.bukkit.inventory.ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
+        String tool = hand.getType().name();
+        if (!tool.contains("PICKAXE")) {
+            Items.message(e.getPlayer(), "&7кирка: без инструментов породу не раздробить");
+            return;
+        }
+        String oreId = d.takeOre(b.getX(), b.getY(), b.getZ());
+        if (oreId == null) {
+            return;
+        }
+        me.arena.electronics.registry.Def ore = me.arena.electronics.registry.Components.byId(oreId);
+        if (ore == null) {
+            return;
+        }
+        int n = d.chunksPerBlock(vein, (b.getX() * 31 + b.getY() * 17 + b.getZ()) & 1023);
+        e.setDropItems(false);
+        e.setExpToDrop(0);
+        for (int i = 0; i < n; i++) {
+            b.getWorld().dropItemNaturally(b.getLocation().add(0.5, 0.3, 0.5),
+                    plugin.items().componentItem(ore, 1));
+        }
+        b.getWorld().spawnParticle(org.bukkit.Particle.ELECTRIC_SPARK,
+                b.getLocation().add(0.5, 0.5, 0.5), 14, 0.3, 0.3, 0.3, 0.02);
+        b.getWorld().playSound(b.getLocation().add(0.5, 0.5, 0.5),
+                org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.7f, 1.9f);
+    }
+
+    /** Порода, в которой живёт жила. Глубинные версии включены, воздух — нет. */
+    private static boolean isRock(org.bukkit.Material m) {
+        String n = m.name();
+        return n.equals("STONE") || n.startsWith("DEEPSLATE") && !n.contains("ORE")
+                || n.startsWith("COBBLED_DEEPSLATE") || n.equals("TUFF") || n.equals("GRANITE")
+                || n.equals("DIORITE") || n.equals("ANDESITE") || n.equals("NETHERRACK");
+    }
+
+    /** Геозонд: вскрыть/осмотреть жилу под точкой. Тратит прочность зонда. */
+    private void prospect(Player p, Block b) {
+        me.arena.electronics.deposit.Deposits d = plugin.deposits();
+        if (d == null || !d.enabled()) {
+            Items.message(p, "&7разведка недр выключена в config.yml (deposits.enabled)");
+            return;
+        }
+        if (!isRock(b.getType())) {
+            Items.message(p, "&7жило ищут по породе, а не по &f" + b.getType().name().toLowerCase(java.util.Locale.ROOT));
+            return;
+        }
+        String msg = d.prospect(b.getX(), b.getY(), b.getZ());
+        Items.message(p, "&b⛏ &f" + msg);
+        wear(p, 1);
+        p.getWorld().spawnParticle(org.bukkit.Particle.SOUL, b.getLocation().add(0.5, 1.1, 0.5),
+                22, 0.4, 0.5, 0.4, 0.01);
+        b.getWorld().playSound(b.getLocation(), org.bukkit.Sound.BLOCK_COMPOSTER_EMPTY, 0.8f, 1.3f);
+    }
+
+    /**
+     * Зачистка: изолированные провода в инвентаре -> голый монтажный провод.
+     * 1 зачистка = 1 провод, за раз не больше 4, инструмент садится на прочность.
+     */
+    private void stripWires(Player p, me.arena.electronics.registry.Def tool) {
+        int done = 0;
+        org.bukkit.inventory.ItemStack[] slots = p.getInventory().getStorageContents();
+        for (int i = 0; i < slots.length && done < 4; i++) {
+            org.bukkit.inventory.ItemStack s = slots[i];
+            if (s == null || s.getType().isAir()) {
+                continue;
+            }
+            me.arena.electronics.registry.Def d = Items.defOf(s);
+            if (d == null || !isInsulated(d.id)) {
+                continue;
+            }
+            s.setAmount(s.getAmount() - 1);
+            if (s.getAmount() <= 0) {
+                p.getInventory().setItem(i, null);
+            }
+            done++;
+        }
+        if (done == 0) {
+            Items.message(p, "&7нечего зачищать: положи в инвентарь изолированный провод");
+            return;
+        }
+        me.arena.electronics.registry.Def bare =
+                me.arena.electronics.registry.Components.byId("wire_bare");
+        if (bare != null) {
+            java.util.Map<Integer, ? extends org.bukkit.inventory.ItemStack> left =
+                    p.getInventory().addItem(plugin.items().componentItem(bare, done));
+            for (org.bukkit.inventory.ItemStack overflow : left.values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+            }
+        }
+        wear(p, done);
+        p.updateInventory();
+        Items.message(p, "&a⚡ Зачищено проводов: &f" + done + " &7→ голый монтажный провод"
+                + " &8(лудить на столе: голый + припой)");
+        p.getWorld().playSound(p.getLocation(), org.bukkit.Sound.ITEM_ARMOR_EQUIP_CHAIN, 0.7f, 1.5f);
+    }
+
+    /** Изолированный провод (тот, что зачищают). Голый и лужёный — уже металл. */
+    private static boolean isInsulated(String id) {
+        return id.equals("wire_red") || id.equals("wire_black")
+                || id.equals("wire_yellow") || id.equals("wire_blue");
+    }
+
+    /**
+     * Списать N прочности с инструмента в правой руке. Носитель — BRUSH, у него
+     * прочность есть; когда она кончается, предмет ломается и исчезает, как
+     * настоящий инструмент (молча: у нас нет права «бессмертный инструмент»).
+     */
+    private void wear(Player p, int amount) {
+        org.bukkit.inventory.ItemStack stack = p.getInventory().getItemInMainHand();
+        if (stack == null || stack.getType().isAir() || amount <= 0) {
+            return;
+        }
+        int max = stack.getType().getMaxDurability();
+        if (max <= 1 || !(stack.getItemMeta() instanceof org.bukkit.inventory.meta.Damageable dm)) {
+            return;
+        }
+        int now = dm.getDamage() + amount;
+        if (now >= max) {
+            p.getInventory().setItemInMainHand(null);
+            Items.message(p, "&cинструмент сломался — спаяй новый");
+            p.updateInventory();
+            return;
+        }
+        dm.setDamage(now);
+        stack.setItemMeta((org.bukkit.inventory.meta.ItemMeta) dm);
+        p.updateInventory();
     }
 
     private void hint(Player p, String text) {

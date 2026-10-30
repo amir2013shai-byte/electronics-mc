@@ -56,6 +56,8 @@ public final class Persistence {
         public String lab = "";
         public String netlist = "";
         public String note = "";
+        /** Прошивка микроконтроллера (Kind.MCU). */
+        public String program = "";
         public boolean host;
 
         public String key() {
@@ -85,6 +87,7 @@ public final class Persistence {
         e.tune = c.tune;
         e.fault = c.fault == null ? "" : c.fault;
         e.lab = c.lab == null ? "" : c.lab;
+        e.program = c.program == null ? "" : c.program;
         dirty = true;
         writePdcBonus(c.key.block(), e);
     }
@@ -208,6 +211,7 @@ public final class Persistence {
         c.tune = e.tune;
         c.fault = e.fault == null ? "" : e.fault;
         c.lab = e.lab == null ? "" : e.lab;
+        c.program = e.program == null ? "" : e.program;
         loadedCount++;
         return c;
     }
@@ -346,6 +350,7 @@ public final class Persistence {
             e.lab = Json.str(o, "l", "");
             e.netlist = Json.str(o, "n", "");
             e.note = Json.str(o, "m", "");
+            e.program = Json.str(o, "p", "");
             e.host = Json.bool(o, "h", false);
             if (!e.world.isEmpty()) {
                 entries.put(e.key(), e);
@@ -378,6 +383,9 @@ public final class Persistence {
             }
             if (!e.note.isEmpty()) {
                 sb.append(",\"m\":\"").append(esc(e.note)).append("\"");
+            }
+            if (!e.program.isEmpty()) {
+                sb.append(",\"p\":\"").append(esc(e.program)).append("\"");
             }
             if (e.host) {
                 sb.append(",\"h\":true");

@@ -52,6 +52,7 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             case "recipe" -> recipe(s);
             case "solder" -> solder(s);
             case "reload" -> reload(s);
+            case "veins" -> veins(s, args);
             case "rescan" -> rescan(s);
             case "show" -> show(s, args);
             case "selftest" -> selftest(s);
@@ -414,6 +415,31 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(sb.toString());
     }
 
+    /** Разведка недр вокруг игрока: что обещают недры в радиусе N чанков. */
+    private void veins(CommandSender s, String[] args) {
+        me.arena.electronics.deposit.Deposits d = plugin.deposits();
+        if (d == null || !d.enabled()) {
+            s.sendMessage(Items.color("&cЖилы выключены&7: deposits.enabled: false в config.yml"));
+            return;
+        }
+        if (!(s instanceof Player p)) {
+            s.sendMessage(Items.color("&cТолько для игроков: нужно стоять на месте, вокруг"
+                    + " которого смотреть недра."));
+            return;
+        }
+        int r = 2;
+        if (args.length > 1) {
+            try {
+                r = Math.max(1, Math.min(8, Integer.parseInt(args[1])));
+            } catch (NumberFormatException ignored) {
+                // остаёмся на 2 чанках
+            }
+        }
+        for (String line : d.survey(p.getLocation().getBlockX(), p.getLocation().getBlockZ(), r).split("\n")) {
+            s.sendMessage(Items.color("&7" + line));
+        }
+    }
+
     private void reload(CommandSender s) {
         if (!s.hasPermission("electronics.admin")) {
             s.sendMessage(Items.color("&cНет права electronics.admin"));
@@ -761,6 +787,158 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 + "&7, I_перв. на постоянке = &f" + Num.amp(ix) + " &7→ постоянку тр-р не передаёт&7; "
                 + "&8Кт и насыщение считает tools/TestCoupled"));
 
+        // (13) руды: жила как функция координат, геозонд, плавка и место в пайке
+        me.arena.electronics.Config dc = plugin.config();
+        long dseed = dc.depositSeed != 0 ? dc.depositSeed
+                : (plugin.getServer().getWorlds().isEmpty() ? 0L
+                        : plugin.getServer().getWorlds().get(0).getSeed());
+        me.arena.electronics.deposit.Deposits f1 = new me.arena.electronics.deposit.Deposits();
+        me.arena.electronics.deposit.Deposits f2 = new me.arena.electronics.deposit.Deposits();
+        f1.configure(dseed, true, dc.depositChance, dc.depositVeinSize, dc.depositVeinJitter,
+                dc.depositYMin, dc.depositYBand, dc.depositYield);
+        f2.configure(dseed, true, dc.depositChance, dc.depositVeinSize, dc.depositVeinJitter,
+                dc.depositYMin, dc.depositYBand, dc.depositYield);
+        boolean sameField = me.arena.electronics.deposit.Deposits.sameField(f1, f2, 16);
+        int span = 24;
+        int total = 0;
+        int found = 0;
+        int yLo = Integer.MAX_VALUE;
+        int yHi = Integer.MIN_VALUE;
+        int veinsizeMax = 0;
+        int veinsizeMin = Integer.MAX_VALUE;
+        int sampleX = 0;
+        int sampleZ = 0;
+        int sampleY = 0;
+        int sampleSize = 0;
+        for (int cx = -span; cx <= span; cx++) {
+            for (int cz = -span; cz <= span; cz++) {
+                total++;
+                me.arena.electronics.deposit.Deposits.Vein v = f1.veinOf(cx, cz);
+                if (v == null) {
+                    continue;
+                }
+                found++;
+                yLo = Math.min(yLo, v.yMin());
+                yHi = Math.max(yHi, v.yMin() + v.ySpan());
+                veinsizeMax = Math.max(veinsizeMax, v.size());
+                veinsizeMin = Math.min(veinsizeMin, v.size());
+                if (v.yMin() < 0) {                 // первый же «глубокий» пример
+                    sampleX = cx * 16 + 8;
+                    sampleZ = cz * 16 + 8;
+                    sampleY = v.yMin() + v.ySpan() / 2;
+                    sampleSize = v.size();
+                }
+            }
+        }
+        double share = 100.0 * found / Math.max(1, total);
+        me.arena.electronics.deposit.Deposits.Vein sv = f1.veinAt(sampleX, sampleZ);
+        boolean beforeProbe = sv != null && f1.productive(sv, sampleY);
+        f1.prospect(sampleX, sampleY, sampleZ);
+        boolean afterProbe = f1.productive(f1.veinAt(sampleX, sampleZ), sampleY);
+        int got = 0;
+        for (int step = 0; step < Math.max(1, sampleSize); step++) {
+            if (f1.takeOre(sampleX, sampleY, sampleZ) != null) {
+                got++;
+            }
+        }
+        boolean spent = f1.depleted(f1.veinAt(sampleX, sampleZ))
+                && f1.takeOre(sampleX, sampleY, sampleZ) == null;
+        boolean oresOk = true;
+        for (me.arena.electronics.deposit.Deposits.Ore o : me.arena.electronics.deposit.Deposits.ORES) {
+            if (Components.byId(o.chunkId()) == null) {
+                oresOk = false;
+            }
+        }
+        int smelts = plugin.recipes().smeltCount();
+        org.bukkit.inventory.Recipe sm = smelts == 0 ? null
+                : plugin.getServer().getRecipe(new org.bukkit.NamespacedKey(plugin, "smelt_ingot_copper"));
+        org.bukkit.inventory.RecipeChoice.ExactChoice ec =
+                sm instanceof org.bukkit.inventory.FurnaceRecipe fr0
+                        && fr0.getInputChoice() instanceof org.bukkit.inventory.RecipeChoice.ExactChoice e2
+                        ? e2 : null;
+        Def raw = Components.byId("raw_copper_chunk");
+        Def ing = Components.byId("ingot_copper");
+        org.bukkit.inventory.ItemStack result = sm instanceof org.bukkit.inventory.FurnaceRecipe fr1
+                ? fr1.getResult() : null;
+        boolean furnaceOk = ec != null && ec.getChoices().size() == 1
+                && ec.getChoices().get(0).getAmount() == 2
+                && raw != null && Items.defOf(ec.getChoices().get(0)) != null
+                && "raw_copper_chunk".equals(Items.defOf(ec.getChoices().get(0)).id)
+                && ing != null && result != null && Items.defOf(result) != null
+                && "ingot_copper".equals(Items.defOf(result).id)
+                && plugin.recipes().byResult(ing) == null
+                && !Components.isSoldered("ingot_copper");
+        boolean chainOk = oresOk && furnaceOk
+                && me.arena.electronics.recipes.Soldering.oursOf("wire_bare").getOrDefault("ingot_copper", 0) == 2
+                && me.arena.electronics.recipes.Soldering.oursOf("wire_tinned").getOrDefault("wire_bare", 0) == 1
+                && me.arena.electronics.recipes.Soldering.oursTotal("mcu_atmega328") == 2
+                && !me.arena.electronics.recipes.Soldering.oursOf("wire_tinned").isEmpty()
+                && me.arena.electronics.recipes.Soldering.ingredientText("wire_bare").contains("\u00d72")
+                && !me.arena.electronics.recipes.Soldering.ingredientText("mcu_atmega328")
+                        .contains("нет заготовки");
+        boolean oreOk = sameField && sv != null && !beforeProbe && afterProbe && spent
+                && got == sampleSize && veinsizeMin > 0
+                && yLo >= dc.depositYMin - 1 && yHi <= dc.depositYMin + dc.depositYBand + 1
+                && Math.abs(share - 100 * dc.depositChance) < 6.0 && chainOk;
+        s.sendMessage(Items.color((oreOk ? "&aPASS " : "&cFAIL ")
+                + "&7недра: жила в &f" + (int) share + "&7% чанков (config &f"
+                + (int) (100 * dc.depositChance) + "&7%), поле при том же сиде совпало: &f"
+                + sameField + "&7; размер &f" + veinsizeMin + "&7…&f" + veinsizeMax
+                + " блоков, пояс Y &f" + yLo + "&7…&f" + yHi
+                + "&7; до геозонда не копается: &f" + !beforeProbe + "&7, после — выбрано &f"
+                + got + "&7/&f" + sampleSize + " &7и жила пуста: &f" + spent
+                + "&7; печь: &f" + smelts + " &7рецепта, 2 куска → слиток (ExactChoice, без датапака): &f"
+                + furnaceOk + "&7; станок: слиток→провод, провод+припой→лужение,"
+                + " провод+кристалл→МК: &f" + chainOk + "&7"));
+
+        // (14) микроконтроллер: прошивка управляет ногами, ноги считают ток
+        me.arena.electronics.gui.SchematicGui gm =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintMcu(gm, "led_red");
+        gm.programAt(1, 3, "pin 2 output;\ndigitalWrite(2, HIGH);\n");
+        gm.recalcSteps(null, 6);
+        CompInstance mcu = gm.instanceAt(1, 3);
+        double vcc = mcu == null ? 0 : mcu.mcuVcc;
+        double vPin = mcu == null ? 0 : mcu.mcuVolt[2];
+        double iPort = mcu == null ? 0 : Math.abs(mcu.mcuPinI[2]) * 1000;
+        double iLed = Math.abs(gm.currentAt(1, 4)) * 1000;
+        double uLed = Math.abs(gm.voltageAt(1, 4));
+        boolean mcuOk = mcu != null && vcc > 2.8 && vcc < 3.05 && vPin > vcc - 0.25 && vPin > 2.5
+                && iPort > 1.2 && iPort < 5.0 && Math.abs(iPort - iLed) < 0.6
+                && mcu.mcuHalt.isEmpty() && mcu.state == me.arena.electronics.circuit.CompStates.ON;
+        s.sendMessage(Items.color((mcuOk ? "&aPASS " : "&cFAIL ")
+                + "&7МК: VCC &f" + Num.volt(vcc) + " &7(9 В через 330 Ом не идёт — только 3 В элемент),"
+                + " нога 2 = &f" + Num.volt(vPin) + " &7HIGH, ток порта &f" + (int) iPort
+                + " мА&7 = току светодиода &f" + (int) iLed + " мА&7 (U_LED &f" + Num.volt(uLed)
+                + "&7), прошивка не встала: &f" + mcu.mcuHalt.isEmpty()
+                + " &8[операторов " + (mcu.firmware == null ? 0 : mcu.firmware.statements()) + "]"));
+
+        me.arena.electronics.gui.SchematicGui gsh =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintMcu(gsh, "wire_red");
+        gsh.programAt(1, 3, "pin 2 output;\ndigitalWrite(2, HIGH);\n");
+        gsh.recalcSteps(null, 6);
+        CompInstance sh = gsh.instanceAt(1, 3);
+        double iPortShort = sh == null ? 0 : Math.abs(sh.mcuPinI[2]) * 1000;
+        int hotPins = sh == null ? 0 : (int) sh.aux[1];
+        boolean limitOk = iPortShort > 30 && iPortShort < 45 && hotPins >= 1;
+        // битая прошивка: чип останавливается, ноги уходят в input, ток через порт — ноль
+        me.arena.electronics.gui.SchematicGui gerr =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintMcu(gerr, "wire_red");
+        gerr.programAt(1, 3, "pin 0 output;");
+        gerr.recalcSteps(null, 3);
+        CompInstance err = gerr.instanceAt(1, 3);
+        sh = err == null ? sh : err;
+        double iAfterErr = sh == null ? 0 : Math.abs(sh.mcuPinI[2]) * 1000;
+        boolean haltOk = sh != null && sh.firmware != null && !sh.firmware.ok()
+                && sh.mcuHalt.contains("питание") && sh.state == me.arena.electronics.circuit.CompStates.REVERSE
+                && sh.mcuDir[2] == 0 && sh.mcuLvl[2] == 0 && iAfterErr < 0.05;
+        s.sendMessage(Items.color(((limitOk && haltOk) ? "&aPASS " : "&cFAIL ")
+                + "&7коротыш порта в землю: &f" + (int) iPortShort + " мА&7 (паспорт 40 мА/нога, не 120),"
+                + " счётчик «горячих» ног &f" + hotPins + "&7; синтаксическая ошибка — чип встаёт:"
+                + " &f«" + sh.mcuHalt + "&f», нога отпущена, ток &f" + (int) iAfterErr + " мА"));
+
         int missing = 0;
         for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {
             if (me.arena.electronics.gui.CatalogGui.whatIs(d).isEmpty()) {
@@ -776,6 +954,33 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color((missing == 0 ? "&aPASS " : "&cFAIL ")
                 + "&7каталог: &f" + me.arena.electronics.registry.Components.size()
                 + " &7предметов, описаний не хватает у &f" + missing));
+    }
+
+    /**
+     * Контур микроконтроллера в редакторе: чип в (1,3) на северном выводе VCC
+     * держит батарейку 3 В через 330 Ом (потребление самой микросхемы — 470 кОм,
+     * поэтому напряжение почти равно ЭДС), южный вывод — шина земли, а восточный
+     * (нога 2 прошивки) идёт в нагрузку. Нагрузку подставляет вызывающий: светодиод
+     * для нормального режима или провод для коротыша.
+     */
+    private static void paintMcu(me.arena.electronics.gui.SchematicGui g, String loadId) {
+        g.put(1, 3, "mcu_atmega328", 0);
+        g.put(0, 3, "wire_red", 0);
+        g.put(0, 4, "resistor_330r", 1);
+        g.put(0, 5, "battery_3", 1);
+        g.put(0, 6, "wire_red", 0);
+        g.put(1, 6, "wire_red", 0);
+        g.put(2, 6, "wire_black", 0);
+        g.put(2, 5, "wire_black", 0);
+        g.put(2, 4, "ground_bus", 0);
+        g.put(2, 3, "ground_bus", 0);
+        if ("wire_red".equals(loadId)) {
+            g.put(1, 4, "wire_red", 0);
+            g.put(1, 5, "wire_red", 0);
+        } else {
+            g.put(1, 4, loadId, 3);           // анод на запад, к ноге 2
+            g.put(1, 5, "resistor_330r", 1);
+        }
     }
 
     /** Контур «батарейка -> резистор -> геркон -> светодиод» и магнит рядом с герконом. */
@@ -1095,7 +1300,7 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (String c : new String[]{"help", "give", "list", "model", "info", "sim", "repair", "clear",
-                    "rotate", "mode", "recipe", "schematic", "reload", "rescan"}) {
+                    "rotate", "mode", "recipe", "schematic", "reload", "rescan", "veins"}) {
                 if (c.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     out.add(c);
                 }

@@ -55,6 +55,9 @@ public final class ElectronicsPlugin extends JavaPlugin {
         sounds = new Sounds(this);
         labs = new LabManager(this);
         recipes = new Recipes(this);
+        deposits = new me.arena.electronics.deposit.Deposits();
+        applyDepositConfig();
+        deposits.load(new File(getDataFolder(), "deposits.json").toPath());
         builds = new me.arena.electronics.lab.BuildLoader(this);
         builds.installBuiltin();
 
@@ -115,7 +118,27 @@ public final class ElectronicsPlugin extends JavaPlugin {
         if (recipes != null) {
             recipes.unregisterAll();
         }
+        if (deposits != null) {
+            try {
+                deposits.save(new File(getDataFolder(), "deposits.json").toPath());
+            } catch (java.io.IOException e) {
+                getLogger().warning("не удалось сохранить deposits.json: " + e.getMessage());
+            }
+        }
         saveAll();
+    }
+
+    /** Перечитать параметры залежей (после /elec reload или правки config.yml). */
+    public void applyDepositConfig() {
+        Config c = config();
+        long seed = c.depositSeed != 0 ? c.depositSeed : getServer().getWorlds().stream()
+                .filter(w -> w != null).map(w -> w.getSeed()).findFirst().orElse(0L);
+        deposits.configure(seed, c.depositsEnabled, c.depositChance, c.depositVeinSize,
+                c.depositVeinJitter, c.depositYMin, c.depositYBand, c.depositYield);
+    }
+
+    public me.arena.electronics.deposit.Deposits deposits() {
+        return deposits;
     }
 
     private void registerCommand(String name, Object executor) {
@@ -135,6 +158,8 @@ public final class ElectronicsPlugin extends JavaPlugin {
     public Config config() {
         return config;
     }
+
+    private me.arena.electronics.deposit.Deposits deposits;
 
     public Circuit circuit() {
         return circuit;
@@ -172,6 +197,7 @@ public final class ElectronicsPlugin extends JavaPlugin {
         config.load();
         Components.reload(getResource("components.json"), new File(getDataFolder(), "components"));
         labs.loadAll();
+        applyDepositConfig();
         recipes.register();
         circuit.markDirty();
     }

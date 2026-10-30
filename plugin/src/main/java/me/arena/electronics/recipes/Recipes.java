@@ -219,6 +219,26 @@ public final class Recipes {
                 map("C", Material.COPPER_INGOT, "I", Material.IRON_INGOT)));
         DEFS.put("xfmr_230_9", new Shaped(new String[]{"CIC", "I I", "C C"},
                 map("C", Material.COPPER_INGOT, "I", Material.IRON_INGOT)));
+        // станочные заготовки рудной цепочки: ванильная часть плюс наши детали
+        // (список ниже читает паяльный стол; датапак эти id не получает, они
+        //  в meta.soldered, а ExactChoice в JSON не выразить)
+        DEFS.put("wire_bare", new Shapeless(List.of(Material.STRING, Material.STRING)));
+        DEFS.put("battery_zinc", new Shapeless(List.of(Material.COAL, Material.STRING)));
+        DEFS.put("mcu_atmega328", new Shapeless(List.of(Material.QUARTZ, Material.GOLD_NUGGET)));
+        // перед лужением провод обдирают абразивом, иначе припой ляжет шариком;
+        // сам припой и голый провод стол спишет отдельно (наши предметы)
+        DEFS.put("wire_tinned", new Shapeless(List.of(Material.SAND)));
+        // разведка недр и зачистка: эти не паяют, их собирают руками
+        DEFS.put("crystal_16mhz", new Shapeless(List.of(Material.QUARTZ, Material.QUARTZ,
+                Material.GOLD_NUGGET)));
+        DEFS.put("geoprobe", new Shaped(new String[]{"Q", "I", "S"},
+                map("Q", Material.QUARTZ, "I", Material.IRON_INGOT, "S", Material.STICK)));
+        DEFS.put("wire_stripper", new Shaped(new String[]{"SI", "CF"},
+                map("S", Material.SHEARS, "I", Material.IRON_INGOT,
+                        "C", Material.COPPER_INGOT, "F", Material.FLINT)));
+        DEFS.put("programmer_usb", new Shaped(new String[]{"IG", "CR"},
+                map("I", Material.IRON_NUGGET, "G", Material.GOLD_NUGGET,
+                        "C", Material.COPPER_INGOT, "R", Material.REPEATER)));
         DEFS.put("desolder_braid", new Shapeless(List.of(Material.STRING, Material.STRING,
                 Material.COPPER_INGOT)));
         DEFS.put("voltmeter", new Shaped(new String[]{"GCG", "IRI", " C "},
@@ -238,8 +258,11 @@ public final class Recipes {
                 map("G", Material.GOLD_NUGGET, "R", Material.REDSTONE, "P", Material.PAPER)));
     }
 
+    private int smeltCount;
+
     public void register() {
         unregisterAll();
+        smeltCount = 0;
         if (!plugin.config().recipesEnabled) {
             plugin.getLogger().info("рецепты отключены (world.recipes: false)");
             return;
@@ -303,8 +326,52 @@ public final class Recipes {
                 }
             }
         }
+        int smelt = registerSmelting();
+        ok += smelt;
+        okCount += smelt;
+        smeltCount = smelt;
         plugin.getLogger().info("зарегистрировано рецептов: " + ok + " (пайка: " + soldered
-                + " витрин для JEI, пропущено " + skip + ")");
+                + " витрин для JEI, пропущено " + skip + ", плавка " + smelt + ")");
+    }
+
+    /**
+     * Плавка кусков руды в слитки. Единственные рецепты, где результат — наш
+     * предмет: печь сравнивает ExactChoice по полному стеку (вместе с PDC), а
+     * витрина JEI таким быть не умеет, поэтому её для этих трёх не делаем и
+     * датапак тоже (в JSON нельзя описать наш NBT).
+     */
+    private int registerSmelting() {
+        int n = 0;
+        String[][] chain = {{"raw_copper_chunk", "ingot_copper"},
+                {"raw_tin_chunk", "ingot_tin"}, {"raw_zinc_chunk", "ingot_zinc"}};
+        for (String[] pair : chain) {
+            Def in = Components.byId(pair[0]);
+            Def out = Components.byId(pair[1]);
+            if (in == null || out == null) {
+                continue;
+            }
+            NamespacedKey key = new NamespacedKey(plugin, "smelt_" + pair[1]);
+            try {
+                org.bukkit.inventory.Recipe r = new org.bukkit.inventory.FurnaceRecipe(key,
+                        plugin.items().componentItem(out, 1),
+                        new org.bukkit.inventory.RecipeChoice.ExactChoice(
+                                plugin.items().componentItem(in, 2)),
+                        0.35f, 150);
+                if (registerRecipe(r, key)) {
+                    n++;
+                }
+            } catch (RuntimeException ex) {
+                if (plugin.config().debug) {
+                    plugin.getLogger().warning("плавка " + pair[1] + ": " + ex.getMessage());
+                }
+            }
+        }
+        return n;
+    }
+
+    /** Сколько рецептов плавки висит (3 = медь, олово, цинк). */
+    public int smeltCount() {
+        return smeltCount;
     }
 
     /** Сколько «настоящих» рецептов зарегистрировано (без витрин). */

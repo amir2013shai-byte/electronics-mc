@@ -3,6 +3,7 @@ package me.arena.electronics.circuit;
 import me.arena.electronics.Config;
 import me.arena.electronics.ElectronicsPlugin;
 import me.arena.electronics.registry.Def;
+import me.arena.electronics.fw.Firmware;
 import me.arena.electronics.registry.Kind;
 import me.arena.electronics.registry.LocationKey;
 import me.arena.electronics.sim.Mna;
@@ -441,6 +442,7 @@ public final class Simulation {
                         mna.stamp(a, b, movConductance(c, d, u), 0);
                     }
                 }
+                case MCU -> stampMcu(isl, mna, cfg, c, prev);
                 case BRIDGE -> stampBridge(isl, mna, cfg, c, prev);
                 case REGULATOR -> stampRegulator(isl, mna, cfg, c, prev);
                 case TRANSFORMER -> stampTransformer(isl, mna, c, dt);
@@ -655,8 +657,197 @@ public final class Simulation {
                 plugin.renderer().requestUpdate(c);
             }
         }
+        for (CompInstance c : isl.comps) {
+            if (c.def != null && c.def.kind == Kind.MCU) {
+                tickMicrocontroller(plugin, cfg, isl, mna, v, c, notify);
+            }
+        }
         if (burned && notify) {
             plugin.circuit().markDirty();
+        }
+    }
+
+    /**
+     * Микроконтроллер в матрице. Нога 0 = VCC, нога 1 = GND: без них чип молчит
+     * (ровно как в жизни — питание и опора обязательны). Ноги 2..5, которые
+     * прошивка выставила выходом, работают как источник Тевенина: ЭДС =
+     * VCC·скважность, внутреннее сопротивление = def.resistance (25 Ом, как у
+     * порта ATmega). Вход — hi-Z, в матрицу не лезет вообще: читаем то, что
+     * посчитал решатель. Ограничение по току порта (def.iLimit, 40 мА) честно
+     * сажает напряжение: КЗ на ногу — и светодиод горит тускло; догрев корпуса
+     * идёт через heat_j/thermal_k, как у всех нагретых деталей.
+     */
+    private static void stampMcu(Island isl, Mna mna, Config cfg, CompInstance c,
+                                 Map<String, Double> prev) {
+        Def d = c.def;
+        String vccNet = rep(isl, c.pinNet[0]);
+        String gndNet = rep(isl, c.pinNet[1]);
+        if (vccNet == null || gndNet == null) {
+            c.mcuVcc = 0;
+            return;
+        }
+        double vg = prev.getOrDefault(gndNet, 0.0);
+        c.mcuVcc = prev.containsKey(vccNet) ? prev.getOrDefault(vccNet, 0.0) - vg : 0.0;
+        // Как у стабилизатора: на нулевом проходе prev пуст, и брать из него нечего.
+        // Затравка номиналом детали нужна, чтобы первый же проход не объявил
+        // коротыш там, где его нет (дальше решает реальное напряжение узла).
+        double vccSeed = prev.containsKey(vccNet) ? c.mcuVcc : Math.max(0, d.voltage);
+        // потребление самой микросхемы (буферы + квартовый генератор): 470 кОм
+        mna.stamp(vccNet, gndNet, 1.0 / 4.7e5, 0);
+        double vcc = vccSeed;
+        boolean alive = !c.burnt() && vcc >= 2.6;
+        for (int pin = 2; pin <= 5; pin++) {
+            int mode = c.mcuDir[pin];
+            c.mcuPinI[pin] = 0;
+            if (!alive || mode == 0) {
+                continue;
+            }
+            String net = rep(isl, c.pinNet[pin]);
+            if (net == null) {
+                continue;
+            }
+            double lvl = mode == 2 ? c.mcuPwm[pin] / 255.0 : (c.mcuLvl[pin] != 0 ? 1.0 : 0.0);
+            double rz = Math.max(1.0, d.resistance);
+            double head = d.iLimit > 0 ? d.iLimit : 1.0;
+            double target = vcc * lvl;
+            if (net.equals(gndNet)) {
+                // Нога замкнута проводом прямо на землю этой же микросхемы: отдельного
+                // узла не остаётся, штамповать некуда — зато ток коротыша есть, и он
+                // упирается в предел порта. Его считаем явно.
+                c.mcuPinI[pin] = head > 0
+                        ? Math.copySign(Math.min(Math.abs(target) / rz, head), target) : 0;
+                continue;
+            }
+            // Мягкий лимит, как у настоящего ключа: на перегрузке транзистор выходит
+            // из насыщения и его сопротивление растёт. «Идеальный генератор тока»
+            // вместо этого на оборванном узле даёт десятки киловольт — решатель
+            // честно сходится к 40 кВ, и всё вокруг портится (проверено на деле).
+            double iOut = (target - (prev.getOrDefault(net, 0.0) - vg)) / rz;
+            if (head > 0 && Math.abs(iOut) > head) {
+                rz = rz * Math.abs(iOut) / head;
+                iOut = Math.copySign(head, iOut);
+            }
+            c.mcuPinI[pin] = iOut;
+            double g = 1.0 / rz;
+            mna.stamp(net, gndNet, g, target * g);
+        }
+    }
+
+    /** Шаг прошивки: снять показания, исполнить операторы, записать ноги. */
+    private static void tickMicrocontroller(ElectronicsPlugin plugin, Config cfg, Island isl,
+                                            Mna mna, Map<String, Double> v, CompInstance c,
+                                            boolean notify) {
+        Def d = c.def;
+        double gndV = isl.grounds.isEmpty() ? 0 : v.getOrDefault(isl.grounds.get(0), 0.0);
+        double vcc = c.mcuVcc;
+        for (int pin = 2; pin <= 5; pin++) {
+            c.mcuVolt[pin] = nodeVoltage(isl, v, c.pinNet, pin) - gndV;
+            c.mcuAdc[pin] = Firmware.adc(c.mcuVolt[pin], vcc);
+            // Ток ноги берём из решателя (ветвь «нога -> земля» — это наш штамп
+            // Тевенина): оценка по prev годится только когда узла нет вовсе, т.е.
+            // когда нога замкнута на землю этой же микросхемы — тогда ветви нет.
+            String gndNet = rep(isl, c.pinNet[1]);
+            String net = rep(isl, c.pinNet[pin]);
+            if (net != null && gndNet != null && !net.equals(gndNet)) {
+                Mna.Stamp src = mna.findBranch(net, gndNet);
+                if (src != null) {
+                    c.mcuPinI[pin] = Mna.branchCurrent(src, v, net);
+                }
+            }
+        }
+        if (c.program == null) {
+            c.program = "";
+        }
+        if (c.firmware == null || !c.program.equals(c.firmwareSource)) {
+            c.firmware = Firmware.compile(c.program, d.pins);
+            c.firmwareSource = c.program;
+        }
+        Firmware.Program p = c.firmware;
+        double diss = 0;
+        int hot = 0;
+        double head = d.iLimit > 0 ? d.iLimit : 1.0;
+        for (int pin = 2; pin <= 5; pin++) {
+            double i = Math.abs(c.mcuPinI[pin]);
+            if (head > 0 && i >= head * 0.98) {
+                hot++;                        // порт на пределе — это видно в GUI
+            }
+            diss += Math.abs(vcc - c.mcuVolt[pin]) * i;      // потери на ключе
+        }
+        c.aux[0] = diss;
+        c.aux[1] = hot;
+        c.reading = vcc;
+        if (c.burnt()) {
+            c.mcuHalt = "корпус сгорел";
+            c.resetFirmwareKeepProgram();
+            c.state = CompStates.BURNT;
+        } else if (vcc < 2.6) {
+            c.mcuHalt = vcc <= 0.05 ? "питания нет (VCC/GND не подключены)"
+                    : "питание просело до " + String.format(java.util.Locale.ROOT, "%.2f", vcc) + " В";
+            c.resetFirmwareKeepProgram();
+            c.state = CompStates.OFF;
+        } else if (!p.ok()) {
+            c.mcuHalt = p.errorMessage() == null ? "" : p.errorMessage();
+            c.clearMcuPins();
+            c.state = CompStates.REVERSE;
+        } else if (p.statements() == 0) {
+            c.mcuHalt = "прошивка пустая";
+            c.clearMcuPins();
+            c.state = CompStates.OFF;
+        } else {
+            c.mcuHalt = "";
+            p.tick(new Board(c));
+            c.state = p.delayTicks() > 0 ? CompStates.DIM : CompStates.ON;
+        }
+        c.modelState = ModelState.of(c);
+        if (notify) {
+            plugin.renderer().requestUpdate(c);
+        }
+    }
+
+    /** Плата для интерпретатора: ноги Instance, больше ничего. */
+    private static final class Board implements Firmware.Board {
+        private final CompInstance c;
+
+        Board(CompInstance c) {
+            this.c = c;
+        }
+
+        public double vcc() {
+            return c.mcuVcc;
+        }
+
+        public int dir(int pin) {
+            return pin >= 0 && pin < c.mcuDir.length ? c.mcuDir[pin] : 0;
+        }
+
+        public void dir(int pin, int mode) {
+            if (pin >= 0 && pin < c.mcuDir.length) {
+                c.mcuDir[pin] = mode;
+            }
+        }
+
+        public int level(int pin) {
+            return pin >= 0 && pin < c.mcuLvl.length ? c.mcuLvl[pin] : 0;
+        }
+
+        public void level(int pin, int value) {
+            if (pin >= 0 && pin < c.mcuLvl.length) {
+                c.mcuLvl[pin] = value;
+            }
+        }
+
+        public int pwm(int pin) {
+            return pin >= 0 && pin < c.mcuPwm.length ? c.mcuPwm[pin] : 0;
+        }
+
+        public void pwm(int pin, int value) {
+            if (pin >= 0 && pin < c.mcuPwm.length) {
+                c.mcuPwm[pin] = value;
+            }
+        }
+
+        public double voltage(int pin) {
+            return pin >= 0 && pin < c.mcuVolt.length ? c.mcuVolt[pin] : 0;
         }
     }
 

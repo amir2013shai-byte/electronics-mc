@@ -1,1902 +1,2186 @@
 {
- "meta": {
-  "namespace": "electronics",
-  "mc_version": "1.21.11",
-  "resource_pack_format": 75,
-  "soldered": [
-   "solar_cell",
-   "resistor_10r",
-   "resistor_100r",
-   "resistor_220r",
-   "resistor_330r",
-   "resistor_1k",
-   "resistor_4k7",
-   "resistor_10k",
-   "resistor_100k",
-   "potentiometer",
-   "cap_100nf",
-   "cap_100uf",
-   "cap_1000uf",
-   "diode",
-   "led_red",
-   "led_green",
-   "led_blue",
-   "led_yellow",
-   "led_white",
-   "lamp",
-   "button",
-   "switch_spst",
-   "switch_spdt",
-   "transistor_npn",
-   "transistor_pnp",
-   "gate_and",
-   "gate_or",
-   "gate_xor",
-   "gate_not",
-   "comparator",
-   "buzzer",
-   "motor",
-   "fuse",
-   "voltmeter",
-   "ammeter",
-   "multimeter",
-   "electromagnet",
-   "inductor_10mh",
-   "choke_10h",
-   "relay_5v",
-   "reed_switch",
-   "photoresistor",
-   "thermistor_ntc",
-   "fuse_cartridge_1a",
-   "fuse_cartridge_5a",
-   "fuse_slow_2a",
-   "ptc_500ma",
-   "mov_275v",
-   "bridge_kbu8",
-   "shottky_sbr30",
-   "cap_elec_2200uf",
-   "reg_7805",
-   "reg_7812",
-   "reg_lm317",
-   "xfmr_230_12",
-   "xfmr_230_9"
+  "meta": {
+    "namespace": "electronics",
+    "mc_version": "1.21.11",
+    "resource_pack_format": 75,
+    "soldered": [
+      "solar_cell",
+      "resistor_10r",
+      "resistor_100r",
+      "resistor_220r",
+      "resistor_330r",
+      "resistor_1k",
+      "resistor_4k7",
+      "resistor_10k",
+      "resistor_100k",
+      "potentiometer",
+      "cap_100nf",
+      "cap_100uf",
+      "cap_1000uf",
+      "diode",
+      "led_red",
+      "led_green",
+      "led_blue",
+      "led_yellow",
+      "led_white",
+      "lamp",
+      "button",
+      "switch_spst",
+      "switch_spdt",
+      "transistor_npn",
+      "transistor_pnp",
+      "gate_and",
+      "gate_or",
+      "gate_xor",
+      "gate_not",
+      "comparator",
+      "buzzer",
+      "motor",
+      "fuse",
+      "voltmeter",
+      "ammeter",
+      "multimeter",
+      "electromagnet",
+      "inductor_10mh",
+      "choke_10h",
+      "relay_5v",
+      "reed_switch",
+      "photoresistor",
+      "thermistor_ntc",
+      "fuse_cartridge_1a",
+      "fuse_cartridge_5a",
+      "fuse_slow_2a",
+      "ptc_500ma",
+      "mov_275v",
+      "bridge_kbu8",
+      "shottky_sbr30",
+      "cap_elec_2200uf",
+      "reg_7805",
+      "reg_7812",
+      "reg_lm317",
+      "xfmr_230_12",
+      "xfmr_230_9",
+      "wire_bare",
+      "wire_tinned",
+      "battery_zinc",
+      "mcu_atmega328"
+    ],
+    "state_model_count": 2784,
+    "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
+    "component_count": 93
+  },
+  "kinds": [
+    "BOARD",
+    "BREADBOARD",
+    "WIRE",
+    "SOURCE",
+    "GROUND",
+    "RESISTOR",
+    "POT",
+    "CAPACITOR",
+    "LED",
+    "LAMP",
+    "DIODE",
+    "SWITCH",
+    "BUTTON",
+    "TOGGLE",
+    "TRANSISTOR",
+    "GATE",
+    "BUZZER",
+    "MOTOR",
+    "FUSE",
+    "VOLTMETER",
+    "AMMETER",
+    "MULTIMETER",
+    "CUTTER",
+    "SCHEMATIC",
+    "PROBE",
+    "GENERATOR",
+    "SOLAR",
+    "DISTRIBUTOR",
+    "EMPTY",
+    "MAGNET",
+    "ELECTROMAGNET",
+    "INDUCTOR",
+    "RELAY",
+    "REED",
+    "STATION",
+    "TOOL",
+    "SUPPLY"
   ],
-  "state_model_count": 2580,
-  "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
-  "component_count": 64
- },
- "kinds": [
-  "BOARD",
-  "BREADBOARD",
-  "WIRE",
-  "SOURCE",
-  "GROUND",
-  "RESISTOR",
-  "POT",
-  "CAPACITOR",
-  "LED",
-  "LAMP",
-  "DIODE",
-  "SWITCH",
-  "BUTTON",
-  "TOGGLE",
-  "TRANSISTOR",
-  "GATE",
-  "BUZZER",
-  "MOTOR",
-  "FUSE",
-  "VOLTMETER",
-  "AMMETER",
-  "MULTIMETER",
-  "CUTTER",
-  "SCHEMATIC",
-  "PROBE",
-  "GENERATOR",
-  "SOLAR",
-  "DISTRIBUTOR",
-  "EMPTY",
-  "MAGNET",
-  "ELECTROMAGNET",
-  "INDUCTOR",
-  "RELAY",
-  "REED",
-  "STATION",
-  "TOOL",
-  "SUPPLY"
- ],
- "orientations": [
-  {
-   "index": 0,
-   "name": "north",
-   "yaw": 0.0
-  },
-  {
-   "index": 1,
-   "name": "east",
-   "yaw": 90.0
-  },
-  {
-   "index": 2,
-   "name": "south",
-   "yaw": 180.0
-  },
-  {
-   "index": 3,
-   "name": "west",
-   "yaw": 270.0
-  },
-  {
-   "index": 4,
-   "name": "up",
-   "yaw": 0.0
-  },
-  {
-   "index": 5,
-   "name": "down",
-   "yaw": 0.0
-  }
- ],
- "visual_states": [
-  {
-   "index": 0,
-   "name": "off",
-   "suffix": ""
-  },
-  {
-   "index": 1,
-   "name": "dim",
-   "suffix": "dim"
-  },
-  {
-   "index": 2,
-   "name": "on",
-   "suffix": "on"
-  },
-  {
-   "index": 3,
-   "name": "burnt",
-   "suffix": "burnt"
-  },
-  {
-   "index": 4,
-   "name": "reverse",
-   "suffix": "rev"
-  },
-  {
-   "index": 5,
-   "name": "closed",
-   "suffix": "closed"
-  }
- ],
- "components": [
-  {
-   "id": "bench",
-   "ru": "Рабочий стол",
-   "en": "Workbench Plate",
-   "kind": "BOARD",
-   "shape": "plate",
-   "size": [
-    15,
-    1,
-    15
-   ],
-   "palette": [
-    "#3f6b52",
-    "#7fd8a4",
-    "#cfd6db"
-   ],
-   "stack": false,
-   "solid": false
-  },
-  {
-   "id": "breadboard",
-   "ru": "Макетная плата",
-   "en": "Breadboard",
-   "kind": "BREADBOARD",
-   "shape": "breadboard",
-   "size": [
-    16,
-    3,
-    16
-   ],
-   "palette": [
-    "#dfe6e9",
-    "#b2bec3",
-    "#636e72"
-   ],
-   "states": 6,
-   "stack": false
-  },
-  {
-   "id": "wire_red",
-   "ru": "Провод (красный)",
-   "kind": "WIRE",
-   "shape": "wire",
-   "size": [
-    16,
-    3,
-    4
-   ],
-   "palette": [
-    "#e74c3c",
-    "#c0392b"
-   ],
-   "orientable": true,
-   "states": 6,
-   "hub": true,
-   "en": "Wire (red)"
-  },
-  {
-   "id": "wire_black",
-   "ru": "Провод (чёрный)",
-   "kind": "WIRE",
-   "shape": "wire",
-   "size": [
-    16,
-    3,
-    4
-   ],
-   "palette": [
-    "#2d3436",
-    "#1e272e"
-   ],
-   "orientable": true,
-   "states": 6,
-   "hub": true,
-   "en": "Wire (black)"
-  },
-  {
-   "id": "wire_yellow",
-   "ru": "Провод (жёлтый)",
-   "kind": "WIRE",
-   "shape": "wire",
-   "size": [
-    16,
-    3,
-    4
-   ],
-   "palette": [
-    "#f1c40f",
-    "#d4ac0d"
-   ],
-   "orientable": true,
-   "states": 6,
-   "hub": true,
-   "en": "Wire (yellow)"
-  },
-  {
-   "id": "wire_blue",
-   "ru": "Провод (синий)",
-   "kind": "WIRE",
-   "shape": "wire",
-   "size": [
-    16,
-    3,
-    4
-   ],
-   "palette": [
-    "#3498db",
-    "#2471a3"
-   ],
-   "orientable": true,
-   "states": 6,
-   "hub": true,
-   "en": "Wire (blue)"
-  },
-  {
-   "id": "battery_3",
-   "ru": "Батарея 3 В",
-   "kind": "SOURCE",
-   "shape": "battery",
-   "size": [
-    14,
-    7,
-    9
-   ],
-   "palette": [
-    "#27ae60",
-    "#bdc3c7",
-    "#e67e22"
-   ],
-   "voltage": 3.0,
-   "r_int": 0.6,
-   "orientable": true,
-   "states": 6,
-   "en": "Battery 3 V"
-  },
-  {
-   "id": "battery_aa",
-   "ru": "Пальчиковая батарейка AA 1.5 В",
-   "kind": "SOURCE",
-   "shape": "cylinder",
-   "size": [
-    5,
-    10,
-    5
-   ],
-   "palette": [
-    "#2d3436",
-    "#f1c40f",
-    "#ecf0f1"
-   ],
-   "voltage": 1.5,
-   "r_int": 1.5,
-   "orientable": true,
-   "states": 6,
-   "en": "AA Cell 1.5 V"
-  },
-  {
-   "id": "battery_9",
-   "ru": "Крона 9 В",
-   "kind": "SOURCE",
-   "shape": "battery9",
-   "size": [
-    9,
-    12,
-    6
-   ],
-   "palette": [
-    "#2d3436",
-    "#95a5a6",
-    "#e67e22"
-   ],
-   "voltage": 9.0,
-   "r_int": 1.2,
-   "orientable": true,
-   "states": 6,
-   "en": "9 V Battery"
-  },
-  {
-   "id": "power_supply",
-   "ru": "Блок питания 0-12 В",
-   "en": "Power Supply",
-   "kind": "SOURCE",
-   "shape": "psu",
-   "size": [
-    15,
-    7,
-    12
-   ],
-   "palette": [
-    "#ecf0f1",
-    "#c0392b",
-    "#2d3436"
-   ],
-   "voltage": 12.0,
-   "r_int": 0.4,
-   "tunable": true,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "solar_cell",
-   "ru": "Солнечная батарея",
-   "kind": "SOLAR",
-   "shape": "plate",
-   "size": [
-    15,
-    3,
-    15
-   ],
-   "palette": [
-    "#1b4f72",
-    "#2e86c1",
-    "#aed6f1"
-   ],
-   "voltage": 5.0,
-   "r_int": 20.0,
-   "stack": false,
-   "states": 6,
-   "en": "Solar Cell"
-  },
-  {
-   "id": "generator",
-   "ru": "Генератор (часовой сигнал)",
-   "kind": "GENERATOR",
-   "shape": "psu",
-   "size": [
-    15,
-    7,
-    12
-   ],
-   "palette": [
-    "#7d6608",
-    "#f1c40f",
-    "#2d3436"
-   ],
-   "voltage": 5.0,
-   "r_int": 1.0,
-   "orientable": true,
-   "states": 6,
-   "en": "Clock Generator"
-  },
-  {
-   "id": "ground_bus",
-   "ru": "Шина земли",
-   "kind": "GROUND",
-   "shape": "plate",
-   "size": [
-    15,
-    3,
-    15
-   ],
-   "palette": [
-    "#145a32",
-    "#27ae60",
-    "#a9dfbf"
-   ],
-   "orientable": true,
-   "states": 6,
-   "hub": true,
-   "en": "Ground Bus"
-  },
-  {
-   "id": "resistor_10r",
-   "ru": "Резистор 10 Ом",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#a04000"
-   ],
-   "resistance": 10.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "states": 6,
-   "en": "Resistor 10 Ω",
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "resistor_100r",
-   "ru": "Резистор 100 Ом",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#6c3483"
-   ],
-   "resistance": 100.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "states": 6,
-   "en": "Resistor 100 Ω",
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "resistor_220r",
-   "ru": "Резистор 220 Ом",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#e67e22"
-   ],
-   "resistance": 220.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "states": 6,
-   "en": "Resistor 220 Ω",
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "resistor_330r",
-   "ru": "Резистор 330 Ом",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#3366cc"
-   ],
-   "resistance": 330.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "en": "Resistor 330 Ω",
-   "states": 6,
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "resistor_1k",
-   "ru": "Резистор 1 кОм",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#145a32"
-   ],
-   "resistance": 1000.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "en": "Resistor 1 kΩ",
-   "states": 6,
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "resistor_4k7",
-   "ru": "Резистор 4.7 кОм",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#f4d03f"
-   ],
-   "resistance": 4700.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "en": "Resistor 4.7 kΩ",
-   "states": 6,
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "resistor_10k",
-   "ru": "Резистор 10 кОм",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#b7950b"
-   ],
-   "resistance": 10000.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "en": "Resistor 10 kΩ",
-   "states": 6,
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "resistor_100k",
-   "ru": "Резистор 100 кОм",
-   "kind": "RESISTOR",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#d5b38b",
-    "#ff5733"
-   ],
-   "resistance": 100000.0,
-   "rated_power": 0.125,
-   "orientable": true,
-   "en": "Resistor 100 kΩ",
-   "states": 6,
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "potentiometer",
-   "ru": "Подстроечный резистор 10 кОм",
-   "kind": "POT",
-   "shape": "pot",
-   "size": [
-    9,
-    9,
-    9
-   ],
-   "palette": [
-    "#1f618d",
-    "#f1c40f",
-    "#bdc3c7"
-   ],
-   "resistance": 10000.0,
-   "orientable": true,
-   "states": 6,
-   "en": "Potentiometer 10 kΩ",
-   "glow_color": [
-    255,
-    110,
-    30
-   ]
-  },
-  {
-   "id": "cap_100nf",
-   "ru": "Конденсатор 100 нФ",
-   "kind": "CAPACITOR",
-   "shape": "disc",
-   "size": [
-    9,
-    6,
-    9
-   ],
-   "palette": [
-    "#1a5276",
-    "#aed6f1"
-   ],
-   "capacitance": 1e-07,
-   "rated_voltage": 25.0,
-   "stack": true,
-   "states": 6,
-   "en": "Capacitor 100 nF"
-  },
-  {
-   "id": "cap_100uf",
-   "ru": "Электролит 100 мкФ",
-   "kind": "CAPACITOR",
-   "shape": "electrolytic",
-   "size": [
-    8,
-    10,
-    8
-   ],
-   "palette": [
-    "#17202a",
-    "#5dade2"
-   ],
-   "capacitance": 0.0001,
-   "rated_voltage": 16.0,
-   "polar": true,
-   "stack": true,
-   "states": 6,
-   "en": "Electrolytic 100 µF"
-  },
-  {
-   "id": "cap_1000uf",
-   "ru": "Электролит 1000 мкФ",
-   "kind": "CAPACITOR",
-   "shape": "electrolytic",
-   "size": [
-    10,
-    12,
-    10
-   ],
-   "palette": [
-    "#0b5345",
-    "#f1c40f"
-   ],
-   "capacitance": 0.001,
-   "rated_voltage": 16.0,
-   "polar": true,
-   "stack": true,
-   "en": "Electrolytic 1000 µF",
-   "states": 6
-  },
-  {
-   "id": "diode",
-   "ru": "Диод 1N4007",
-   "kind": "DIODE",
-   "shape": "resistor",
-   "size": [
-    14,
-    4,
-    4
-   ],
-   "palette": [
-    "#212f3d",
-    "#ecf0f1"
-   ],
-   "v_drop": 0.7,
-   "v_rev_max": 40.0,
-   "orientable": true,
-   "states": 6,
-   "en": "Diode 1N4007"
-  },
-  {
-   "id": "led_red",
-   "ru": "Светодиод красный",
-   "kind": "LED",
-   "shape": "led",
-   "size": [
-    6,
-    9,
-    6
-   ],
-   "palette": [
-    "#e74c3c",
-    "#f5b7b1",
-    "#b03a2e"
-   ],
-   "v_forward": 1.8,
-   "v_reverse_max": 5.0,
-   "rated_power": 0.06,
-   "glow_color": [
-    255,
-    60,
-    60
-   ],
-   "orientable": true,
-   "states": 6,
-   "en": "LED (red)"
-  },
-  {
-   "id": "led_green",
-   "ru": "Светодиод зелёный",
-   "kind": "LED",
-   "shape": "led",
-   "size": [
-    6,
-    9,
-    6
-   ],
-   "palette": [
-    "#27ae60",
-    "#abebc6",
-    "#196f3d"
-   ],
-   "v_forward": 2.1,
-   "v_reverse_max": 5.0,
-   "rated_power": 0.06,
-   "glow_color": [
-    60,
-    255,
-    90
-   ],
-   "orientable": true,
-   "states": 6,
-   "en": "LED (green)"
-  },
-  {
-   "id": "led_blue",
-   "ru": "Светодиод синий",
-   "kind": "LED",
-   "shape": "led",
-   "size": [
-    6,
-    9,
-    6
-   ],
-   "palette": [
-    "#2e86c1",
-    "#aed6f1",
-    "#1b4f72"
-   ],
-   "v_forward": 3.1,
-   "v_reverse_max": 5.0,
-   "rated_power": 0.06,
-   "glow_color": [
-    80,
-    150,
-    255
-   ],
-   "orientable": true,
-   "states": 6,
-   "en": "LED (blue)"
-  },
-  {
-   "id": "led_yellow",
-   "ru": "Светодиод жёлтый",
-   "kind": "LED",
-   "shape": "led",
-   "size": [
-    6,
-    9,
-    6
-   ],
-   "palette": [
-    "#f1c40f",
-    "#fcf3cf",
-    "#b7950b"
-   ],
-   "v_forward": 2.0,
-   "v_reverse_max": 5.0,
-   "rated_power": 0.06,
-   "glow_color": [
-    255,
-    230,
-    90
-   ],
-   "orientable": true,
-   "states": 6,
-   "en": "LED (yellow)"
-  },
-  {
-   "id": "led_white",
-   "ru": "Светодиод белый",
-   "kind": "LED",
-   "shape": "led",
-   "size": [
-    6,
-    9,
-    6
-   ],
-   "palette": [
-    "#ecf0f1",
-    "#ffffff",
-    "#b2bec3"
-   ],
-   "v_forward": 3.2,
-   "v_reverse_max": 5.0,
-   "rated_power": 0.06,
-   "glow_color": [
-    255,
-    255,
-    240
-   ],
-   "orientable": true,
-   "states": 6,
-   "en": "LED (white)"
-  },
-  {
-   "id": "lamp",
-   "ru": "Лампочка накаливания",
-   "kind": "LAMP",
-   "shape": "bulb",
-   "size": [
-    10,
-    12,
-    10
-   ],
-   "palette": [
-    "#f7dc6f",
-    "#fef9e7",
-    "#7f8c8d"
-   ],
-   "resistance_hot": 48.0,
-   "cold_factor": 0.15,
-   "rated_power": 3.0,
-   "rated_voltage": 12.0,
-   "glow_color": [
-    255,
-    215,
-    130
-   ],
-   "states": 6,
-   "en": "Incandescent Lamp"
-  },
-  {
-   "id": "button",
-   "ru": "Кнопка (без фиксации)",
-   "kind": "BUTTON",
-   "shape": "button",
-   "size": [
-    10,
-    6,
-    10
-   ],
-   "palette": [
-    "#c0392b",
-    "#bdc3c7"
-   ],
-   "orientable": true,
-   "states": 6,
-   "en": "Push Button"
-  },
-  {
-   "id": "switch_spst",
-   "ru": "Выключатель",
-   "kind": "SWITCH",
-   "shape": "switch",
-   "size": [
-    12,
-    7,
-    8
-   ],
-   "palette": [
-    "#95a5a6",
-    "#e74c3c",
-    "#2d3436"
-   ],
-   "orientable": true,
-   "states": 6,
-   "en": "Switch (SPST)"
-  },
-  {
-   "id": "switch_spdt",
-   "ru": "Переключатель П2т",
-   "kind": "SWITCH",
-   "shape": "switch3",
-   "size": [
-    12,
-    7,
-    10
-   ],
-   "palette": [
-    "#7f8c8d",
-    "#f1c40f",
-    "#2d3436"
-   ],
-   "spdt": true,
-   "orientable": true,
-   "states": 6,
-   "en": "Switch (SPDT)"
-  },
-  {
-   "id": "transistor_npn",
-   "ru": "Транзистор NPN (BC547)",
-   "kind": "TRANSISTOR",
-   "shape": "to92",
-   "size": [
-    9,
-    9,
-    5
-   ],
-   "palette": [
-    "#17202a",
-    "#bdc3c7"
-   ],
-   "beta": 150.0,
-   "orientable": true,
-   "states": 6,
-   "en": "Transistor NPN (BC547)"
-  },
-  {
-   "id": "transistor_pnp",
-   "ru": "Транзистор PNP (BC557)",
-   "kind": "TRANSISTOR",
-   "shape": "to92",
-   "size": [
-    9,
-    9,
-    5
-   ],
-   "palette": [
-    "#4a235a",
-    "#bdc3c7"
-   ],
-   "beta": 150.0,
-   "orientable": true,
-   "states": 6,
-   "en": "Transistor PNP (BC557)"
-  },
-  {
-   "id": "gate_and",
-   "ru": "Микросхема И (AND)",
-   "kind": "GATE",
-   "shape": "chip",
-   "size": [
-    13,
-    4,
-    8
-   ],
-   "palette": [
-    "#17202a",
-    "#f1c40f"
-   ],
-   "logic": "AND",
-   "orientable": true,
-   "states": 6,
-   "en": "IC AND"
-  },
-  {
-   "id": "gate_or",
-   "ru": "Микросхема ИЛИ (OR)",
-   "kind": "GATE",
-   "shape": "chip",
-   "size": [
-    13,
-    4,
-    8
-   ],
-   "palette": [
-    "#17202a",
-    "#e67e22"
-   ],
-   "logic": "OR",
-   "orientable": true,
-   "states": 6,
-   "en": "IC OR"
-  },
-  {
-   "id": "gate_xor",
-   "ru": "Микросхема Исключающее ИЛИ (XOR)",
-   "kind": "GATE",
-   "shape": "chip",
-   "size": [
-    13,
-    4,
-    8
-   ],
-   "palette": [
-    "#17202a",
-    "#48c9b0"
-   ],
-   "logic": "XOR",
-   "orientable": true,
-   "states": 6,
-   "en": "IC XOR"
-  },
-  {
-   "id": "gate_not",
-   "ru": "Микросхема НЕ (INVERTER)",
-   "kind": "GATE",
-   "shape": "chip",
-   "size": [
-    11,
-    4,
-    8
-   ],
-   "palette": [
-    "#17202a",
-    "#eb984e"
-   ],
-   "logic": "NOT",
-   "orientable": true,
-   "states": 6,
-   "en": "IC NOT"
-  },
-  {
-   "id": "comparator",
-   "ru": "Компаратор",
-   "kind": "GATE",
-   "shape": "chip",
-   "size": [
-    13,
-    4,
-    8
-   ],
-   "palette": [
-    "#17202a",
-    "#af7ac5"
-   ],
-   "logic": "CMP",
-   "orientable": true,
-   "states": 6,
-   "en": "Comparator"
-  },
-  {
-   "id": "buzzer",
-   "ru": "Зуммер",
-   "kind": "BUZZER",
-   "shape": "disc",
-   "size": [
-    10,
-    4,
-    10
-   ],
-   "palette": [
-    "#17202a",
-    "#f39c12"
-   ],
-   "rated_voltage": 5.0,
-   "min_current": 0.005,
-   "states": 6,
-   "en": "Buzzer"
-  },
-  {
-   "id": "motor",
-   "ru": "Электромотор",
-   "kind": "MOTOR",
-   "shape": "motor",
-   "size": [
-    9,
-    9,
-    13
-   ],
-   "palette": [
-    "#95a5a6",
-    "#e74c3c"
-   ],
-   "back_emf_per_volt": 0.55,
-   "winding": 24.0,
-   "rated_voltage": 12.0,
-   "states": 6,
-   "en": "Electric Motor"
-  },
-  {
-   "id": "fuse",
-   "ru": "Предохранитель 100 мА",
-   "kind": "FUSE",
-   "shape": "fuse",
-   "size": [
-    12,
-    4,
-    4
-   ],
-   "palette": [
-    "#f0e68c",
-    "#bdc3c7",
-    "#e74c3c"
-   ],
-   "resistance": 0.5,
-   "max_current": 0.1,
-   "orientable": true,
-   "states": 6,
-   "en": "Fuse 100 mA"
-  },
-  {
-   "id": "voltmeter",
-   "ru": "Вольтметр",
-   "kind": "VOLTMETER",
-   "shape": "meter",
-   "size": [
-    14,
-    8,
-    10
-   ],
-   "palette": [
-    "#f7dc6f",
-    "#212f3d",
-    "#e74c3c"
-   ],
-   "internal_resistance": 100000.0,
-   "orientable": true,
-   "states": 6,
-   "en": "Voltmeter"
-  },
-  {
-   "id": "ammeter",
-   "ru": "Амперметр",
-   "kind": "AMMETER",
-   "shape": "meter",
-   "size": [
-    14,
-    8,
-    10
-   ],
-   "palette": [
-    "#f7dc6f",
-    "#212f3d",
-    "#3498db"
-   ],
-   "internal_resistance": 0.5,
-   "orientable": true,
-   "states": 6,
-   "en": "Ammeter"
-  },
-  {
-   "id": "schematic",
-   "ru": "Пустая схема",
-   "en": "Blank Schematic",
-   "kind": "SCHEMATIC",
-   "shape": "paper",
-   "size": [
-    15,
-    1,
-    15
-   ],
-   "palette": [
-    "#fdf6e3",
-    "#5dade2",
-    "#2c3e50"
-   ],
-   "orientable": true,
-   "states": 2
-  },
-  {
-   "id": "multimeter",
-   "ru": "Мультиметр",
-   "kind": "MULTIMETER",
-   "shape": "handheld",
-   "size": [
-    9,
-    2,
-    13
-   ],
-   "palette": [
-    "#f4d03f",
-    "#212f3d",
-    "#e74c3c"
-   ],
-   "states": 6,
-   "en": "Multimeter"
-  },
-  {
-   "id": "wire_cutter",
-   "ru": "Кусачки",
-   "kind": "CUTTER",
-   "shape": "handheld",
-   "size": [
-    4,
-    2,
-    14
-   ],
-   "palette": [
-    "#95a5a6",
-    "#e74c3c"
-   ],
-   "en": "Wire Cutters"
-  },
-  {
-   "id": "led_probe",
-   "ru": "Пробник со светодиодом",
-   "kind": "PROBE",
-   "shape": "handheld",
-   "size": [
-    4,
-    2,
-    15
-   ],
-   "palette": [
-    "#ecf0f1",
-    "#e74c3c"
-   ],
-   "states": 6,
-   "en": "LED Test Probe"
-  },
-  {
-   "id": "empty_circuit",
-   "ru": "Пустая заготовка платы",
-   "kind": "EMPTY",
-   "shape": "plate",
-   "size": [
-    15,
-    1,
-    15
-   ],
-   "palette": [
-    "#1e8449",
-    "#a9dfbf",
-    "#f7dc6f"
-   ],
-   "en": "Blank Circuit Board"
-  },
-  {
-   "id": "magnet",
-   "ru": "Постоянный магнит",
-   "en": "Permanent Magnet",
-   "kind": "MAGNET",
-   "shape": "magnet",
-   "size": [
-    12,
-    6,
-    12
-   ],
-   "palette": [
-    "#26364f",
-    "#8b97a6",
-    "#c0392b"
-   ],
-   "stack": true,
-   "states": 6,
-   "field_mt": 1.4
-  },
-  {
-   "id": "electromagnet",
-   "ru": "Электромагнит",
-   "en": "Electromagnet",
-   "kind": "ELECTROMAGNET",
-   "shape": "coil",
-   "size": [
-    12,
-    10,
-    12
-   ],
-   "palette": [
-    "#b3541e",
-    "#f0c27b",
-    "#5d6b7a"
-   ],
-   "resistance": 60.0,
-   "inductance": 0.02,
-   "field_per_amp": 0.9,
-   "rated_voltage": 12.0,
-   "rated_power": 1.0,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "inductor_10mh",
-   "ru": "Катушка 10 мГн",
-   "en": "Inductor 10 mH",
-   "kind": "INDUCTOR",
-   "shape": "coil",
-   "size": [
-    11,
-    9,
-    11
-   ],
-   "palette": [
-    "#c9772f",
-    "#7f8c9a"
-   ],
-   "resistance": 8.0,
-   "inductance": 0.01,
-   "rated_power": 1.0,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "choke_10h",
-   "ru": "Дроссель 10 Гн",
-   "en": "Choke 10 H",
-   "kind": "INDUCTOR",
-   "shape": "coil",
-   "size": [
-    13,
-    11,
-    13
-   ],
-   "palette": [
-    "#3d5a80",
-    "#c9772f"
-   ],
-   "resistance": 150.0,
-   "inductance": 10.0,
-   "rated_power": 2.0,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "relay_5v",
-   "ru": "Реле 5 В",
-   "en": "Relay 5 V",
-   "kind": "RELAY",
-   "shape": "relay",
-   "size": [
-    13,
-    10,
-    13
-   ],
-   "palette": [
-    "#1e2b3a",
-    "#c9772f",
-    "#e0e0e0"
-   ],
-   "resistance": 120.0,
-   "inductance": 0.05,
-   "pins": 4,
-   "operate_ma": 15.0,
-   "release_ma": 8.0,
-   "rated_power": 0.4,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "reed_switch",
-   "ru": "Геркон",
-   "en": "Reed Switch",
-   "kind": "REED",
-   "shape": "reed",
-   "size": [
-    13,
-    5,
-    7
-   ],
-   "palette": [
-    "#dfe6ea",
-    "#8b97a6"
-   ],
-   "operate_mt": 0.7,
-   "orientable": true,
-   "stack": true,
-   "states": 6
-  },
-  {
-   "id": "photoresistor",
-   "ru": "Фоторезистор",
-   "en": "Photoresistor",
-   "kind": "RESISTOR",
-   "shape": "photo",
-   "size": [
-    11,
-    8,
-    11
-   ],
-   "palette": [
-    "#2e7d5b",
-    "#e8d9a0"
-   ],
-   "resistance": 100000.0,
-   "light_dependent": true,
-   "rated_power": 0.125,
-   "states": 6
-  },
-  {
-   "id": "thermistor_ntc",
-   "ru": "Термистор NTC",
-   "en": "NTC Thermistor",
-   "kind": "RESISTOR",
-   "shape": "thermistor",
-   "size": [
-    9,
-    9,
-    9
-   ],
-   "palette": [
-    "#1f1f24",
-    "#c0392b"
-   ],
-   "resistance": 10000.0,
-   "b_constant": 3950.0,
-   "self_heat": 40.0,
-   "rated_power": 0.25,
-   "states": 6
-  },
-  {
-   "id": "soldering_station",
-   "ru": "Паяльный стол",
-   "en": "Soldering Station",
-   "kind": "STATION",
-   "shape": "station",
-   "size": [
-    16,
-    9,
-    16
-   ],
-   "palette": [
-    "#2f3b45",
-    "#7f8c8d",
-    "#e8b04b",
-    "#c0392b"
-   ],
-   "stack": false,
-   "solid": true,
-   "states": 1
-  },
-  {
-   "id": "soldering_iron",
-   "ru": "Паяльник",
-   "en": "Soldering Iron",
-   "kind": "TOOL",
-   "shape": "tool",
-   "size": [
-    14,
-    2,
-    2
-   ],
-   "palette": [
-    "#bdc3c7",
-    "#e67e22",
-    "#f5f5f5"
-   ],
-   "stack": false,
-   "states": 1
-  },
-  {
-   "id": "solder",
-   "ru": "Припой",
-   "en": "Solder",
-   "kind": "SUPPLY",
-   "shape": "supply",
-   "size": [
-    12,
-    6,
-    12
-   ],
-   "palette": [
-    "#95a5a6",
-    "#d6dbdf",
-    "#7f8c8d"
-   ],
-   "stack": true,
-   "states": 1
-  },
-  {
-   "id": "flux",
-   "ru": "Флюс (канифоль)",
-   "en": "Rosin Flux",
-   "kind": "SUPPLY",
-   "shape": "supply",
-   "size": [
-    10,
-    6,
-    10
-   ],
-   "palette": [
-    "#e8c39e",
-    "#b9770e",
-    "#f7dc6f"
-   ],
-   "stack": true,
-   "states": 1
-  },
-  {
-   "id": "fuse_cartridge_1a",
-   "ru": "Предохранитель плавкий 1 А (5×20)",
-   "en": "Cartridge Fuse 1 A (5×20)",
-   "kind": "FUSE",
-   "shape": "fuse",
-   "size": [
-    13,
-    5,
-    5
-   ],
-   "palette": [
-    "#e8f4fb",
-    "#c9a227",
-    "#7f8c8d"
-   ],
-   "resistance": 0.05,
-   "max_current": 1.0,
-   "blow_i2t": 3.0,
-   "rated_voltage": 250.0,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "fuse_cartridge_5a",
-   "ru": "Предохранитель плавкий 5 А (5×20)",
-   "en": "Cartridge Fuse 5 A (5×20)",
-   "kind": "FUSE",
-   "shape": "fuse",
-   "size": [
-    13,
-    5,
-    5
-   ],
-   "palette": [
-    "#fbeee6",
-    "#c9a227",
-    "#7f8c8d"
-   ],
-   "resistance": 0.012,
-   "max_current": 5.0,
-   "blow_i2t": 45.0,
-   "rated_voltage": 250.0,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "fuse_slow_2a",
-   "ru": "Предохранитель медленный 2 А (пусковые токи)",
-   "en": "Slow-blow Fuse 2 A",
-   "kind": "FUSE",
-   "shape": "fuse",
-   "size": [
-    13,
-    5,
-    5
-   ],
-   "palette": [
-    "#5d6d7e",
-    "#f0b27a",
-    "#7f8c8d"
-   ],
-   "resistance": 0.03,
-   "max_current": 2.0,
-   "blow_i2t": 22.0,
-   "rated_voltage": 250.0,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "ptc_500ma",
-   "ru": "Самовосстанавливающийся предохранитель 500 мА",
-   "en": "Resettable Fuse PTC 500 mA",
-   "kind": "PTC",
-   "shape": "ptc",
-   "size": [
-    9,
-    5,
-    9
-   ],
-   "palette": [
-    "#2e86c1",
-    "#f8f9f9",
-    "#aeb6bf"
-   ],
-   "resistance": 0.9,
-   "hold_current": 0.5,
-   "trip_current": 1.0,
-   "trip_temp": 90.0,
-   "thermal_k": 12.0,
-   "heat_j": 0.15,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "mov_275v",
-   "ru": "Варистор 275 В (защита от импульсных выбросов)",
-   "en": "Varistor MOV 275 V",
-   "kind": "VARISTOR",
-   "shape": "varistor",
-   "size": [
-    11,
-    8,
-    11
-   ],
-   "palette": [
-    "#2874a6",
-    "#d6dbdf",
-    "#154360"
-   ],
-   "resistance": 1000000000.0,
-   "v_clamp": 390.0,
-   "nl_alpha": 9.0,
-   "energy_j": 12.0,
-   "rated_voltage": 275.0,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "bridge_kbu8",
-   "ru": "Диодный мост KBU8 (800 В / 4 А)",
-   "en": "Bridge Rectifier KBU8",
-   "kind": "BRIDGE",
-   "shape": "bridge",
-   "size": [
-    12,
-    7,
-    12
-   ],
-   "palette": [
-    "#1b1b1f",
-    "#b9c0c8",
-    "#5d6d7e"
-   ],
-   "pins": 4,
-   "v_forward": 0.55,
-   "max_current": 4.0,
-   "v_reverse_max": 800.0,
-   "rated_voltage": 800.0,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "shottky_sbr30",
-   "ru": "Диод Шоттки 3 А / 30 В",
-   "en": "Schottky Diode 3 A / 30 V",
-   "kind": "DIODE",
-   "shape": "resistor",
-   "size": [
-    14,
-    5,
-    5
-   ],
-   "palette": [
-    "#17202a",
-    "#f7dc6f",
-    "#566573"
-   ],
-   "v_forward": 0.42,
-   "v_rev_max": 30.0,
-   "max_current": 3.0,
-   "rated_voltage": 30.0,
-   "orientable": true,
-   "states": 6
-  },
-  {
-   "id": "cap_elec_2200uf",
-   "ru": "Электролит 2200 мкФ / 25 В",
-   "en": "Electrolytic 2200 µF / 25 V",
-   "kind": "CAPACITOR",
-   "shape": "electrolytic",
-   "size": [
-    11,
-    14,
-    11
-   ],
-   "palette": [
-    "#0b3d91",
-    "#aed6f1"
-   ],
-   "capacitance": 0.0022,
-   "rated_voltage": 25.0,
-   "polar": true,
-   "resistance": 8000000.0,
-   "stack": true,
-   "states": 6
-  },
-  {
-   "id": "reg_7805",
-   "ru": "Стабилизатор 7805 (5 В / 1 А)",
-   "en": "Regulator 7805 (5 V / 1 A)",
-   "kind": "REGULATOR",
-   "shape": "to220",
-   "size": [
-    11,
-    4,
-    7
-   ],
-   "palette": [
-    "#17202a",
-    "#d5d8dc",
-    "#7f8c8d"
-   ],
-   "pins": 3,
-   "voltage": 5.0,
-   "dropout": 2.0,
-   "internal_resistance": 0.6,
-   "i_limit": 1.0,
-   "i_quiescent": 0.005,
-   "thermal_k": 50.0,
-   "heat_j": 2.0,
-   "rated_voltage": 35.0,
-   "rated_power": 2.0,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "reg_7812",
-   "ru": "Стабилизатор 7812 (12 В / 1 А)",
-   "en": "Regulator 7812 (12 V / 1 A)",
-   "kind": "REGULATOR",
-   "shape": "to220",
-   "size": [
-    11,
-    4,
-    7
-   ],
-   "palette": [
-    "#1c2833",
-    "#aeb6bf",
-    "#7f8c8d"
-   ],
-   "pins": 3,
-   "voltage": 12.0,
-   "dropout": 2.0,
-   "internal_resistance": 0.6,
-   "i_limit": 1.0,
-   "i_quiescent": 0.006,
-   "thermal_k": 50.0,
-   "heat_j": 2.0,
-   "rated_voltage": 35.0,
-   "rated_power": 2.0,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "reg_lm317",
-   "ru": "Стабилизатор LM317 (1.25–24 В, подстроечный)",
-   "en": "Regulator LM317 (adj)",
-   "kind": "REGULATOR",
-   "shape": "to220",
-   "size": [
-    11,
-    4,
-    7
-   ],
-   "palette": [
-    "#212f3d",
-    "#f0f3f4",
-    "#7f8c8d"
-   ],
-   "pins": 3,
-   "voltage": 5.0,
-   "v_out_min": 1.25,
-   "v_out_max": 24.0,
-   "tunable": true,
-   "dropout": 2.5,
-   "internal_resistance": 0.8,
-   "i_limit": 1.5,
-   "i_quiescent": 0.01,
-   "thermal_k": 45.0,
-   "heat_j": 2.0,
-   "rated_voltage": 40.0,
-   "rated_power": 2.0,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "xfmr_230_12",
-   "ru": "Трансформатор 230→12 В / 10 ВА",
-   "en": "Transformer 230→12 V / 10 VA",
-   "kind": "TRANSFORMER",
-   "shape": "transformer",
-   "size": [
-    14,
-    11,
-    14
-   ],
-   "palette": [
-    "#4d5656",
-    "#b9770e",
-    "#1b2a38"
-   ],
-   "pins": 4,
-   "inductance": 40.0,
-   "resistance": 40.0,
-   "ratio": 19.17,
-   "coupling": 0.995,
-   "rated_power": 10.0,
-   "rated_voltage": 230.0,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "xfmr_230_9",
-   "ru": "Трансформатор 230→9 В / 6 ВА",
-   "en": "Transformer 230→9 V / 6 VA",
-   "kind": "TRANSFORMER",
-   "shape": "transformer",
-   "size": [
-    13,
-    10,
-    13
-   ],
-   "palette": [
-    "#566573",
-    "#d68910",
-    "#1b263b"
-   ],
-   "pins": 4,
-   "inductance": 25.0,
-   "resistance": 60.0,
-   "ratio": 25.56,
-   "coupling": 0.99,
-   "rated_power": 6.0,
-   "rated_voltage": 230.0,
-   "states": 6,
-   "orientable": true
-  },
-  {
-   "id": "desolder_braid",
-   "ru": "Оплётка для выпайки",
-   "en": "Desoldering Braid",
-   "kind": "SUPPLY",
-   "shape": "supply",
-   "size": [
-    11,
-    6,
-    11
-   ],
-   "palette": [
-    "#b3b6b7",
-    "#ecf0f1",
-    "#7f8c8d"
-   ],
-   "stack": true,
-   "states": 1
-  },
-  {
-   "id": "source_ac",
-   "ru": "Синусоидальный источник 0–24 В / 1 Гц",
-   "en": "AC Source 0-24 V / 1 Hz",
-   "kind": "SOURCE",
-   "shape": "psu",
-   "size": [
-    15,
-    7,
-    12
-   ],
-   "palette": [
-    "#d6eaf8",
-    "#e67e22",
-    "#212f3d"
-   ],
-   "voltage": 12.0,
-   "r_int": 0.3,
-   "ac_hz": 1.0,
-   "rated_voltage": 24.0,
-   "tunable": true,
-   "orientable": true,
-   "states": 6
-  }
- ]
+  "orientations": [
+    {
+      "index": 0,
+      "name": "north",
+      "yaw": 0.0
+    },
+    {
+      "index": 1,
+      "name": "east",
+      "yaw": 90.0
+    },
+    {
+      "index": 2,
+      "name": "south",
+      "yaw": 180.0
+    },
+    {
+      "index": 3,
+      "name": "west",
+      "yaw": 270.0
+    },
+    {
+      "index": 4,
+      "name": "up",
+      "yaw": 0.0
+    },
+    {
+      "index": 5,
+      "name": "down",
+      "yaw": 0.0
+    }
+  ],
+  "visual_states": [
+    {
+      "index": 0,
+      "name": "off",
+      "suffix": ""
+    },
+    {
+      "index": 1,
+      "name": "dim",
+      "suffix": "dim"
+    },
+    {
+      "index": 2,
+      "name": "on",
+      "suffix": "on"
+    },
+    {
+      "index": 3,
+      "name": "burnt",
+      "suffix": "burnt"
+    },
+    {
+      "index": 4,
+      "name": "reverse",
+      "suffix": "rev"
+    },
+    {
+      "index": 5,
+      "name": "closed",
+      "suffix": "closed"
+    }
+  ],
+  "components": [
+    {
+      "id": "bench",
+      "ru": "Рабочий стол",
+      "en": "Workbench Plate",
+      "kind": "BOARD",
+      "shape": "plate",
+      "size": [
+        15,
+        1,
+        15
+      ],
+      "palette": [
+        "#3f6b52",
+        "#7fd8a4",
+        "#cfd6db"
+      ],
+      "stack": false,
+      "solid": false
+    },
+    {
+      "id": "breadboard",
+      "ru": "Макетная плата",
+      "en": "Breadboard",
+      "kind": "BREADBOARD",
+      "shape": "breadboard",
+      "size": [
+        16,
+        3,
+        16
+      ],
+      "palette": [
+        "#dfe6e9",
+        "#b2bec3",
+        "#636e72"
+      ],
+      "states": 6,
+      "stack": false
+    },
+    {
+      "id": "wire_red",
+      "ru": "Провод (красный)",
+      "kind": "WIRE",
+      "shape": "wire",
+      "size": [
+        16,
+        3,
+        4
+      ],
+      "palette": [
+        "#e74c3c",
+        "#c0392b"
+      ],
+      "orientable": true,
+      "states": 6,
+      "hub": true,
+      "en": "Wire (red)"
+    },
+    {
+      "id": "wire_black",
+      "ru": "Провод (чёрный)",
+      "kind": "WIRE",
+      "shape": "wire",
+      "size": [
+        16,
+        3,
+        4
+      ],
+      "palette": [
+        "#2d3436",
+        "#1e272e"
+      ],
+      "orientable": true,
+      "states": 6,
+      "hub": true,
+      "en": "Wire (black)"
+    },
+    {
+      "id": "wire_yellow",
+      "ru": "Провод (жёлтый)",
+      "kind": "WIRE",
+      "shape": "wire",
+      "size": [
+        16,
+        3,
+        4
+      ],
+      "palette": [
+        "#f1c40f",
+        "#d4ac0d"
+      ],
+      "orientable": true,
+      "states": 6,
+      "hub": true,
+      "en": "Wire (yellow)"
+    },
+    {
+      "id": "wire_blue",
+      "ru": "Провод (синий)",
+      "kind": "WIRE",
+      "shape": "wire",
+      "size": [
+        16,
+        3,
+        4
+      ],
+      "palette": [
+        "#3498db",
+        "#2471a3"
+      ],
+      "orientable": true,
+      "states": 6,
+      "hub": true,
+      "en": "Wire (blue)"
+    },
+    {
+      "id": "battery_3",
+      "ru": "Батарея 3 В",
+      "kind": "SOURCE",
+      "shape": "battery",
+      "size": [
+        14,
+        7,
+        9
+      ],
+      "palette": [
+        "#27ae60",
+        "#bdc3c7",
+        "#e67e22"
+      ],
+      "voltage": 3.0,
+      "r_int": 0.6,
+      "orientable": true,
+      "states": 6,
+      "en": "Battery 3 V"
+    },
+    {
+      "id": "battery_aa",
+      "ru": "Пальчиковая батарейка AA 1.5 В",
+      "kind": "SOURCE",
+      "shape": "cylinder",
+      "size": [
+        5,
+        10,
+        5
+      ],
+      "palette": [
+        "#2d3436",
+        "#f1c40f",
+        "#ecf0f1"
+      ],
+      "voltage": 1.5,
+      "r_int": 1.5,
+      "orientable": true,
+      "states": 6,
+      "en": "AA Cell 1.5 V"
+    },
+    {
+      "id": "battery_9",
+      "ru": "Крона 9 В",
+      "kind": "SOURCE",
+      "shape": "battery9",
+      "size": [
+        9,
+        12,
+        6
+      ],
+      "palette": [
+        "#2d3436",
+        "#95a5a6",
+        "#e67e22"
+      ],
+      "voltage": 9.0,
+      "r_int": 1.2,
+      "orientable": true,
+      "states": 6,
+      "en": "9 V Battery"
+    },
+    {
+      "id": "power_supply",
+      "ru": "Блок питания 0-12 В",
+      "en": "Power Supply",
+      "kind": "SOURCE",
+      "shape": "psu",
+      "size": [
+        15,
+        7,
+        12
+      ],
+      "palette": [
+        "#ecf0f1",
+        "#c0392b",
+        "#2d3436"
+      ],
+      "voltage": 12.0,
+      "r_int": 0.4,
+      "tunable": true,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "solar_cell",
+      "ru": "Солнечная батарея",
+      "kind": "SOLAR",
+      "shape": "plate",
+      "size": [
+        15,
+        3,
+        15
+      ],
+      "palette": [
+        "#1b4f72",
+        "#2e86c1",
+        "#aed6f1"
+      ],
+      "voltage": 5.0,
+      "r_int": 20.0,
+      "stack": false,
+      "states": 6,
+      "en": "Solar Cell"
+    },
+    {
+      "id": "generator",
+      "ru": "Генератор (часовой сигнал)",
+      "kind": "GENERATOR",
+      "shape": "psu",
+      "size": [
+        15,
+        7,
+        12
+      ],
+      "palette": [
+        "#7d6608",
+        "#f1c40f",
+        "#2d3436"
+      ],
+      "voltage": 5.0,
+      "r_int": 1.0,
+      "orientable": true,
+      "states": 6,
+      "en": "Clock Generator"
+    },
+    {
+      "id": "ground_bus",
+      "ru": "Шина земли",
+      "kind": "GROUND",
+      "shape": "plate",
+      "size": [
+        15,
+        3,
+        15
+      ],
+      "palette": [
+        "#145a32",
+        "#27ae60",
+        "#a9dfbf"
+      ],
+      "orientable": true,
+      "states": 6,
+      "hub": true,
+      "en": "Ground Bus"
+    },
+    {
+      "id": "resistor_10r",
+      "ru": "Резистор 10 Ом",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#a04000"
+      ],
+      "resistance": 10.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "states": 6,
+      "en": "Resistor 10 Ω",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "resistor_100r",
+      "ru": "Резистор 100 Ом",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#6c3483"
+      ],
+      "resistance": 100.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "states": 6,
+      "en": "Resistor 100 Ω",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "resistor_220r",
+      "ru": "Резистор 220 Ом",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#e67e22"
+      ],
+      "resistance": 220.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "states": 6,
+      "en": "Resistor 220 Ω",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "resistor_330r",
+      "ru": "Резистор 330 Ом",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#3366cc"
+      ],
+      "resistance": 330.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "en": "Resistor 330 Ω",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "resistor_1k",
+      "ru": "Резистор 1 кОм",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#145a32"
+      ],
+      "resistance": 1000.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "en": "Resistor 1 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "resistor_4k7",
+      "ru": "Резистор 4.7 кОм",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#f4d03f"
+      ],
+      "resistance": 4700.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "en": "Resistor 4.7 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "resistor_10k",
+      "ru": "Резистор 10 кОм",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#b7950b"
+      ],
+      "resistance": 10000.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "en": "Resistor 10 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "resistor_100k",
+      "ru": "Резистор 100 кОм",
+      "kind": "RESISTOR",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#d5b38b",
+        "#ff5733"
+      ],
+      "resistance": 100000.0,
+      "rated_power": 0.125,
+      "orientable": true,
+      "en": "Resistor 100 kΩ",
+      "states": 6,
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "potentiometer",
+      "ru": "Подстроечный резистор 10 кОм",
+      "kind": "POT",
+      "shape": "pot",
+      "size": [
+        9,
+        9,
+        9
+      ],
+      "palette": [
+        "#1f618d",
+        "#f1c40f",
+        "#bdc3c7"
+      ],
+      "resistance": 10000.0,
+      "orientable": true,
+      "states": 6,
+      "en": "Potentiometer 10 kΩ",
+      "glow_color": [
+        255,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "cap_100nf",
+      "ru": "Конденсатор 100 нФ",
+      "kind": "CAPACITOR",
+      "shape": "disc",
+      "size": [
+        9,
+        6,
+        9
+      ],
+      "palette": [
+        "#1a5276",
+        "#aed6f1"
+      ],
+      "capacitance": 1e-07,
+      "rated_voltage": 25.0,
+      "stack": true,
+      "states": 6,
+      "en": "Capacitor 100 nF"
+    },
+    {
+      "id": "cap_100uf",
+      "ru": "Электролит 100 мкФ",
+      "kind": "CAPACITOR",
+      "shape": "electrolytic",
+      "size": [
+        8,
+        10,
+        8
+      ],
+      "palette": [
+        "#17202a",
+        "#5dade2"
+      ],
+      "capacitance": 0.0001,
+      "rated_voltage": 16.0,
+      "polar": true,
+      "stack": true,
+      "states": 6,
+      "en": "Electrolytic 100 µF"
+    },
+    {
+      "id": "cap_1000uf",
+      "ru": "Электролит 1000 мкФ",
+      "kind": "CAPACITOR",
+      "shape": "electrolytic",
+      "size": [
+        10,
+        12,
+        10
+      ],
+      "palette": [
+        "#0b5345",
+        "#f1c40f"
+      ],
+      "capacitance": 0.001,
+      "rated_voltage": 16.0,
+      "polar": true,
+      "stack": true,
+      "en": "Electrolytic 1000 µF",
+      "states": 6
+    },
+    {
+      "id": "diode",
+      "ru": "Диод 1N4007",
+      "kind": "DIODE",
+      "shape": "resistor",
+      "size": [
+        14,
+        4,
+        4
+      ],
+      "palette": [
+        "#212f3d",
+        "#ecf0f1"
+      ],
+      "v_drop": 0.7,
+      "v_rev_max": 40.0,
+      "orientable": true,
+      "states": 6,
+      "en": "Diode 1N4007"
+    },
+    {
+      "id": "led_red",
+      "ru": "Светодиод красный",
+      "kind": "LED",
+      "shape": "led",
+      "size": [
+        6,
+        9,
+        6
+      ],
+      "palette": [
+        "#e74c3c",
+        "#f5b7b1",
+        "#b03a2e"
+      ],
+      "v_forward": 1.8,
+      "v_reverse_max": 5.0,
+      "rated_power": 0.06,
+      "glow_color": [
+        255,
+        60,
+        60
+      ],
+      "orientable": true,
+      "states": 6,
+      "en": "LED (red)"
+    },
+    {
+      "id": "led_green",
+      "ru": "Светодиод зелёный",
+      "kind": "LED",
+      "shape": "led",
+      "size": [
+        6,
+        9,
+        6
+      ],
+      "palette": [
+        "#27ae60",
+        "#abebc6",
+        "#196f3d"
+      ],
+      "v_forward": 2.1,
+      "v_reverse_max": 5.0,
+      "rated_power": 0.06,
+      "glow_color": [
+        60,
+        255,
+        90
+      ],
+      "orientable": true,
+      "states": 6,
+      "en": "LED (green)"
+    },
+    {
+      "id": "led_blue",
+      "ru": "Светодиод синий",
+      "kind": "LED",
+      "shape": "led",
+      "size": [
+        6,
+        9,
+        6
+      ],
+      "palette": [
+        "#2e86c1",
+        "#aed6f1",
+        "#1b4f72"
+      ],
+      "v_forward": 3.1,
+      "v_reverse_max": 5.0,
+      "rated_power": 0.06,
+      "glow_color": [
+        80,
+        150,
+        255
+      ],
+      "orientable": true,
+      "states": 6,
+      "en": "LED (blue)"
+    },
+    {
+      "id": "led_yellow",
+      "ru": "Светодиод жёлтый",
+      "kind": "LED",
+      "shape": "led",
+      "size": [
+        6,
+        9,
+        6
+      ],
+      "palette": [
+        "#f1c40f",
+        "#fcf3cf",
+        "#b7950b"
+      ],
+      "v_forward": 2.0,
+      "v_reverse_max": 5.0,
+      "rated_power": 0.06,
+      "glow_color": [
+        255,
+        230,
+        90
+      ],
+      "orientable": true,
+      "states": 6,
+      "en": "LED (yellow)"
+    },
+    {
+      "id": "led_white",
+      "ru": "Светодиод белый",
+      "kind": "LED",
+      "shape": "led",
+      "size": [
+        6,
+        9,
+        6
+      ],
+      "palette": [
+        "#ecf0f1",
+        "#ffffff",
+        "#b2bec3"
+      ],
+      "v_forward": 3.2,
+      "v_reverse_max": 5.0,
+      "rated_power": 0.06,
+      "glow_color": [
+        255,
+        255,
+        240
+      ],
+      "orientable": true,
+      "states": 6,
+      "en": "LED (white)"
+    },
+    {
+      "id": "lamp",
+      "ru": "Лампочка накаливания",
+      "kind": "LAMP",
+      "shape": "bulb",
+      "size": [
+        10,
+        12,
+        10
+      ],
+      "palette": [
+        "#f7dc6f",
+        "#fef9e7",
+        "#7f8c8d"
+      ],
+      "resistance_hot": 48.0,
+      "cold_factor": 0.15,
+      "rated_power": 3.0,
+      "rated_voltage": 12.0,
+      "glow_color": [
+        255,
+        215,
+        130
+      ],
+      "states": 6,
+      "en": "Incandescent Lamp"
+    },
+    {
+      "id": "button",
+      "ru": "Кнопка (без фиксации)",
+      "kind": "BUTTON",
+      "shape": "button",
+      "size": [
+        10,
+        6,
+        10
+      ],
+      "palette": [
+        "#c0392b",
+        "#bdc3c7"
+      ],
+      "orientable": true,
+      "states": 6,
+      "en": "Push Button"
+    },
+    {
+      "id": "switch_spst",
+      "ru": "Выключатель",
+      "kind": "SWITCH",
+      "shape": "switch",
+      "size": [
+        12,
+        7,
+        8
+      ],
+      "palette": [
+        "#95a5a6",
+        "#e74c3c",
+        "#2d3436"
+      ],
+      "orientable": true,
+      "states": 6,
+      "en": "Switch (SPST)"
+    },
+    {
+      "id": "switch_spdt",
+      "ru": "Переключатель П2т",
+      "kind": "SWITCH",
+      "shape": "switch3",
+      "size": [
+        12,
+        7,
+        10
+      ],
+      "palette": [
+        "#7f8c8d",
+        "#f1c40f",
+        "#2d3436"
+      ],
+      "spdt": true,
+      "orientable": true,
+      "states": 6,
+      "en": "Switch (SPDT)"
+    },
+    {
+      "id": "transistor_npn",
+      "ru": "Транзистор NPN (BC547)",
+      "kind": "TRANSISTOR",
+      "shape": "to92",
+      "size": [
+        9,
+        9,
+        5
+      ],
+      "palette": [
+        "#17202a",
+        "#bdc3c7"
+      ],
+      "beta": 150.0,
+      "orientable": true,
+      "states": 6,
+      "en": "Transistor NPN (BC547)"
+    },
+    {
+      "id": "transistor_pnp",
+      "ru": "Транзистор PNP (BC557)",
+      "kind": "TRANSISTOR",
+      "shape": "to92",
+      "size": [
+        9,
+        9,
+        5
+      ],
+      "palette": [
+        "#4a235a",
+        "#bdc3c7"
+      ],
+      "beta": 150.0,
+      "orientable": true,
+      "states": 6,
+      "en": "Transistor PNP (BC557)"
+    },
+    {
+      "id": "gate_and",
+      "ru": "Микросхема И (AND)",
+      "kind": "GATE",
+      "shape": "chip",
+      "size": [
+        13,
+        4,
+        8
+      ],
+      "palette": [
+        "#17202a",
+        "#f1c40f"
+      ],
+      "logic": "AND",
+      "orientable": true,
+      "states": 6,
+      "en": "IC AND"
+    },
+    {
+      "id": "gate_or",
+      "ru": "Микросхема ИЛИ (OR)",
+      "kind": "GATE",
+      "shape": "chip",
+      "size": [
+        13,
+        4,
+        8
+      ],
+      "palette": [
+        "#17202a",
+        "#e67e22"
+      ],
+      "logic": "OR",
+      "orientable": true,
+      "states": 6,
+      "en": "IC OR"
+    },
+    {
+      "id": "gate_xor",
+      "ru": "Микросхема Исключающее ИЛИ (XOR)",
+      "kind": "GATE",
+      "shape": "chip",
+      "size": [
+        13,
+        4,
+        8
+      ],
+      "palette": [
+        "#17202a",
+        "#48c9b0"
+      ],
+      "logic": "XOR",
+      "orientable": true,
+      "states": 6,
+      "en": "IC XOR"
+    },
+    {
+      "id": "gate_not",
+      "ru": "Микросхема НЕ (INVERTER)",
+      "kind": "GATE",
+      "shape": "chip",
+      "size": [
+        11,
+        4,
+        8
+      ],
+      "palette": [
+        "#17202a",
+        "#eb984e"
+      ],
+      "logic": "NOT",
+      "orientable": true,
+      "states": 6,
+      "en": "IC NOT"
+    },
+    {
+      "id": "comparator",
+      "ru": "Компаратор",
+      "kind": "GATE",
+      "shape": "chip",
+      "size": [
+        13,
+        4,
+        8
+      ],
+      "palette": [
+        "#17202a",
+        "#af7ac5"
+      ],
+      "logic": "CMP",
+      "orientable": true,
+      "states": 6,
+      "en": "Comparator"
+    },
+    {
+      "id": "buzzer",
+      "ru": "Зуммер",
+      "kind": "BUZZER",
+      "shape": "disc",
+      "size": [
+        10,
+        4,
+        10
+      ],
+      "palette": [
+        "#17202a",
+        "#f39c12"
+      ],
+      "rated_voltage": 5.0,
+      "min_current": 0.005,
+      "states": 6,
+      "en": "Buzzer"
+    },
+    {
+      "id": "motor",
+      "ru": "Электромотор",
+      "kind": "MOTOR",
+      "shape": "motor",
+      "size": [
+        9,
+        9,
+        13
+      ],
+      "palette": [
+        "#95a5a6",
+        "#e74c3c"
+      ],
+      "back_emf_per_volt": 0.55,
+      "winding": 24.0,
+      "rated_voltage": 12.0,
+      "states": 6,
+      "en": "Electric Motor"
+    },
+    {
+      "id": "fuse",
+      "ru": "Предохранитель 100 мА",
+      "kind": "FUSE",
+      "shape": "fuse",
+      "size": [
+        12,
+        4,
+        4
+      ],
+      "palette": [
+        "#f0e68c",
+        "#bdc3c7",
+        "#e74c3c"
+      ],
+      "resistance": 0.5,
+      "max_current": 0.1,
+      "orientable": true,
+      "states": 6,
+      "en": "Fuse 100 mA"
+    },
+    {
+      "id": "voltmeter",
+      "ru": "Вольтметр",
+      "kind": "VOLTMETER",
+      "shape": "meter",
+      "size": [
+        14,
+        8,
+        10
+      ],
+      "palette": [
+        "#f7dc6f",
+        "#212f3d",
+        "#e74c3c"
+      ],
+      "internal_resistance": 100000.0,
+      "orientable": true,
+      "states": 6,
+      "en": "Voltmeter"
+    },
+    {
+      "id": "ammeter",
+      "ru": "Амперметр",
+      "kind": "AMMETER",
+      "shape": "meter",
+      "size": [
+        14,
+        8,
+        10
+      ],
+      "palette": [
+        "#f7dc6f",
+        "#212f3d",
+        "#3498db"
+      ],
+      "internal_resistance": 0.5,
+      "orientable": true,
+      "states": 6,
+      "en": "Ammeter"
+    },
+    {
+      "id": "schematic",
+      "ru": "Пустая схема",
+      "en": "Blank Schematic",
+      "kind": "SCHEMATIC",
+      "shape": "paper",
+      "size": [
+        15,
+        1,
+        15
+      ],
+      "palette": [
+        "#fdf6e3",
+        "#5dade2",
+        "#2c3e50"
+      ],
+      "orientable": true,
+      "states": 2
+    },
+    {
+      "id": "multimeter",
+      "ru": "Мультиметр",
+      "kind": "MULTIMETER",
+      "shape": "handheld",
+      "size": [
+        9,
+        2,
+        13
+      ],
+      "palette": [
+        "#f4d03f",
+        "#212f3d",
+        "#e74c3c"
+      ],
+      "states": 6,
+      "en": "Multimeter"
+    },
+    {
+      "id": "wire_cutter",
+      "ru": "Кусачки",
+      "kind": "CUTTER",
+      "shape": "handheld",
+      "size": [
+        4,
+        2,
+        14
+      ],
+      "palette": [
+        "#95a5a6",
+        "#e74c3c"
+      ],
+      "en": "Wire Cutters"
+    },
+    {
+      "id": "led_probe",
+      "ru": "Пробник со светодиодом",
+      "kind": "PROBE",
+      "shape": "handheld",
+      "size": [
+        4,
+        2,
+        15
+      ],
+      "palette": [
+        "#ecf0f1",
+        "#e74c3c"
+      ],
+      "states": 6,
+      "en": "LED Test Probe"
+    },
+    {
+      "id": "empty_circuit",
+      "ru": "Пустая заготовка платы",
+      "kind": "EMPTY",
+      "shape": "plate",
+      "size": [
+        15,
+        1,
+        15
+      ],
+      "palette": [
+        "#1e8449",
+        "#a9dfbf",
+        "#f7dc6f"
+      ],
+      "en": "Blank Circuit Board"
+    },
+    {
+      "id": "magnet",
+      "ru": "Постоянный магнит",
+      "en": "Permanent Magnet",
+      "kind": "MAGNET",
+      "shape": "magnet",
+      "size": [
+        12,
+        6,
+        12
+      ],
+      "palette": [
+        "#26364f",
+        "#8b97a6",
+        "#c0392b"
+      ],
+      "stack": true,
+      "states": 6,
+      "field_mt": 1.4
+    },
+    {
+      "id": "electromagnet",
+      "ru": "Электромагнит",
+      "en": "Electromagnet",
+      "kind": "ELECTROMAGNET",
+      "shape": "coil",
+      "size": [
+        12,
+        10,
+        12
+      ],
+      "palette": [
+        "#b3541e",
+        "#f0c27b",
+        "#5d6b7a"
+      ],
+      "resistance": 60.0,
+      "inductance": 0.02,
+      "field_per_amp": 0.9,
+      "rated_voltage": 12.0,
+      "rated_power": 1.0,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "inductor_10mh",
+      "ru": "Катушка 10 мГн",
+      "en": "Inductor 10 mH",
+      "kind": "INDUCTOR",
+      "shape": "coil",
+      "size": [
+        11,
+        9,
+        11
+      ],
+      "palette": [
+        "#c9772f",
+        "#7f8c9a"
+      ],
+      "resistance": 8.0,
+      "inductance": 0.01,
+      "rated_power": 1.0,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "choke_10h",
+      "ru": "Дроссель 10 Гн",
+      "en": "Choke 10 H",
+      "kind": "INDUCTOR",
+      "shape": "coil",
+      "size": [
+        13,
+        11,
+        13
+      ],
+      "palette": [
+        "#3d5a80",
+        "#c9772f"
+      ],
+      "resistance": 150.0,
+      "inductance": 10.0,
+      "rated_power": 2.0,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "relay_5v",
+      "ru": "Реле 5 В",
+      "en": "Relay 5 V",
+      "kind": "RELAY",
+      "shape": "relay",
+      "size": [
+        13,
+        10,
+        13
+      ],
+      "palette": [
+        "#1e2b3a",
+        "#c9772f",
+        "#e0e0e0"
+      ],
+      "resistance": 120.0,
+      "inductance": 0.05,
+      "pins": 4,
+      "operate_ma": 15.0,
+      "release_ma": 8.0,
+      "rated_power": 0.4,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "reed_switch",
+      "ru": "Геркон",
+      "en": "Reed Switch",
+      "kind": "REED",
+      "shape": "reed",
+      "size": [
+        13,
+        5,
+        7
+      ],
+      "palette": [
+        "#dfe6ea",
+        "#8b97a6"
+      ],
+      "operate_mt": 0.7,
+      "orientable": true,
+      "stack": true,
+      "states": 6
+    },
+    {
+      "id": "photoresistor",
+      "ru": "Фоторезистор",
+      "en": "Photoresistor",
+      "kind": "RESISTOR",
+      "shape": "photo",
+      "size": [
+        11,
+        8,
+        11
+      ],
+      "palette": [
+        "#2e7d5b",
+        "#e8d9a0"
+      ],
+      "resistance": 100000.0,
+      "light_dependent": true,
+      "rated_power": 0.125,
+      "states": 6
+    },
+    {
+      "id": "thermistor_ntc",
+      "ru": "Термистор NTC",
+      "en": "NTC Thermistor",
+      "kind": "RESISTOR",
+      "shape": "thermistor",
+      "size": [
+        9,
+        9,
+        9
+      ],
+      "palette": [
+        "#1f1f24",
+        "#c0392b"
+      ],
+      "resistance": 10000.0,
+      "b_constant": 3950.0,
+      "self_heat": 40.0,
+      "rated_power": 0.25,
+      "states": 6
+    },
+    {
+      "id": "soldering_station",
+      "ru": "Паяльный стол",
+      "en": "Soldering Station",
+      "kind": "STATION",
+      "shape": "station",
+      "size": [
+        16,
+        9,
+        16
+      ],
+      "palette": [
+        "#2f3b45",
+        "#7f8c8d",
+        "#e8b04b",
+        "#c0392b"
+      ],
+      "stack": false,
+      "solid": true,
+      "states": 1
+    },
+    {
+      "id": "soldering_iron",
+      "ru": "Паяльник",
+      "en": "Soldering Iron",
+      "kind": "TOOL",
+      "shape": "tool",
+      "size": [
+        14,
+        2,
+        2
+      ],
+      "palette": [
+        "#bdc3c7",
+        "#e67e22",
+        "#f5f5f5"
+      ],
+      "stack": false,
+      "states": 1
+    },
+    {
+      "id": "solder",
+      "ru": "Припой",
+      "en": "Solder",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        12,
+        6,
+        12
+      ],
+      "palette": [
+        "#95a5a6",
+        "#d6dbdf",
+        "#7f8c8d"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "flux",
+      "ru": "Флюс (канифоль)",
+      "en": "Rosin Flux",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        10,
+        6,
+        10
+      ],
+      "palette": [
+        "#e8c39e",
+        "#b9770e",
+        "#f7dc6f"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "fuse_cartridge_1a",
+      "ru": "Предохранитель плавкий 1 А (5×20)",
+      "en": "Cartridge Fuse 1 A (5×20)",
+      "kind": "FUSE",
+      "shape": "fuse",
+      "size": [
+        13,
+        5,
+        5
+      ],
+      "palette": [
+        "#e8f4fb",
+        "#c9a227",
+        "#7f8c8d"
+      ],
+      "resistance": 0.05,
+      "max_current": 1.0,
+      "blow_i2t": 3.0,
+      "rated_voltage": 250.0,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "fuse_cartridge_5a",
+      "ru": "Предохранитель плавкий 5 А (5×20)",
+      "en": "Cartridge Fuse 5 A (5×20)",
+      "kind": "FUSE",
+      "shape": "fuse",
+      "size": [
+        13,
+        5,
+        5
+      ],
+      "palette": [
+        "#fbeee6",
+        "#c9a227",
+        "#7f8c8d"
+      ],
+      "resistance": 0.012,
+      "max_current": 5.0,
+      "blow_i2t": 45.0,
+      "rated_voltage": 250.0,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "fuse_slow_2a",
+      "ru": "Предохранитель медленный 2 А (пусковые токи)",
+      "en": "Slow-blow Fuse 2 A",
+      "kind": "FUSE",
+      "shape": "fuse",
+      "size": [
+        13,
+        5,
+        5
+      ],
+      "palette": [
+        "#5d6d7e",
+        "#f0b27a",
+        "#7f8c8d"
+      ],
+      "resistance": 0.03,
+      "max_current": 2.0,
+      "blow_i2t": 22.0,
+      "rated_voltage": 250.0,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "ptc_500ma",
+      "ru": "Самовосстанавливающийся предохранитель 500 мА",
+      "en": "Resettable Fuse PTC 500 mA",
+      "kind": "PTC",
+      "shape": "ptc",
+      "size": [
+        9,
+        5,
+        9
+      ],
+      "palette": [
+        "#2e86c1",
+        "#f8f9f9",
+        "#aeb6bf"
+      ],
+      "resistance": 0.9,
+      "hold_current": 0.5,
+      "trip_current": 1.0,
+      "trip_temp": 90.0,
+      "thermal_k": 12.0,
+      "heat_j": 0.15,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "mov_275v",
+      "ru": "Варистор 275 В (защита от импульсных выбросов)",
+      "en": "Varistor MOV 275 V",
+      "kind": "VARISTOR",
+      "shape": "varistor",
+      "size": [
+        11,
+        8,
+        11
+      ],
+      "palette": [
+        "#2874a6",
+        "#d6dbdf",
+        "#154360"
+      ],
+      "resistance": 1000000000.0,
+      "v_clamp": 390.0,
+      "nl_alpha": 9.0,
+      "energy_j": 12.0,
+      "rated_voltage": 275.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "bridge_kbu8",
+      "ru": "Диодный мост KBU8 (800 В / 4 А)",
+      "en": "Bridge Rectifier KBU8",
+      "kind": "BRIDGE",
+      "shape": "bridge",
+      "size": [
+        12,
+        7,
+        12
+      ],
+      "palette": [
+        "#1b1b1f",
+        "#b9c0c8",
+        "#5d6d7e"
+      ],
+      "pins": 4,
+      "v_forward": 0.55,
+      "max_current": 4.0,
+      "v_reverse_max": 800.0,
+      "rated_voltage": 800.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "shottky_sbr30",
+      "ru": "Диод Шоттки 3 А / 30 В",
+      "en": "Schottky Diode 3 A / 30 V",
+      "kind": "DIODE",
+      "shape": "resistor",
+      "size": [
+        14,
+        5,
+        5
+      ],
+      "palette": [
+        "#17202a",
+        "#f7dc6f",
+        "#566573"
+      ],
+      "v_forward": 0.42,
+      "v_rev_max": 30.0,
+      "max_current": 3.0,
+      "rated_voltage": 30.0,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "cap_elec_2200uf",
+      "ru": "Электролит 2200 мкФ / 25 В",
+      "en": "Electrolytic 2200 µF / 25 V",
+      "kind": "CAPACITOR",
+      "shape": "electrolytic",
+      "size": [
+        11,
+        14,
+        11
+      ],
+      "palette": [
+        "#0b3d91",
+        "#aed6f1"
+      ],
+      "capacitance": 0.0022,
+      "rated_voltage": 25.0,
+      "polar": true,
+      "resistance": 8000000.0,
+      "stack": true,
+      "states": 6
+    },
+    {
+      "id": "reg_7805",
+      "ru": "Стабилизатор 7805 (5 В / 1 А)",
+      "en": "Regulator 7805 (5 V / 1 A)",
+      "kind": "REGULATOR",
+      "shape": "to220",
+      "size": [
+        11,
+        4,
+        7
+      ],
+      "palette": [
+        "#17202a",
+        "#d5d8dc",
+        "#7f8c8d"
+      ],
+      "pins": 3,
+      "voltage": 5.0,
+      "dropout": 2.0,
+      "internal_resistance": 0.6,
+      "i_limit": 1.0,
+      "i_quiescent": 0.005,
+      "thermal_k": 50.0,
+      "heat_j": 2.0,
+      "rated_voltage": 35.0,
+      "rated_power": 2.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "reg_7812",
+      "ru": "Стабилизатор 7812 (12 В / 1 А)",
+      "en": "Regulator 7812 (12 V / 1 A)",
+      "kind": "REGULATOR",
+      "shape": "to220",
+      "size": [
+        11,
+        4,
+        7
+      ],
+      "palette": [
+        "#1c2833",
+        "#aeb6bf",
+        "#7f8c8d"
+      ],
+      "pins": 3,
+      "voltage": 12.0,
+      "dropout": 2.0,
+      "internal_resistance": 0.6,
+      "i_limit": 1.0,
+      "i_quiescent": 0.006,
+      "thermal_k": 50.0,
+      "heat_j": 2.0,
+      "rated_voltage": 35.0,
+      "rated_power": 2.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "reg_lm317",
+      "ru": "Стабилизатор LM317 (1.25–24 В, подстроечный)",
+      "en": "Regulator LM317 (adj)",
+      "kind": "REGULATOR",
+      "shape": "to220",
+      "size": [
+        11,
+        4,
+        7
+      ],
+      "palette": [
+        "#212f3d",
+        "#f0f3f4",
+        "#7f8c8d"
+      ],
+      "pins": 3,
+      "voltage": 5.0,
+      "v_out_min": 1.25,
+      "v_out_max": 24.0,
+      "tunable": true,
+      "dropout": 2.5,
+      "internal_resistance": 0.8,
+      "i_limit": 1.5,
+      "i_quiescent": 0.01,
+      "thermal_k": 45.0,
+      "heat_j": 2.0,
+      "rated_voltage": 40.0,
+      "rated_power": 2.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "xfmr_230_12",
+      "ru": "Трансформатор 230→12 В / 10 ВА",
+      "en": "Transformer 230→12 V / 10 VA",
+      "kind": "TRANSFORMER",
+      "shape": "transformer",
+      "size": [
+        14,
+        11,
+        14
+      ],
+      "palette": [
+        "#4d5656",
+        "#b9770e",
+        "#1b2a38"
+      ],
+      "pins": 4,
+      "inductance": 40.0,
+      "resistance": 40.0,
+      "ratio": 19.17,
+      "coupling": 0.995,
+      "rated_power": 10.0,
+      "rated_voltage": 230.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "xfmr_230_9",
+      "ru": "Трансформатор 230→9 В / 6 ВА",
+      "en": "Transformer 230→9 V / 6 VA",
+      "kind": "TRANSFORMER",
+      "shape": "transformer",
+      "size": [
+        13,
+        10,
+        13
+      ],
+      "palette": [
+        "#566573",
+        "#d68910",
+        "#1b263b"
+      ],
+      "pins": 4,
+      "inductance": 25.0,
+      "resistance": 60.0,
+      "ratio": 25.56,
+      "coupling": 0.99,
+      "rated_power": 6.0,
+      "rated_voltage": 230.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "desolder_braid",
+      "ru": "Оплётка для выпайки",
+      "en": "Desoldering Braid",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        11,
+        6,
+        11
+      ],
+      "palette": [
+        "#b3b6b7",
+        "#ecf0f1",
+        "#7f8c8d"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "source_ac",
+      "ru": "Синусоидальный источник 0–24 В / 1 Гц",
+      "en": "AC Source 0-24 V / 1 Hz",
+      "kind": "SOURCE",
+      "shape": "psu",
+      "size": [
+        15,
+        7,
+        12
+      ],
+      "palette": [
+        "#d6eaf8",
+        "#e67e22",
+        "#212f3d"
+      ],
+      "voltage": 12.0,
+      "r_int": 0.3,
+      "ac_hz": 1.0,
+      "rated_voltage": 24.0,
+      "tunable": true,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "raw_copper_chunk",
+      "ru": "Кусок медной руды",
+      "en": "Raw Copper Chunk",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        9,
+        7,
+        9
+      ],
+      "palette": [
+        "#b87333",
+        "#8c5a2b",
+        "#5d4037"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "raw_tin_chunk",
+      "ru": "Кусок оловянной руды",
+      "en": "Raw Tin Chunk",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        9,
+        7,
+        9
+      ],
+      "palette": [
+        "#d5dbdb",
+        "#aeb6bf",
+        "#808b96"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "raw_zinc_chunk",
+      "ru": "Кусок цинковой руды",
+      "en": "Raw Zinc Chunk",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        9,
+        7,
+        9
+      ],
+      "palette": [
+        "#c8cfd6",
+        "#95a5a6",
+        "#616a6b"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "ingot_copper",
+      "ru": "Слиток меди",
+      "en": "Copper Ingot",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        12,
+        5,
+        8
+      ],
+      "palette": [
+        "#e67e22",
+        "#b87333",
+        "#7e5109"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "ingot_tin",
+      "ru": "Слиток олова",
+      "en": "Tin Ingot",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        12,
+        5,
+        8
+      ],
+      "palette": [
+        "#ecf0f1",
+        "#bdc3c7",
+        "#7f8c8d"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "ingot_zinc",
+      "ru": "Слиток цинка",
+      "en": "Zinc Ingot",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        12,
+        5,
+        8
+      ],
+      "palette": [
+        "#d6dbdf",
+        "#a5b1c2",
+        "#6c7a89"
+      ],
+      "stack": true,
+      "states": 1
+    },
+    {
+      "id": "wire_bare",
+      "ru": "Провод голый (монтажный)",
+      "en": "Bare Hookup Wire",
+      "kind": "WIRE",
+      "shape": "wire",
+      "size": [
+        16,
+        3,
+        4
+      ],
+      "palette": [
+        "#e67e22",
+        "#b87333"
+      ],
+      "orientable": true,
+      "states": 6,
+      "hub": true,
+      "resistance": 0.03
+    },
+    {
+      "id": "wire_tinned",
+      "ru": "Провод лужёный",
+      "en": "Tinned Wire",
+      "kind": "WIRE",
+      "shape": "wire",
+      "size": [
+        16,
+        3,
+        4
+      ],
+      "palette": [
+        "#d7dbdd",
+        "#aeb6bf",
+        "#e67e22"
+      ],
+      "orientable": true,
+      "states": 6,
+      "hub": true,
+      "resistance": 0.01
+    },
+    {
+      "id": "geoprobe",
+      "ru": "Геозонд (разведка недр)",
+      "en": "Geo Probe",
+      "kind": "TOOL",
+      "shape": "tool",
+      "size": [
+        14,
+        2,
+        2
+      ],
+      "palette": [
+        "#1b2631",
+        "#d6dbdf",
+        "#e67e22"
+      ],
+      "stack": false,
+      "states": 1
+    },
+    {
+      "id": "wire_stripper",
+      "ru": "Зачистка/лужение проводов",
+      "en": "Wire Stripper",
+      "kind": "TOOL",
+      "shape": "tool",
+      "size": [
+        13,
+        4,
+        3
+      ],
+      "palette": [
+        "#c0392b",
+        "#bdc3c7",
+        "#f5f5f5"
+      ],
+      "stack": false,
+      "states": 1
+    },
+    {
+      "id": "battery_zinc",
+      "ru": "Воздушно-цинковый элемент 1.4 В",
+      "en": "Zinc-Air Cell 1.4 V",
+      "kind": "SOURCE",
+      "shape": "battery",
+      "size": [
+        12,
+        4,
+        12
+      ],
+      "palette": [
+        "#ecf0f1",
+        "#95a5a6",
+        "#e67e22"
+      ],
+      "voltage": 1.4,
+      "r_int": 3.5,
+      "rated_voltage": 1.6,
+      "orientable": true,
+      "states": 6
+    },
+    {
+      "id": "mcu_atmega328",
+      "ru": "Микроконтроллер ATMega328 (C-like прошивка)",
+      "en": "MCU ATMega328 (C-like firmware)",
+      "kind": "MCU",
+      "shape": "chip",
+      "size": [
+        14,
+        5,
+        8
+      ],
+      "palette": [
+        "#212f3d",
+        "#f0f3f4",
+        "#7f8c8d"
+      ],
+      "pins": 6,
+      "voltage": 5.0,
+      "resistance": 25.0,
+      "i_limit": 0.04,
+      "heat_j": 3.0,
+      "thermal_k": 60.0,
+      "states": 6,
+      "orientable": true
+    },
+    {
+      "id": "programmer_usb",
+      "ru": "USB-программатор",
+      "en": "USB Programmer",
+      "kind": "STATION",
+      "shape": "station",
+      "size": [
+        13,
+        7,
+        13
+      ],
+      "palette": [
+        "#2c3e50",
+        "#3498db",
+        "#e67e22",
+        "#ecf0f1"
+      ],
+      "stack": false,
+      "solid": true,
+      "states": 1
+    },
+    {
+      "id": "crystal_16mhz",
+      "ru": "Кварцевый резонатор 16 МГц",
+      "en": "Crystal 16 MHz",
+      "kind": "SUPPLY",
+      "shape": "supply",
+      "size": [
+        12,
+        5,
+        6
+      ],
+      "palette": [
+        "#d6dbdf",
+        "#f5b041",
+        "#7f8c8d"
+      ],
+      "stack": true,
+      "states": 1
+    }
+  ]
 }

@@ -80,6 +80,61 @@ public final class CompInstance {
     /** Индекс состояния модели ресурспака (0..stateModels). */
     public int modelState;
 
+    // --- микроконтроллер (Kind.MCU) ------------------------------------------
+
+    /**
+     * Текст прошивки — единственное, что улетает на диск. После рестарта сервера
+     * чип стартует заново, как настоящая Arduino после сброса питания: ноги и
+     * счётчик команд не восстанавливаем намеренно.
+     */
+    public String program = "";
+    /** Скомпилированная прошивка (кэш) и текст, из которого она собрана. */
+    public transient me.arena.electronics.fw.Firmware.Program firmware;
+    public transient String firmwareSource = "";
+    /** 0 = вход (hi-Z), 1 = выход, 2 = выход с ШИМ. Индекс = номер ноги. */
+    public final int[] mcuDir = new int[6];
+    public final int[] mcuLvl = new int[6];
+    public final int[] mcuPwm = new int[6];
+    /** 10-битное АЦП по ноге и её напряжение (для GUI и для条件的). */
+    public final int[] mcuAdc = new int[6];
+    public final double[] mcuVolt = new double[6];
+    /** Ток, который нога отдаёт/принимает, А (знак: + = отдаёт в цепь). */
+    public final double[] mcuPinI = new double[6];
+    /** Напряжение питания VCC относительно GND этой же микросхемы. */
+    public double mcuVcc;
+    /** Причина остановки прошивки (пусто = работает). */
+    public String mcuHalt = "";
+
+    /** Сброс ног и счётчика команд, но текст прошивки остаётся (пропало питание). */
+    public void resetFirmwareKeepProgram() {
+        resetFirmware();
+        firmware = null;
+        firmwareSource = "";
+    }
+
+    /** Отпустить все ноги: прошивка битая или её нет — чип никого не держит. */
+    public void clearMcuPins() {
+        for (int i = 0; i < mcuDir.length; i++) {
+            mcuDir[i] = 0;
+            mcuLvl[i] = 0;
+            mcuPwm[i] = 0;
+        }
+    }
+
+    /** Сброс прошивки — кнопка reset на плате. */
+    public void resetFirmware() {
+        firmware = null;
+        firmwareSource = "";
+        mcuHalt = "";
+        for (int i = 0; i < mcuDir.length; i++) {
+            mcuDir[i] = 0;
+            mcuLvl[i] = 0;
+            mcuPwm[i] = 0;
+            mcuAdc[i] = 0;
+            mcuPinI[i] = 0;
+        }
+    }
+
     public CompInstance(LocationKey key, Def def) {
         this.key = key;
         this.def = def;

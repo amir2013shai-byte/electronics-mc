@@ -93,6 +93,7 @@ jobs:
             release/textures/sheet-05.png \
             release/textures/sheet-06.png \
             release/textures/sheet-07.png \
+            release/textures/sheet-08.png \
             --title "Electronics $GITHUB_REF_NAME (Minecraft 1.21.11)" \
             --notes "Плагин собран против spigot-api $SPIGOT_API, ресурспак — pack_format 75.
           Ставить: jar в \`plugins/\`, архив — в \`resource-pack.url\` (или вручную клиенту).

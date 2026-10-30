@@ -189,6 +189,7 @@ public final class Components {
 
     private static int defaultPins(Kind kind, boolean spdt) {
         return switch (kind) {
+            case MCU -> 6;              // 0=VCC, 1=GND по оси; 2..5 = PIN1..PIN4
             case RELAY -> 4;              // 0/1 — катушка, 2/3 — контакт
             case BRIDGE, TRANSFORMER -> 4; // мост: 0/1 — «~», 2/3 — «+»/«−»; тр-р: 2/3 — вторичка
             case REGULATOR -> 3;          // IN / OUT / GND

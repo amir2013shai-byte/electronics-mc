@@ -61,6 +61,8 @@ public final class SchematicGui implements Gui {
     private final String[] defId = new String[CELLS];
     private final int[] orient = new int[CELLS];
     private final boolean[] closed = new boolean[CELLS];
+    /** Прошивка микроконтроллера в клетке (Kind.MCU) — текст, как его набрал игрок. */
+    private final String[] program = new String[CELLS];
     private final double[] solvedVoltage = new double[CELLS];
     private final double[] solvedPotential = new double[CELLS];
     private final double[] solvedCurrent = new double[CELLS];
@@ -99,7 +101,22 @@ public final class SchematicGui implements Gui {
         int cell = cellIndex(row, col);
         this.defId[cell] = defId;
         this.orient[cell] = orientation;
+        this.program[cell] = null;      // деталь сменилась — её прошивка не остаётся
         islands = -1;
+    }
+
+    /**
+     * Прошивка для микроконтроллера в клетке. Живёт рядом с клеткой (а не на
+     * экземпляре), потому что решатель пересобирает экземпляры на каждом прогоне:
+     * иначе тест и редактор теряли бы код после первого шага.
+     */
+    public void programAt(int row, int col, String text) {
+        program[cellIndex(row, col)] = text;
+        islands = -1;
+    }
+
+    public String programTextAt(int row, int col) {
+        return program[cellIndex(row, col)];
     }
 
     public double voltageAt(int row, int col) {
@@ -311,6 +328,9 @@ public final class SchematicGui implements Gui {
             CompInstance inst = new CompInstance(new LocationKey((World) null, c, 0, r), d);
             inst.orientation = Orientation.byIndex(orient[cell]);
             inst.state = closed[cell] ? CompStates.CLOSED : CompStates.OFF;
+            if (program[cell] != null) {
+                inst.program = program[cell];
+            }
             list.add(inst);
             lastByPos.put(Circuit.pos(c, 0, r), inst);
             cellOf[cell] = list.size() - 1;

@@ -34,6 +34,18 @@ public final class Config {
     public int simDtMillis = 50;
     public boolean benchWiring = false;
 
+    // ---дра: закрытые жилы (worldgen их не ставит, их «вскрывает» геозонд) ---
+    public boolean depositsEnabled = true;
+    /** 0 = брать сид мира; иначе — свой, чтобы недра можно было воспроизвести. */
+    public long depositSeed = 0;
+    /** Доля чанков с жилой. 0.18 = одна жила примерно на шесть чанков. */
+    public double depositChance = 0.18;
+    public int depositYMin = -48;
+    public int depositYBand = 40;
+    public int depositYield = 1;
+    public int depositVeinSize = 14;
+    public int depositVeinJitter = 26;
+
     // --- мир/игроки ---
     public boolean protectBlocks = true;
     public boolean dropAsItem = true;
@@ -85,6 +97,14 @@ public final class Config {
         solarNightVoltage = c.getDouble("simulation.solar-night-voltage", solarNightVoltage);
         simDtMillis = Math.max(10, c.getInt("simulation.time-step-ms", simDtMillis));
         benchWiring = c.getBoolean("simulation.bench-wiring", benchWiring);
+        depositsEnabled = c.getBoolean("deposits.enabled", depositsEnabled);
+        depositSeed = c.getLong("deposits.seed", depositSeed);
+        depositChance = c.getDouble("deposits.chunk-chance", depositChance);
+        depositYMin = c.getInt("deposits.y-min", depositYMin);
+        depositYBand = c.getInt("deposits.y-band", depositYBand);
+        depositYield = c.getInt("deposits.yield-per-block", depositYield);
+        depositVeinSize = c.getInt("deposits.vein-size", depositVeinSize);
+        depositVeinJitter = c.getInt("deposits.vein-jitter", depositVeinJitter);
 
         protectBlocks = c.getBoolean("world.protect-blocks", protectBlocks);
         dropAsItem = c.getBoolean("world.drop-as-item", dropAsItem);
@@ -112,6 +132,14 @@ public final class Config {
         c.set("blocks.require-pedestal", requirePedestal);
         c.set("simulation.faults", faultsEnabled);
         c.set("simulation.bench-wiring", benchWiring);
+        c.set("deposits.enabled", depositsEnabled);
+        c.set("deposits.seed", depositSeed);
+        c.set("deposits.chunk-chance", depositChance);
+        c.set("deposits.y-min", depositYMin);
+        c.set("deposits.y-band", depositYBand);
+        c.set("deposits.vein-size", depositVeinSize);
+        c.set("deposits.vein-jitter", depositVeinJitter);
+        c.set("deposits.yield-per-block", depositYield);
         c.set("simulation.generator-period-ticks", generatorPeriodTicks);
         c.set("world.hints", hintsEnabled);
         c.set("world.recipes", recipesEnabled);
