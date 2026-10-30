@@ -17,7 +17,15 @@ cd "$(dirname "$0")/.."
 TAG="${1:?нужен тег, напр. v1.3.0}"
 OWNER="amir2013shai-byte"
 REPO="electronics-mc"
-TOK="${GITHUB_TOKEN:?экспортируй GITHUB_TOKEN=<PAT с Contents: Read and write>}"
+# Токен берём из ~/.secrets/github.env (файл ВНЕ репозитория — см. tools/push.sh),
+# если его не передали переменной.
+SECRETS="${ELECTRONICS_SECRETS:-$HOME/.secrets/github.env}"
+if [ -z "${GITHUB_TOKEN:-}" ] && [ -f "$SECRETS" ]; then
+  # shellcheck disable=SC1090
+  . "$SECRETS"
+  GITHUB_TOKEN="${GH_TOKEN:-}"
+fi
+TOK="${GITHUB_TOKEN:?нет токена: положи GH_TOKEN в $SECRETS или экспортируй GITHUB_TOKEN}"
 API="https://api.github.com/repos/$OWNER/$REPO"
 GITURL="https://x-access-token:$TOK@github.com/$OWNER/$REPO.git"
 

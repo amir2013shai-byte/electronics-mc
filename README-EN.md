@@ -308,6 +308,9 @@ branch), the `while` quota, `delay` in ticks and ADC (21 checks).
 
 
 ## Checks actually run
+How to add a part (registry → pack → solver → crafting → tests → release):
+[`docs/adding-parts.md`](docs/adding-parts.md) (Russian).
+
 ## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), topology and
