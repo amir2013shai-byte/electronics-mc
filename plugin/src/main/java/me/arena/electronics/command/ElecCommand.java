@@ -508,6 +508,48 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                         none, 4, 2, 90));
         boolean noVanilla = plugin.recipes().byResult(led) == null
                 && plugin.recipes().byResult(Components.byId("wire_red")) != null;
+        int dispCount = plugin.recipes().displayCount();
+        org.bukkit.inventory.Recipe disp = plugin.recipes().displayFor("led_red");
+        boolean stationShown = false;
+        if (disp instanceof org.bukkit.inventory.ShapedRecipe sh) {
+            for (org.bukkit.inventory.RecipeChoice c : sh.getChoiceMap().values()) {
+                if (c instanceof org.bukkit.inventory.RecipeChoice.ExactChoice ec) {
+                    for (ItemStack st : ec.getChoices()) {
+                        Def sd = Items.defOf(st);
+                        if (sd != null && "soldering_station".equals(sd.id)) {
+                            stationShown = true;
+                        }
+                    }
+                }
+            }
+        }
+        int inManager = 0;
+        java.util.Iterator<org.bukkit.inventory.Recipe> it = plugin.getServer().recipeIterator();
+        while (it.hasNext()) {
+            org.bukkit.inventory.Recipe r = it.next();
+            if (r instanceof org.bukkit.Keyed k && "electronics".equals(k.getKey().getNamespace())) {
+                inManager++;
+            }
+        }
+        int withStation = 0;
+        for (String sid : Components.soldered()) {
+            if (stationIn(plugin.recipes().displayFor(sid))) {
+                withStation++;
+            }
+        }
+        boolean jei = dispCount == Components.soldered().size() && dispCount > 40
+                && plugin.recipes().byResult(led) == null
+                && plugin.recipes().hasDisplay("led_red")
+                && plugin.recipes().isDisplayOnly(disp) && stationShown && withStation == dispCount
+                && plugin.recipes().hasDisplay("resistor_330r")
+                && !plugin.recipes().hasDisplay("wire_red")
+                && inManager == Components.soldered().size() + plugin.recipes().realCount();
+        s.sendMessage(Items.color((jei ? "&aPASS " : "&cFAIL ")
+                + "&7JEI: витрин &f" + dispCount + "&7/(нужно " + Components.soldered().size()
+                + "), у светодиода реальным крафтом не собирается: &f"
+                + (plugin.recipes().byResult(led) == null) + "&7, стол в сетке рецептов: &f"
+                + withStation + "&7/&f" + dispCount
+                + "&7, в менеджере рецептов клиента: &f" + inManager + " &8(21 крафта + 43 витрины)"));
         boolean solderRules = !cold.allowed() && cold.message().contains("холодное")
                 && warm.allowed() && warm.coldJoint() && warm.solder() == 1
                 && good.allowed() && !good.coldJoint() && good.consume().equals(kit)
@@ -554,6 +596,33 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         g.put(2, 0, "wire_black", 0);
         g.put(1, 0, "wire_black", 0);
         g.put(1, 3, withMagnet ? "magnet" : null, 0);
+    }
+
+    /** Есть ли в рецепте сам паяльный стол (тогда JEI покажет его как «станок»). */
+    private static boolean stationIn(org.bukkit.inventory.Recipe r) {
+        if (r instanceof org.bukkit.inventory.ShapedRecipe sh) {
+            for (org.bukkit.inventory.RecipeChoice c : sh.getChoiceMap().values()) {
+                if (c instanceof org.bukkit.inventory.RecipeChoice.ExactChoice ec
+                        && isStation(ec.getChoices())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (r instanceof org.bukkit.inventory.ShapelessRecipe sl) {
+            return isStation(sl.getIngredientList());
+        }
+        return false;
+    }
+
+    private static boolean isStation(java.util.Collection<? extends ItemStack> list) {
+        for (ItemStack st : list) {
+            Def sd = Items.defOf(st);
+            if (sd != null && "soldering_station".equals(sd.id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Каталог всех предметов плагина в GUI (то же, что /electro show). */

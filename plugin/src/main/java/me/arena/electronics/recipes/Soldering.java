@@ -83,6 +83,15 @@ public final class Soldering {
         return d != null && d.pins >= 3 ? 2 : 1;
     }
 
+    /** Одна строка «что нужно для пайки» — её видно в JEI на подсказке результата. */
+    public static String solderHint(Def d) {
+        if (d == null || !Components.isSoldered(d.id)) {
+            return "";
+        }
+        return "припой ×" + solderCost(d) + (needsFlux(d) ? ", флюс ×1" : ", флюс не нужен")
+                + ", жало " + HEAT_HOT + "°+";
+    }
+
     public static boolean needsFlux(Def d) {
         return d != null && NEEDS_FLUX.contains(d.kind);
     }

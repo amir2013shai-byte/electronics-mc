@@ -129,6 +129,30 @@ public final class Events implements Listener {
         }
     }
 
+    /**
+     * Рецепты спаечных деталей регистрируются только чтобы их показывал JEI.
+     * Собрать их в верстаке нельзя: вместо этого — подсказка, где их делают.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onCraftDisplay(org.bukkit.event.inventory.CraftItemEvent e) {
+        if (!plugin.recipes().isDisplayOnly(e.getRecipe())) {
+            return;
+        }
+        e.setCancelled(true);
+        if (!(e.getWhoClicked() instanceof Player p)) {
+            return;
+        }
+        Def out = Items.defOf(e.getRecipe().getResult());
+        String name = out == null ? "деталь" : out.nameRu;
+        Items.message(p, "&e«" + name + "» &7в верстаке не собирается — её &aпаивают&7: "
+                + "нужен &aпаяльный стол&7, прогретое жало, припой"
+                + (out != null && me.arena.electronics.recipes.Soldering.needsFlux(out)
+                        ? " и флюс" : "") + ".");
+        Items.message(p, "&8Открой стол ПКМ по нему (рядом должна стоять печь/костёр) "
+                + "или &felec solder&8; список заготовок — в подсказке детали и в &felec recipe&8.");
+        p.updateInventory();
+    }
+
     /** Любой клик внутри GUI плагина: окно наше, предметы не таскаются. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onGuiClick(org.bukkit.event.inventory.InventoryClickEvent e) {

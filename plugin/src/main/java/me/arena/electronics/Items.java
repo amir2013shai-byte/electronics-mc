@@ -62,6 +62,13 @@ public final class Items {
             lore.add(color("&7" + nominal));
         }
         lore.add(color("&8" + def.kind.name()));
+        if (me.arena.electronics.registry.Components.isSoldered(def.id)) {
+            lore.add(color("&6⚡ Паяется на паяльном столе"));
+            String hint = me.arena.electronics.recipes.Soldering.solderHint(def);
+            if (!hint.isEmpty()) {
+                lore.add(color("&7" + hint + " &8(в верстаке не соберётся)"));
+            }
+        }
         if (def.kind == Kind.TOOL) {
             lore.add(color("&eПКМ по печи, костру или лаве &7— прогреть жало"));
             lore.add(color("&7Износ жала — по шкале прочности"));

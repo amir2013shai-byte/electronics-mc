@@ -159,6 +159,29 @@ the station GUI by hand for a lesson. Every rule lives in the pure function
 `recipes/Soldering.evaluate(...)`, and `/elec selftest` asserts exactly that
 function, so GUI and tests cannot drift apart.
 
+### JEI / REI / EMI without a client mod
+
+JEI reads the recipe list the server already syncs to every client
+(`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 64 ids** into it:
+21 real crafting recipes plus 43 *display* recipes (`recipe_solder_<id>`) for
+the soldered parts. A display recipe is a `ShapedRecipe` with the same blank
+grid the station demands, and the **soldering station sits in the free cell** —
+so in JEI it reads as the machine of the recipe (and pressing `R` on the
+station lists everything soldered on it). Crafting it by hand is impossible:
+`Events#onCraftDisplay` cancels the `CraftItemEvent` and prints where to go
+instead. Temperature, solder count and the flux rule live in the item tooltip
+(`Items#componentItem` → `Soldering#solderHint`), which arrives with the recipe
+result, so hovering the part in JEI already says `припой ×2, флюс ×1, жало 60°+`.
+The four dense 3×3 recipes (solar cell, AND, XOR, multimeter) were trimmed to
+eight blanks on purpose, so that the ninth cell can hold the station.
+
+Notes: JEI is client-side only — nothing to install on the server; REI/EMI/FFBI
+work the same way; `world.recipes: false` hides both crafts and displays; and a
+true custom JEI *category* (progress bar, temperature gauge) would require a
+client addon, which the task forbids. `/elec selftest` proves the visible part:
+`PASS JEI: … стол в сетке рецептов: 43/43, в менеджере рецептов клиента: 64
+(21 крафта + 43 витрины)`.
+
 ## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), topology and

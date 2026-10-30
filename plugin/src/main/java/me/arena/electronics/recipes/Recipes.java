@@ -14,7 +14,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Крафт компонентов обычными ванильными рецептами (никаких клиентских модов:
@@ -30,6 +32,14 @@ public final class Recipes {
 
     private final ElectronicsPlugin plugin;
     private final Map<String, Recipe> registered = new HashMap<>();
+    /**
+     * «Витрина» для JEI/EMI/REI: рецепты спаечных деталей, которые сервер не
+     * даёт собрать (CraftItemEvent отменяется), но клиент обязан показать —
+     * иначе в JEI у детали вообще нет рецепта. Ключ — recipe_solder_<id>.
+     */
+    private final Set<String> displayIds = new java.util.LinkedHashSet<>();
+    private final Set<NamespacedKey> displayKeys = new HashSet<>();
+    private int okCount = 0;
     private final List<NamespacedKey> keys = new ArrayList<>();
 
     public Recipes(ElectronicsPlugin plugin) {
@@ -89,7 +99,7 @@ public final class Recipes {
         DEFS.put("power_supply", new Shaped(new String[]{"CGC", "RBR", "IRI"},
                 map("C", Material.COPPER_INGOT, "G", Material.GLASS, "B", Material.COPPER_BULB,
                         "R", Material.REPEATER, "I", Material.IRON_INGOT)));
-        DEFS.put("solar_cell", new Shaped(new String[]{"GGG", "QLQ", "GIG"},
+        DEFS.put("solar_cell", new Shaped(new String[]{" GG", "QLQ", "GIG"},
                 map("G", Material.TINTED_GLASS, "Q", Material.QUARTZ, "L", Material.LAPIS_BLOCK, "I", Material.IRON_INGOT)));
         DEFS.put("generator", new Shaped(new String[]{"ICI", "RPR", "ICI"},
                 map("I", Material.IRON_INGOT, "C", Material.COPPER_INGOT, "P", Material.STICKY_PISTON, "R", Material.REPEATER)));
@@ -159,11 +169,11 @@ public final class Recipes {
                 map("R", Material.REDSTONE, "G", Material.GOLD_NUGGET, "S", Material.SAND)));
         DEFS.put("transistor_pnp", new Shaped(new String[]{"R R", "ISI"},
                 map("R", Material.REDSTONE, "I", Material.IRON_NUGGET, "S", Material.SAND)));
-        DEFS.put("gate_and", new Shaped(new String[]{"RSR", "SCS", "RSR"},
+        DEFS.put("gate_and", new Shaped(new String[]{"RSR", "SCS", "R R"},
                 map("R", Material.REDSTONE, "S", Material.SAND, "C", Material.COPPER_INGOT)));
         DEFS.put("gate_or", new Shaped(new String[]{"R R", "SCS", "R R"},
                 map("R", Material.REDSTONE, "S", Material.SAND, "C", Material.COPPER_INGOT)));
-        DEFS.put("gate_xor", new Shaped(new String[]{"RSR", "SCS", "RSR"},
+        DEFS.put("gate_xor", new Shaped(new String[]{"RSR", "SCS", "R R"},
                 map("R", Material.REDSTONE, "S", Material.SAND, "C", Material.GOLD_NUGGET)));
         DEFS.put("gate_not", new Shaped(new String[]{" R ", "R R", " C "},
                 map("R", Material.REDSTONE, "C", Material.COPPER_INGOT)));
@@ -179,7 +189,7 @@ public final class Recipes {
                 map("G", Material.GLASS, "C", Material.COPPER_INGOT, "I", Material.IRON_INGOT, "R", Material.REDSTONE)));
         DEFS.put("ammeter", new Shaped(new String[]{"GCG", "ILI", " C "},
                 map("G", Material.GLASS, "C", Material.COPPER_INGOT, "I", Material.IRON_INGOT, "L", Material.LAPIS_LAZULI)));
-        DEFS.put("multimeter", new Shaped(new String[]{"GIG", "CRC", "WIW"},
+        DEFS.put("multimeter", new Shaped(new String[]{"GIG", "CRC", "W I"},
                 map("G", Material.GLASS, "I", Material.IRON_INGOT, "C", Material.COPPER_INGOT,
                         "R", Material.REDSTONE, "W", Material.CLOCK)));
         DEFS.put("wire_cutter", new Shaped(new String[]{"I I", " S ", " S "},
@@ -200,6 +210,7 @@ public final class Recipes {
         }
         int ok = 0;
         int skip = 0;
+        okCount = 0;
         int soldered = 0;
         for (Def d : Components.all()) {
             Object spec = DEFS.get(d.id);
@@ -208,7 +219,21 @@ public final class Recipes {
                 continue;
             }
             if (Components.isSoldered(d.id)) {
-                soldered++;          // только пайкой на столе: ванильного рецепта нет
+                // ванильного рецепта нет намеренно; для JEI регистрируем витрину,
+                // где показана заготовка и сам паяльный стол как «станок»
+                NamespacedKey dk = new NamespacedKey(plugin, "recipe_solder_" + d.id);
+                try {
+                    Recipe display = buildDisplay(d, dk);
+                    if (display != null && registerRecipe(display, dk)) {
+                        displayKeys.add(dk);
+                        displayIds.add(d.id);
+                    }
+                } catch (RuntimeException ex) {
+                    if (plugin.config().debug) {
+                        plugin.getLogger().warning("витрина для " + d.id + ": " + ex.getMessage());
+                    }
+                }
+                soldered++;
                 continue;
             }
             ItemStack result = plugin.items().componentItem(d, 1);
@@ -231,8 +256,10 @@ public final class Recipes {
                     }
                     recipe = r;
                 }
-                registerRecipe(recipe, key);
-                ok++;
+                if (registerRecipe(recipe, key)) {
+                    ok++;
+                    okCount++;
+                }
             } catch (RuntimeException ex) {
                 skip++;
                 if (plugin.config().debug) {
@@ -241,14 +268,146 @@ public final class Recipes {
             }
         }
         plugin.getLogger().info("зарегистрировано рецептов: " + ok + " (пайка: " + soldered
-                + ", пропущено " + skip + ")");
+                + " витрин для JEI, пропущено " + skip + ")");
     }
 
-    private void registerRecipe(Recipe recipe, NamespacedKey key) {
+    /** Сколько «настоящих» рецептов зарегистрировано (без витрин). */
+    public int realCount() {
+        return okCount;
+    }
+
+    /** Сам витринный рецепт (его видно в JEI; собран быть не может). */
+    public Recipe displayFor(String id) {
+        return registered.get("recipe_solder_" + id);
+    }
+
+    /** Есть ли у id «витрина»-рецепт (и, значит, что-то ли показывает JEI). */
+    public boolean hasDisplay(String id) {
+        return id != null && displayIds.contains(id);
+    }
+
+    public int displayCount() {
+        return displayIds.size();
+    }
+
+    /** Отменяется ли крафт этим рецептом (витрина не собираётся руками). */
+    public boolean isDisplayOnly(Recipe recipe) {
+        if (!(recipe instanceof org.bukkit.Keyed keyed) || keyed.getKey() == null) {
+            return false;
+        }
+        return displayKeys.contains(keyed.getKey());
+    }
+
+    /** Паяльный стол как предмет-ингредиент (ExactChoice: наш предмет, не просто полублок). */
+    private org.bukkit.inventory.RecipeChoice stationChoice() {
+        Def st = Components.byId("soldering_station");
+        if (st == null) {
+            return null;
+        }
+        return new org.bukkit.inventory.RecipeChoice.ExactChoice(plugin.items().componentItem(st, 1));
+    }
+
+    /**
+     * Рецепт «как это делается» для JEI: те же заготовки, что требует стол, плюс
+     * сам паяльный стол в свободной клетке сетки (если клетка есть — иначе его
+     * видно в подсказке результата). Собран быть не может: Events отменяет его.
+     */
+    private Recipe buildDisplay(Def d, NamespacedKey key) {
+        Object spec = DEFS.get(d.id);
+        ItemStack result = plugin.items().componentItem(d, 1);
+        if (spec instanceof Shaped sh) {
+            String[] rows = sh.pattern();
+            char[][] grid = new char[3][3];
+            for (char[] row : grid) {
+                java.util.Arrays.fill(row, ' ');
+            }
+            for (int r = 0; r < Math.min(3, rows.length); r++) {
+                for (int c = 0; c < Math.min(3, rows[r].length()); c++) {
+                    grid[r][c] = rows[r].charAt(c);
+                }
+            }
+            int used = 0;
+            for (char[] row : grid) {
+                for (char ch : row) {
+                    if (ch != ' ' && sh.key().get(ch) != null && sh.key().get(ch) != Material.AIR) {
+                        used++;
+                    }
+                }
+            }
+            boolean stationFits = used + 1 <= 9;
+            if (stationFits) {
+                outer:
+                for (int r = 0; r < 3; r++) {
+                    for (int c = 0; c < 3; c++) {
+                        if (grid[r][c] == ' ') {
+                            grid[r][c] = 'K';
+                            break outer;
+                        }
+                    }
+                }
+            }
+            int maxR = 0, maxC = 0;
+            for (int r = 0; r < 3; r++) {
+                for (int c = 0; c < 3; c++) {
+                    if (grid[r][c] != ' ') {
+                        maxR = Math.max(maxR, r);
+                        maxC = Math.max(maxC, c);
+                    }
+                }
+            }
+            String[] shape = new String[maxR + 1];
+            for (int r = 0; r <= maxR; r++) {
+                shape[r] = new String(grid[r]).substring(0, maxC + 1);
+            }
+            ShapedRecipe out = new ShapedRecipe(key, result);
+            out.shape(shape);
+            for (Map.Entry<Character, Material> e : sh.key().entrySet()) {
+                if (e.getValue() != null && e.getValue() != Material.AIR) {
+                    out.setIngredient(e.getKey(), e.getValue());
+                }
+            }
+            org.bukkit.inventory.RecipeChoice st = stationChoice();
+            if (stationFits && st != null) {
+                out.setIngredient('K', st);
+            }
+            return out;
+        }
+        if (spec instanceof Shapeless sl) {
+            java.util.List<Material> list = new ArrayList<>();
+            for (Material m : sl.ingredients()) {
+                if (m != null && m.isItem()) {
+                    list.add(m);
+                }
+            }
+            boolean stationFits = list.size() + 1 <= 9;
+            if (stationFits) {
+                list.add(null);                      // место под стол, вставим ниже
+            }
+            ShapelessRecipe out = new ShapelessRecipe(key, result);
+            int idx = 0;
+            for (Material m : list) {
+                if (m == null) {
+                    org.bukkit.inventory.RecipeChoice st = stationChoice();
+                    if (st != null) {
+                        out.addIngredient(st);
+                    }
+                } else {
+                    out.addIngredient(m);
+                }
+                idx++;
+            }
+            return out;
+        }
+        return null;
+    }
+
+    private boolean registerRecipe(Recipe recipe, NamespacedKey key) {
         if (plugin.getServer().addRecipe(recipe)) {
             registered.put(key.getKey(), recipe);
             keys.add(key);
+            return true;
         }
+        return false;
     }
 
     public void unregisterAll() {
@@ -261,6 +420,8 @@ public final class Recipes {
         }
         registered.clear();
         keys.clear();
+        displayIds.clear();
+        displayKeys.clear();
     }
 
     public Recipe byResult(Def def) {
