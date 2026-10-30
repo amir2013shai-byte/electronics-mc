@@ -3,9 +3,15 @@
 # сверка ресурспака. Запускается и в песочнице, и у тебя на машине.
 set -e
 cd "$(dirname "$0")/.."
-for j in /usr/lib/jvm/java-21-openjdk-amd64/bin "$JAVA_HOME/bin"; do
-  [ -x "$j/javac" ] && export PATH="$j:$PATH" && break
+# Нужен JDK 21+ (switch-выражения в ядре). Ищем любой подходящий: в песочнице
+# /usr живёт до первой перезагрузки, поэтому путь «java-21-openjdk-amd64» может
+# и не существовать, а JDK 11 в /usr/lib/jvm есть всегда — на него брать нельзя.
+for j in /usr/lib/jvm/java-21-openjdk-amd64/bin /usr/lib/jvm/*/bin "$JAVA_HOME/bin"; do
+  [ -x "$j/javac" ] || continue
+  ver=$("$j/javac" -version 2>&1 | sed -E 's/[^0-9]*([0-9]+).*/\1/')
+  if [ "${ver:-0}" -ge 21 ]; then export PATH="$j:$PATH"; break; fi
 done
+javac -version >/dev/null 2>&1 || { echo "нет javac 21+: sudo apt-get install -y --no-install-recommends openjdk-21-jdk-headless" >&2; exit 1; }
 
 # --- classpath: spigot-api + joml -------------------------------------------------
 # Ищем в maven-репозиториях по маске (имена snapshot-файлов содержат дату сборки,

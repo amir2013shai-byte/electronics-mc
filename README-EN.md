@@ -16,7 +16,7 @@ brightness, burnt parts. No client mod.
 | Resource pack format | **75** (75.0–75.1) |
 | Data pack format (recipes) | **94** |
 | Client mod | not required |
-| Components | 109 ids (66 soldered parts + ore & alloy chain + microcontroller + three stations + nine drive parts), RU + EN names |
+| Components | 109 ids (66 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts), RU + EN names |
 | Built pack | 2376 files: 1605 item textures, 654 models (109 × 6), 109 `items/*.json` |
 | Resource-pack model states | **3210** = 535 visual states × 6 orientations |
 
@@ -43,9 +43,12 @@ mutable states" are implemented where the vanilla client actually reads them:
 
 ```
 plugins/Electronics-1.0.0.jar                         # or: cd plugin && mvn -DskipTests package
-build/electronics-resourcepack.zip                     # resource pack (set resource-pack.url or apply manually)
-build/electronics-recipes-datapack.zip                 # optional: 21 vanilla crafting recipes (43 more are soldered)
+release/electronics-resourcepack.zip                   # resource pack (set resource-pack.url or apply manually)
+release/electronics-recipes-datapack.zip               # optional: 36 recipes — 66 parts are soldered instead
 ```
+
+`release/` is what the repo and the GitHub Release carry; `build/*.zip` are the
+same files before `tools/publish.sh` copies them over.
 
 First start writes `config.yml`, three lab worksheets into `labs/`, two preset
 builds into `builds/`, and `registry.json` (the component registry; Spigot has
@@ -143,7 +146,11 @@ from (ore, prospecting, smelting, stripping) — and at the top of it: a 6-pin
 microcontroller that runs a program. See the two sections below.
 
 Fifteen new ids cover the supply side: three fuses with an I²t budget
-(`fuse_cartridge_1a`, `fuse_cartridge_5a`, `fuse_slow_2a`), a self-resetting PTC
+(`fuse_cartridge_1a`, `fuse_cartridge_5a`, `fuse_slow_2a`; a 100 mA `fuse` and a
+10 A `fuse_slow_10a` came later — 5 in all). The budget integrates only the
+*excess* above the rating (`I² − Iном²`), which is what lets 800 mA live forever
+on a 1 A cartridge while a dead short still opens it in one step; the part turns
+`dim` at 45 % of the budget, so a fuse about to go is visible. Then a self-resetting PTC
 (`ptc_500ma`: thermal mass `heat_j` against `thermal_k`, so a short trips it in
 ~30 dt-steps and it cools back into conduction on its own), an MOV (`mov_275v`:
 9 nA at 9 V, a dead short at its 390 V clamp, degrades into a failed key after
@@ -158,7 +165,9 @@ step cannot resolve 50 Hz, Nyquist says 10 Hz) and desolder braid
 (`desolder_braid`).
 
 Failures are reversible by design: an overloaded part enters the `burnt` visual
-state and stays in the world instead of vanishing. Repair it in survival — a
+state and stays in the world instead of vanishing (a motor is the exception on
+purpose: it accumulates seconds of triple overload and dies after four of them,
+because inrush current is not a fault — see the drive section). Repair it in survival — a
 soldering station within 5 blocks, a hot iron, one braid and one solder
 (`/elec repair`) — or for free with `electronics.admin` (and `/elec repair all`
 for debugging). Both paths call `Simulation.repair()`, which clears the fault
@@ -170,8 +179,10 @@ and zeroes accumulated I²t, case temperature and MOV degradation.
 transistors, gates, relay, reed, coils, motor, buzzer, meters, switches, solar
 cell, fuses, PTC, MOV, bridge, electrolytics, regulators, transformers) cannot
 be crafted in a crafting table at all: `Recipes.register()` skips
-them and the data pack ships only the remaining 23 recipes, which the startup
-log states as `recipes: 21 (soldering: 43, skipped 0)`. The list itself lives in
+them and the data pack ships only the remaining 36 recipes, while the startup
+log states `зарегистрировано рецептов: 39 (пайка: 66 витрин для JEI, пропущено 7,
+плавка 3)` — 39 crafting recipes, 66 solder displays, 7 parts only machines make.
+The list itself lives in
 `shared/components.json` → `meta.soldered`, so plugin and pack generator share it.
 
 * **soldering station** — `P P / PFP / ICI` (planks, furnace, iron nuggets,
@@ -195,7 +206,7 @@ function, so GUI and tests cannot drift apart.
 
 JEI reads the recipe list the server already syncs to every client
 (`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 109 ids** into it:
-21 real crafting recipes plus 43 *display* recipes (`recipe_solder_<id>`) for
+39 real crafting recipes plus 66 *display* recipes (`recipe_solder_<id>`) for
 the soldered parts. A display recipe is a `ShapedRecipe` with the same blank
 grid the station demands, and the **soldering station sits in the free cell** —
 so in JEI it reads as the machine of the recipe (and pressing `R` on the
@@ -211,8 +222,8 @@ Notes: JEI is client-side only — nothing to install on the server; REI/EMI/FFB
 work the same way; `world.recipes: false` hides both crafts and displays; and a
 true custom JEI *category* (progress bar, temperature gauge) would require a
 client addon, which the task forbids. `/elec selftest` proves the visible part:
-`PASS JEI: … стол в сетке рецептов: 43/43, в менеджере рецептов клиента: 64
-(35 craft recipes + 61 displays)`.
+`PASS JEI: витрин 66/(нужно 66), … стол в сетке рецептов: 66/66, в менеджере
+рецептов клиента: 105 (39 крафта + 66 витрин)` — all 109 ids reach the client.`
 
 ### Can our `custom_model_data` leak onto other items (a disc in a jukebox)?
 
@@ -230,7 +241,7 @@ No, and the pack build proves it rather than promises it:
 * `tools/check_pack_refs.py` aborts if the pack ever ships another
   `assets/minecraft/**` file beyond the atlas source list and the three quartz
   textures — a silent vanilla override is now a build error;
-* the indices (0…2069) are not global numbers: in the fallback case the integer
+* the indices (0…3209) are not global numbers: in the fallback case the integer
   sits on a `SMOOTH_QUARTZ_SLAB`/`BRUSH` stack, never on a disc, and the plugin
   refuses to touch items that are not in its registry (`Items.defOf` → null);
 * no `music_disc`/`jukebox`/`RECORD_` references exist in the plugin or tools
