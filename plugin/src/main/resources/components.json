@@ -64,9 +64,14 @@
    "wire_tinned",
    "battery_zinc",
    "mcu_atmega328",
-   "resistor_shunt_0r01"
+   "resistor_shunt_0r01",
+   "motor_220v",
+   "gearbox_3x",
+   "flywheel_kinetic",
+   "saw_kinetic",
+   "drill_kinetic"
   ],
-  "state_model_count": 2886,
+  "state_model_count": 3210,
   "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
   "component_count": 100
  },
@@ -1130,6 +1135,8 @@
    "back_emf_per_volt": 0.55,
    "winding": 24.0,
    "rated_voltage": 12.0,
+   "rpm": 1800.0,
+   "inertia": 0.0015,
    "states": 6,
    "en": "Electric Motor"
   },
@@ -2324,6 +2331,212 @@
    "orientable": true,
    "states": 6,
    "pins": 2
+  },
+  {
+   "id": "supply_220v",
+   "ru": "Приводной источник 220 В / 1,5 кВт",
+   "en": "Drive Supply 220 V",
+   "kind": "SOURCE",
+   "shape": "psu",
+   "size": [
+    15,
+    9,
+    12
+   ],
+   "palette": [
+    "#2c3e50",
+    "#e67e22",
+    "#ecf0f1"
+   ],
+   "voltage": 220.0,
+   "r_int": 6.0,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "motor_220v",
+   "ru": "Мотор привода 220 В, 2800 об/мин",
+   "en": "Drive Motor 220 V",
+   "kind": "MOTOR",
+   "shape": "motor",
+   "size": [
+    11,
+    11,
+    15
+   ],
+   "palette": [
+    "#7f8c8d",
+    "#c0392b",
+    "#f1c40f"
+   ],
+   "back_emf_per_volt": 0.55,
+   "winding": 22.0,
+   "rated_voltage": 220.0,
+   "rated_power": 500.0,
+   "rpm": 2800.0,
+   "inertia": 0.02,
+   "mass": 9.0,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "fuse_slow_10a",
+   "ru": "Предохранитель 10 А, медленный",
+   "en": "Slow-blow Fuse 10 A",
+   "kind": "FUSE",
+   "shape": "fuse",
+   "size": [
+    12,
+    4,
+    4
+   ],
+   "palette": [
+    "#f0e68c",
+    "#bdc3c7",
+    "#e67e22"
+   ],
+   "resistance": 0.006,
+   "max_current": 10.0,
+   "blow_i2t": 300.0,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "shaft_kinetic",
+   "ru": "Вал привода",
+   "en": "Drive Shaft",
+   "kind": "KINETIC",
+   "shape": "shaft",
+   "size": [
+    16,
+    4,
+    4
+   ],
+   "palette": [
+    "#95a5a6",
+    "#7f8c8d",
+    "#ecf0f1"
+   ],
+   "coupling": 0.99,
+   "inertia": 0.004,
+   "mass": 4.0,
+   "radius": 0.05,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "gearbox_3x",
+   "ru": "Редуктор 1:3",
+   "en": "Gearbox 1:3",
+   "kind": "KINETIC",
+   "shape": "gear",
+   "size": [
+    12,
+    10,
+    12
+   ],
+   "palette": [
+    "#b8860b",
+    "#8b6508",
+    "#ecf0f1"
+   ],
+   "ratio": 3.0,
+   "coupling": 0.9,
+   "inertia": 0.01,
+   "mass": 6.0,
+   "radius": 0.2,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "flywheel_kinetic",
+   "ru": "Маховик 20 кг",
+   "en": "Flywheel 20 kg",
+   "kind": "KINETIC",
+   "shape": "flywheel",
+   "size": [
+    14,
+    14,
+    6
+   ],
+   "palette": [
+    "#7f8c8d",
+    "#2c3e50",
+    "#bdc3c7"
+   ],
+   "inertia": 0.4,
+   "mass": 20.0,
+   "radius": 0.25,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "wheel_kinetic",
+   "ru": "Колесо каретки",
+   "en": "Carriage Wheel",
+   "kind": "KINETIC",
+   "shape": "wheel",
+   "size": [
+    13,
+    13,
+    3
+   ],
+   "palette": [
+    "#34495e",
+    "#95a5a6",
+    "#ecf0f1"
+   ],
+   "ratio": 8.0,
+   "coupling": 0.9,
+   "radius": 0.15,
+   "mass": 8.0,
+   "inertia": 0.02,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "saw_kinetic",
+   "ru": "Механическая пила",
+   "en": "Mechanical Saw",
+   "kind": "KINETIC",
+   "shape": "saw",
+   "size": [
+    15,
+    15,
+    3
+   ],
+   "palette": [
+    "#bdc3c7",
+    "#7f8c8d",
+    "#ecf0f1"
+   ],
+   "inertia": 0.05,
+   "mass": 10.0,
+   "radius": 0.35,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "drill_kinetic",
+   "ru": "Горный бур",
+   "en": "Mining Drill",
+   "kind": "KINETIC",
+   "shape": "drill",
+   "size": [
+    10,
+    10,
+    14
+   ],
+   "palette": [
+    "#7f8c8d",
+    "#f39c12",
+    "#bdc3c7"
+   ],
+   "inertia": 0.03,
+   "mass": 14.0,
+   "radius": 0.1,
+   "orientable": true,
+   "states": 6
   }
  ]
 }

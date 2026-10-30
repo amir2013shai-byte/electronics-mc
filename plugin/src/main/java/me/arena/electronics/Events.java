@@ -404,13 +404,38 @@ public final class Events implements Listener {
             Items.message(e.getPlayer(), "&7кирка: без инструментов породу не раздробить");
             return;
         }
+        harvest(d, vein, b, e);
+    }
+
+    /**
+     * Добыча жилы без события игрока — ей пользуется горный бур. Тот же код, те же
+     * правила: иначе автомат приносил бы руду из блоков, где геологически её нет
+     * (и не истощал бы жилу).
+     *
+     * @return true, если жила отдала сырьё; ванильные дропы тогда не нужны
+     */
+    public boolean harvestVein(Block b) {
+        me.arena.electronics.deposit.Deposits d = plugin.deposits();
+        if (d == null || !d.enabled() || !isRock(b.getType())) {
+            return false;
+        }
+        me.arena.electronics.deposit.Deposits.Vein vein = d.veinAt(b.getX(), b.getZ());
+        if (!d.productive(vein, b.getY())) {
+            return false;
+        }
+        return harvest(d, vein, b, null);
+    }
+
+    private boolean harvest(me.arena.electronics.deposit.Deposits d,
+                             me.arena.electronics.deposit.Deposits.Vein vein, Block b,
+                             BlockBreakEvent e) {
         String oreId = d.takeOre(b.getX(), b.getY(), b.getZ());
         if (oreId == null) {
-            return;
+            return false;
         }
         me.arena.electronics.registry.Def ore = me.arena.electronics.registry.Components.byId(oreId);
         if (ore == null) {
-            return;
+            return false;
         }
         int n = d.chunksPerBlock(vein, (b.getX() * 31 + b.getY() * 17 + b.getZ()) & 1023);
         e.setDropItems(false);
@@ -423,6 +448,7 @@ public final class Events implements Listener {
                 b.getLocation().add(0.5, 0.5, 0.5), 14, 0.3, 0.3, 0.3, 0.02);
         b.getWorld().playSound(b.getLocation().add(0.5, 0.5, 0.5),
                 org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.7f, 1.9f);
+        return true;
     }
 
     /** Порода, в которой живёт жила. Глубинные версии включены, воздух — нет. */

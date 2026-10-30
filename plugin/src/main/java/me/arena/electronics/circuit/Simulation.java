@@ -14,6 +14,7 @@ import org.bukkit.block.BlockFace;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import me.arena.electronics.kinetics.Kinetics;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -255,6 +256,19 @@ public final class Simulation {
             }
             if (c.def.kind == Kind.SOURCE || c.def.kind == Kind.GENERATOR || c.def.kind == Kind.SOLAR) {
                 isl.hasSource = true;
+            }
+        }
+        // Земля в сборке одна: сколько бы шин ни стояло, это тот же проводник.
+        // Без склейки «минус источника» и «корпус механизма» на двух шинах
+        // оказывались двумя узлами, цепь оставалась разомкнутой, а мотор — при
+        // нулевом токе (видно было только утечки в единицы микроампер).
+        if (isl.grounds.size() > 1) {
+            String g0 = isl.grounds.get(0);
+            for (int i = 1; i < isl.grounds.size(); i++) {
+                union(isl, g0, isl.grounds.get(i));
+            }
+            for (int i = 0; i < isl.grounds.size(); i++) {
+                isl.grounds.set(i, find(isl, g0));
             }
         }
         if (isl.grounds.isEmpty() && !isl.hasSource) {
@@ -511,6 +525,10 @@ public final class Simulation {
                 case MOTOR -> {
                     if (b != null) {
                         double r = Math.max(0.5, d.winding);
+                        // speedPrev — доля паспортных оборотов (её пишет KineticEngine,
+                        // когда деталь в приводе), поэтому ЭДС вращения = доля × номинал:
+                        // на холостом ходу она равна сети и ток холостого хода мал, а под
+                        // нагрузкой вал проседает — ток и момент растут.
                         double emf = c.speedPrev * (d.backEmfPerVolt > 0 ? d.ratedVoltage : 0);
                         mna.stamp(a, b, 1.0 / r, -emf / r);
                     }
@@ -892,10 +910,28 @@ public final class Simulation {
                 }
             }
             case MOTOR -> {
-                double target = Math.max(0, Math.min(1, (Math.abs(c.voltage) - 0.6) / Math.max(1.0, d.ratedVoltage)));
-                c.speedPrev = c.speedPrev + (target - c.speedPrev) * 0.25;
-                c.brightness = c.speedPrev;
-                c.state = c.speedPrev > 0.05 ? CompStates.ON : CompStates.OFF;
+                if (c.kinOwned || c.kinOmega != 0.0) {
+                    // Обороты диктует механика: тяжёлая пила реально садит вал, ЭДС падает,
+                    // ток растёт — и дальше нагреваются PTC и плавкая вставка. Без этого
+                    // нагрузки в мире не существовало бы: мотор крутился «по напряжению».
+                    // напряжение и ток здесь не трогаем: их считает решатель по ЭДС вращения,
+                    // а доля оборотов берётся из вала — иначе она повисает на значении
+                    // «до перехода на механику» и решатель видит мотор почти на холостом токе
+                    double w0 = Kinetics.toOmega(Math.max(1.0, d.rpm) / 60.0);
+                    c.speedPrev = w0 > 1e-9
+                            ? Math.max(0.0, Math.min(1.15, c.kinOmega / w0)) : 0.0;
+                    c.brightness = Math.min(1.0, c.speedPrev);
+                    // «тускло» = валу тяжело: ровно то, что игрок видит на лампочке,
+                    // когда нагрузка съедает момент
+                    c.state = c.speedPrev > 0.05
+                            ? (c.kinLoad > 0.85 ? CompStates.DIM : CompStates.ON)
+                            : CompStates.OFF;
+                } else {
+                    double target = Math.max(0, Math.min(1, (Math.abs(c.voltage) - 0.6) / Math.max(1.0, d.ratedVoltage)));
+                    c.speedPrev = c.speedPrev + (target - c.speedPrev) * 0.25;
+                    c.brightness = c.speedPrev;
+                    c.state = c.speedPrev > 0.05 ? CompStates.ON : CompStates.OFF;
+                }
             }
             case RESISTOR -> c.state = c.power > Math.max(0.01, d.ratedPower) * 0.6 ? CompStates.ON : CompStates.OFF;
             case INDUCTOR -> c.state = Math.abs(i) > 0.01 ? CompStates.ON : CompStates.OFF;
@@ -911,7 +947,14 @@ public final class Simulation {
                 // При 2× номинала стекло 5×20 живёт доли секунды, при 1.2× — минуты.
                 double budget = d.blowI2t;
                 if (budget > 0) {
-                    c.aux[0] = Math.max(0, c.aux[0] + c.current * c.current * dt * (c.burnt() ? 0 : 1));
+                    // Плавкая вставка копит I²t только вверху от номинала: при 0,8·I_ном
+                    // она обязана жить (иначе любая долгая работа механизма — пила, насос —
+                    // «сжигает» вставку на ровном месте), а при 2·I_ном стекло 5×20 живёт
+                    // доли секунды. Считаем превышение мощности дуги: I² − I_ном².
+                    double in = Math.abs(c.current);
+                    double iNom = Math.max(0.0, d.maxCurrent);
+                    double over = Math.max(0.0, in * in - iNom * iNom);
+                    c.aux[0] = Math.max(0, c.aux[0] + over * dt * (c.burnt() ? 0 : 1));
                     c.state = c.aux[0] > budget * 0.45 ? CompStates.DIM : CompStates.CLOSED;
                 } else {
                     c.state = CompStates.CLOSED;
@@ -959,6 +1002,9 @@ public final class Simulation {
         if (!cfg.faultsEnabled || c.burnt()) {
             return false;
         }
+        if (c.def.kind == Kind.MOTOR && c.aux[2] > 0.0 && c.power <= c.def.ratedPower * 3) {
+            c.aux[2] = Math.max(0.0, c.aux[2] - 0.5);   // остывает, пока не перегружен
+        }
         Def d = c.def;
         if ((d.kind == Kind.LED || d.kind == Kind.DIODE) && d.vReverseMax > 0 && c.voltage < -d.vReverseMax * 1.2) {
             c.burn("пробой обратным напряжением (U=" + Num.volt(Math.abs(c.voltage)) + ")");
@@ -966,6 +1012,20 @@ public final class Simulation {
             return true;
         }
         if (d.ratedPower > 0 && c.power > d.ratedPower * 3) {
+            if (d.kind == Kind.MOTOR) {
+                // У машины мгновенная перегрузка бывает на пуске (5-10 с ротор
+                // крутит вал вразгон), а обмотка с оборами греется не за тик: копим
+                // «секунды тройной перегрузки» и сжигаем после ~4 таких секунд.
+                // Заодно это учит игрока: пуск без редуктора и есть та причина,
+                // по которой пилу запускают вхолостую, а не прижав к бревну.
+                c.aux[2] = Math.max(0.0, c.aux[2]
+                        + (c.power / (d.ratedPower * 3.0) - 1.0)
+                        * Math.max(0.005, Math.min(0.25, cfg.dt())));
+                if (c.aux[2] < 4.0) {
+                    return false;
+                }
+                c.aux[2] = 0.0;
+            }
             c.burn("перегрев: P=" + Num.watt(c.power) + " при норме " + Num.watt(d.ratedPower));
             if (d.kind == Kind.LED) {
                 noteIsland(isl, "светодиору не хватает гасящего резистора");

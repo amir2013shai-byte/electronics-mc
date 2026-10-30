@@ -57,6 +57,7 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             case "show" -> show(s, args);
             case "selftest" -> selftest(s);
             case "schematic" -> schematic(s, args);
+            case "rig" -> rig(s, args);
             case "build" -> build(s, args);
             case "dump" -> dump(s, args);
             default -> help(s);
@@ -80,6 +81,7 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color("&e/elec solder &7— открыть паяльный стол (для урока; в мире — ПКМ по столу)"));
         s.sendMessage(Items.color("&e/elec schematic save|check|print <имя> &7— работа с «пустой схемой»"));
         s.sendMessage(Items.color("&e/elec build list|<имя>|save <имя> &7— готовые сборки (учебные примеры)"));
+        s.sendMessage(Items.color("&e/elec rig [число] &7— что видит ближайший механизм: обороты, момент, нагрузка, ход"));
         s.sendMessage(Items.color("&e/elec dump [мир] [число] &7— U/I/P каждой детали (удобно с консоли)"));
         s.sendMessage(Items.color("&7     с консоли: /elec build <имя> <мир> <x> <y> <z>"));
         s.sendMessage(Items.color("&e/elec reload &7— конфиг + ресурспак-реестр"));
@@ -192,6 +194,87 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color("&aПересчитано. t=" + plugin.circuit().tick()
                 + " islands=" + plugin.circuit().lastIslands()
                 + " comps=" + plugin.circuit().lastComponents()));
+    }
+
+    /** Диагностика привода: то, чем удобно проверять сборку на уроке. */
+    private void rig(CommandSender s, String[] args) {
+        me.arena.electronics.kinetics.KineticEngine eng = plugin.kinetics();
+        if (args.length > 1 && args[1].equalsIgnoreCase("place")) {
+            org.bukkit.World w;
+            int x;
+            int y;
+            int z;
+            if (args.length >= 6) {
+                w = org.bukkit.Bukkit.getWorld(args[2]);
+                x = parseInt(args[3], 0);
+                y = parseInt(args[4], 64);
+                z = parseInt(args[5], 0);
+            } else if (s instanceof Player p) {
+                org.bukkit.block.Block t = p.getTargetBlock(null, 16);
+                w = t.getWorld();
+                x = t.getX();
+                y = t.getY() + 1;
+                z = t.getZ();
+            } else {
+                s.sendMessage(Items.color("&cс консоли: /elec rig place <мир> <x> <y> <z>"));
+                return;
+            }
+            s.sendMessage(Items.color("&a" + eng.demo(w, x, y, z)));
+            s.sendMessage(Items.color("&7через 5-10 с снова набери &f/elec rig&7 — будет видно, сколько блоков ушло"));
+            return;
+        }
+        if (args.length > 1 && args[1].equalsIgnoreCase("undo")) {
+            eng.undoDemo();
+            s.sendMessage(Items.color("&aучебная сборка убрана, блоки восстановлены"));
+            return;
+        }
+        me.arena.electronics.kinetics.KineticEngine.Rig r = null;
+        if (s instanceof Player p) {
+            r = eng.nearest(p.getEyeLocation(), args.length > 1 ? parseInt(args[1], 24) : 12);
+        }
+        if (r == null && !eng.rigs().isEmpty()) {
+            r = eng.rigs().iterator().next();
+        }
+        s.sendMessage(Items.color("&7механизмов в мире: &f" + eng.rigCount()
+                + "&7, сломано блоков приводом: &f" + eng.blocksBroken()
+                + "&7, привод &f" + (plugin.config().kineticsEnabled ? "включён" : "выключен")));
+        if (r == null) {
+            s.sendMessage(Items.color("&eпоставь детали привода рядом: вал, шестерню, пилу и мотор —"
+                    + " мотор должен стоять вплотную к цепи"));
+            return;
+        }
+        s.sendMessage(Items.color("&6— механизм &f" + r.handle));
+        StringBuilder parts = new StringBuilder();
+        for (CompInstance c : r.parts) {
+            parts.append(c.def.nameRu).append(" (").append((int) c.spin).append("°), ");
+        }
+        s.sendMessage(Items.color("&7детали: &f" + (parts.length() > 2
+                ? parts.substring(0, parts.length() - 2) : "—")));
+        for (CompInstance m : r.motors) {
+            s.sendMessage(Items.color("&7мотор: &f" + m.def.nameRu + "&7, U = &f" + Num.volt(m.voltage)
+                    + "&7, I = &f" + Num.amp(m.current) + "&7, ЭДС доли = &f"
+                    + String.format("%.0f%%", m.speedPrev * 100) + "&7, оборотов &f"
+                    + (int) (m.speedPrev * Math.max(1.0, m.def.rpm)) + "&7 ("
+                    + (int) m.def.rpm + " ХХ)"));
+        }
+        s.sendMessage(Items.color("&7вал: &f" + (int) r.state.rpm() + " об/мин&7, J = &f"
+                + String.format("%.3f", r.spec.inertiaTotal) + " кг·м²&7, масса &f"
+                + String.format("%.0f", r.spec.massTotal) + " кг&7, редуктор &f1:"
+                + String.format("%.1f", r.spec.gearProduct)));
+        s.sendMessage(Items.color("&7нагрузка: &f" + (int) (r.state.loadFraction * 100) + "%"
+                + "&7, момент доступен &f" + String.format("%.2f", r.last.torqueAvail)
+                + "&7 / нужен &f" + String.format("%.2f", r.last.torqueLoad) + " Н·м"
+                + "&7, мощность &f" + Num.watt(r.last.powerW)));
+        s.sendMessage(Items.color("&7инструментов: &f" + r.spec.toolCount
+                + "&7, блоков обработано: &f" + r.state.blocksDone
+                + "&7, проходов: &f" + r.state.strikesDone));
+        if (r.spec.hasWheels) {
+            s.sendMessage(Items.color("&7каретка: трение опоры &f"
+                    + String.format("%.3f", r.spec.mu) + "&7, скорость &f"
+                    + String.format("%.2f", r.last.speedMps) + " м/с&7, пройдено &f"
+                    + String.format("%.2f", r.state.travel) + " м до шага"));
+        }
+        s.sendMessage(Items.color("&e" + r.state.note));
     }
 
     // ---------------------------------------------------------------- правка мира
@@ -1004,6 +1087,175 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                     + (int) (uOhm * 1000) + " мВ&7) — так амперметр и считает большие токи"));
         }
 
+        // (13) привод: момент из тока, работа из стружки, защита из I²t — числа сходятся
+        {
+            double rpmDrive = 2800.0;
+            double kDrive = me.arena.electronics.kinetics.Kinetics.torqueConstant(220.0, rpmDrive);
+            double iStall = me.arena.electronics.kinetics.Kinetics.motorCurrent(
+                    220.0, 0.0, 220.0, rpmDrive, 22.0, 6.0);
+            double tStall = kDrive * iStall;
+            me.arena.electronics.kinetics.Kinetics.Spec sawSpec =
+                    new me.arena.electronics.kinetics.Kinetics.Spec();
+            me.arena.electronics.kinetics.Kinetics.Part sawPart =
+                    new me.arena.electronics.kinetics.Kinetics.Part(
+                            me.arena.electronics.kinetics.Kinetics.Role.SAW,
+                            me.arena.electronics.kinetics.Kinetics.Element.SHAFT,
+                            0.4, 10.0, 0.35, 0, 0, 0);
+            sawPart.facing = me.arena.electronics.kinetics.Kinetics.WOOD;
+            sawPart.tx = 1;
+            sawSpec.add(sawPart);
+            me.arena.electronics.kinetics.Kinetics.State sawSt =
+                    new me.arena.electronics.kinetics.Kinetics.State();
+            me.arena.electronics.kinetics.Kinetics.Result sawRes =
+                    new me.arena.electronics.kinetics.Kinetics.Result();
+            for (int step = 0; step < 600; step++) {
+                me.arena.electronics.kinetics.Kinetics.Motor mm =
+                        me.arena.electronics.kinetics.Kinetics.motorAtSpeed(rpmDrive, 220.0, 220.0,
+                                sawSt.omega, 22.0, 6.0);
+                me.arena.electronics.kinetics.Kinetics.step(mm, sawSpec, sawSt, Double.MAX_VALUE,
+                        0.05, sawRes);
+            }
+            boolean cut = sawSt.blocksDone >= 4 && sawSt.blocksDone <= 12 && sawSt.omega > 60.0
+                    && !sawSt.jammed;
+            s.sendMessage(Items.color((cut ? "&aPASS " : "&cFAIL ")
+                    + "&7привод: мотор 220 В (M₀ = &f" + String.format("%.2f", tStall)
+                    + "&7 Н·м при &f" + String.format("%.1f", iStall) + " А&7) за 30 с пилит бревно ×&f"
+                    + sawSt.blocksDone + "&7, оборотов &f" + (int) sawSt.rpm()
+                    + "&7, на валу &f" + Num.watt(sawRes.powerW)
+                    + "&7 (брёвен по 1500 Дж — проверка t = W/P)"));
+            me.arena.electronics.kinetics.Kinetics.Spec jamSpec =
+                    new me.arena.electronics.kinetics.Kinetics.Spec();
+            me.arena.electronics.kinetics.Kinetics.Part jamPart =
+                    new me.arena.electronics.kinetics.Kinetics.Part(
+                            me.arena.electronics.kinetics.Kinetics.Role.DRILL,
+                            me.arena.electronics.kinetics.Kinetics.Element.SHAFT,
+                            0.0, 14.0, 0.1, 0, 0, 0);
+            jamPart.facing = me.arena.electronics.kinetics.Kinetics.REFRACTORY;
+            jamSpec.add(jamPart);
+            me.arena.electronics.kinetics.Kinetics.State jamSt =
+                    new me.arena.electronics.kinetics.Kinetics.State();
+            for (int step = 0; step < 60; step++) {
+                me.arena.electronics.kinetics.Kinetics.Motor mm =
+                        me.arena.electronics.kinetics.Kinetics.motorAtSpeed(rpmDrive, 220.0, 220.0,
+                                jamSt.omega, 22.0, 6.0);
+                me.arena.electronics.kinetics.Kinetics.step(mm, jamSpec, jamSt, Double.MAX_VALUE, 0.05);
+            }
+            double iJam = me.arena.electronics.kinetics.Kinetics.motorCurrent(220.0, jamSt.omega,
+                    220.0, rpmDrive, 22.0, 6.0);
+            double tBlow = 45.0 / Math.max(0.01,
+                    Math.max(0.0, iJam * iJam - 5.0 * 5.0));   // I²t считается от превышения 5 А
+            boolean jamOk = jamSt.blocksDone == 0 && jamSt.jammed && tBlow > 0.3 && tBlow < 1.5;
+            s.sendMessage(Items.color((jamOk ? "&aPASS " : "&cFAIL ")
+                    + "&7бур в упор: встал («" + jamSt.note + "&7»), ток &f" + Num.amp(iJam)
+                    + "&7 — плавкая вставка 5 А держит ещё &f" + String.format("%.2f", tBlow)
+                    + " с&7, потом обесточивает обмотку"));
+            double vRail = me.arena.electronics.kinetics.Kinetics.carriage(
+                    me.arena.electronics.kinetics.Kinetics.toOmega(1400.0), 2.0, 0.15, 32.0,
+                    me.arena.electronics.kinetics.Kinetics.MU_RAIL, 8.0).speedMps;
+            double vGround = me.arena.electronics.kinetics.Kinetics.carriage(
+                    me.arena.electronics.kinetics.Kinetics.toOmega(1400.0), 2.0, 0.15, 32.0,
+                    me.arena.electronics.kinetics.Kinetics.MU_GROUND, 8.0).speedMps;
+            boolean railOk = vRail > 0.0 && vGround == 0.0;
+            s.sendMessage(Items.color((railOk ? "&aPASS " : "&cFAIL ")
+                    + "&7каретка: по рельсу &f" + String.format("%.2f", vRail)
+                    + " м/с&7, по земле — стоит (тяги не хватает: μ 0,005 против 0,35)"));
+            Def shaftDef = me.arena.electronics.registry.Components.byId("shaft_kinetic");
+            Def sawDef = me.arena.electronics.registry.Components.byId("saw_kinetic");
+            Def motDef = me.arena.electronics.registry.Components.byId("motor_220v");
+            Def supDef = me.arena.electronics.registry.Components.byId("supply_220v");
+            boolean reg = shaftDef != null && sawDef != null && motDef != null && supDef != null
+                    && shaftDef.kineticRole() == me.arena.electronics.kinetics.Kinetics.Role.SHAFT
+                    && sawDef.kineticRole() == me.arena.electronics.kinetics.Kinetics.Role.SAW
+                    && (int) motDef.rpm == 2800 && Math.abs(motDef.ratedVoltage - 220.0) < 0.5
+                    && motDef.pins == 2 && shaftDef.pins == 0
+                    && supDef.kind == me.arena.electronics.registry.Kind.SOURCE;
+            s.sendMessage(Items.color((reg ? "&aPASS " : "&cFAIL ")
+                    + "&7реестр привода: &f" + (shaftDef == null ? "нет" : shaftDef.nameRu)
+                    + "&7, &f" + (sawDef == null ? "нет" : sawDef.nameRu) + "&7, &f"
+                    + (motDef == null ? "нет" : motDef.nominal()) + "&7 — у вала выводов "
+                    + (shaftDef == null ? "?" : shaftDef.pins) + " (цепь не трогает), у мотора "
+                    + (motDef == null ? "?" : motDef.pins)));
+            // живой прогон в мире: собрали установку, крутим движок, проверяем, что
+            // мир изменился, а откат вернул всё как было
+            long before = plugin.kinetics().blocksBroken();
+            org.bukkit.World sw = org.bukkit.Bukkit.getWorlds().isEmpty() ? null
+                    : org.bukkit.Bukkit.getWorlds().get(0);
+            boolean cutWorld = false;
+            boolean restored = false;
+            String rigNote = "";
+            if (sw != null) {
+                org.bukkit.Location sp = sw.getSpawnLocation();
+                int sx = sp.getBlockX() + 24;
+                int sy = sp.getBlockY() + 1;
+                int sz = sp.getBlockZ() + 24;
+                String built = plugin.kinetics().demo(sw, sx, sy, sz);
+                me.arena.electronics.registry.LocationKey sawHere =
+                        new me.arena.electronics.registry.LocationKey(sw, sx, sy, sz);
+                for (int drive = 0; drive < 600; drive++) {
+                    // движок крутим вручную: 600 шагов = 30 с за пару секунд,
+                    // ждать минуту реального времени в самотесте незачем
+                    plugin.circuit().engineTick();
+                }
+                cutWorld = plugin.kinetics().blocksBroken() - before > 0;
+                if (!cutWorld) {
+                    // что умерло: сгоревшие детали и состояние мотора до откатки
+                    StringBuilder bad = new StringBuilder();
+                    for (CompInstance all : plugin.circuit().all()) {
+                        if (all.burnt() || (all.fault != null && !all.fault.isEmpty())) {
+                            bad.append("&8; ").append(all.def.id).append(" state=")
+                                    .append(all.state).append(" «").append(all.fault).append("»");
+                        }
+                    }
+                    CompInstance mm = plugin.circuit().get(
+                            new me.arena.electronics.registry.LocationKey(sw, sx - 3, sy, sz - 1));
+                    if (mm != null) {
+                        bad.append("&8; мотор I=").append(Num.amp(mm.current))
+                                .append(" доля оборотов ").append(String.format("%.4f", mm.speedPrev))
+                                .append(" U=").append(Num.volt(mm.voltage))
+                                .append(" нагрев ").append((int) mm.aux[0]).append("°");
+                    }
+                    rigNote += " " + bad;
+                }
+                me.arena.electronics.kinetics.KineticEngine.Rig dbg =
+                        plugin.kinetics().rigs().isEmpty() ? null
+                                : plugin.kinetics().rigs().iterator().next();
+                if (dbg == null) {
+                    rigNote = " &8механизм не собран: &f" + built;
+                } else {
+                    StringBuilder cur = new StringBuilder();
+                    for (CompInstance m : dbg.motors) {
+                        cur.append("&8, ток &f").append(Num.amp(m.current))
+                                .append("&8, об/мин &f")
+                                .append((int) (m.speedPrev * Math.max(1.0, m.def.rpm)))
+                                .append(m.burnt() ? "&8 сгорел" : "");
+                    }
+                    rigNote = " &8деталей &f" + dbg.parts.size() + "&8, на валу &f"
+                            + (int) dbg.rpm() + " об/мин&8, на валу &f"
+                            + Num.watt(dbg.last.powerW) + cur + "&8, «" + dbg.state.note + "»";
+                }
+                plugin.kinetics().undoDemo();
+                restored = plugin.kinetics().rigCount() == 0
+                        && plugin.circuit().get(sawHere) == null
+                        && sw.getBlockAt(sx + 1, sy, sz).getType().isAir()
+                        && sw.getBlockAt(sx - 8, sy - 1, sz).getType().isAir();
+                if (!cutWorld || !restored) {
+                    s.sendMessage(Items.color("&8сборка: &f" + built
+                            + " &8| деталей в мире: &f" + plugin.circuit().size()
+                            + " &8| островков: &f" + plugin.circuit().lastIslands()
+                            + " &8| err: &f" + plugin.circuit().lastError()
+                            + " &8| перед пилой: &f"
+                            + sw.getBlockAt(sx + 1, sy, sz).getType().name()));
+                }
+            }
+            s.sendMessage(Items.color(((cutWorld && restored) ? "&aPASS " : "&cFAIL ")
+                    + "&7живой механизм в мире: блоков срублено: &f"
+                    + (plugin.kinetics().blocksBroken() - before)
+                    + "&7, откат вернул мир: &f" + restored + rigNote));
+            s.sendMessage(Items.color("&7в мире сейчас механизмов: &f" + plugin.kinetics().rigCount()
+                    + "&7, блоков сломано приводом: &f" + plugin.kinetics().blocksBroken()
+                    + (plugin.kinetics().rigCount() > 0 ? " &8(" + plugin.kinetics().lastNote() + ")" : "")));
+        }
+
         int missing = 0;
         for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {
             if (me.arena.electronics.gui.CatalogGui.whatIs(d).isEmpty()) {
@@ -1365,7 +1617,8 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (String c : new String[]{"help", "give", "list", "model", "info", "sim", "repair", "clear",
-                    "rotate", "mode", "recipe", "schematic", "reload", "rescan", "veins"}) {
+                    "rotate", "mode", "recipe", "solder", "schematic", "build", "dump", "rig",
+                    "show", "reload", "rescan", "veins"}) {
                 if (c.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     out.add(c);
                 }
@@ -1394,4 +1647,5 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         }
         return out;
     }
+
 }

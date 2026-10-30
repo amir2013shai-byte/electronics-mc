@@ -80,6 +80,13 @@ public final class Soldering {
         OUR_INGREDIENTS.put("mcu_atmega328", Map.of("wire_tinned", 1, "crystal_16mhz", 1));
         // латунь для шунта — с тигля: без плавки большие токи не измерить
         OUR_INGREDIENTS.put("resistor_shunt_0r01", Map.of("ingot_brass", 1));
+        // привод (v1.4.0): без своих металлов механику не собрать — это и есть
+        // мост «руда → слиток → станок → машина»
+        OUR_INGREDIENTS.put("motor_220v", Map.of("wire_enamelled", 2, "ingot_bronze", 1));
+        OUR_INGREDIENTS.put("gearbox_3x", Map.of("ingot_brass", 1, "shaft_kinetic", 1));
+        OUR_INGREDIENTS.put("flywheel_kinetic", Map.of("ingot_bronze", 1, "shaft_kinetic", 1));
+        OUR_INGREDIENTS.put("saw_kinetic", Map.of("ingot_bronze", 1, "shaft_kinetic", 1));
+        OUR_INGREDIENTS.put("drill_kinetic", Map.of("ingot_brass", 1, "slag", 1, "shaft_kinetic", 1));
     }
 
     /** Наши ингредиенты детали (пусто, если их не нужно). */

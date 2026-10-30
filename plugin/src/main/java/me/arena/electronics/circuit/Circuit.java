@@ -176,6 +176,17 @@ public final class Circuit {
             }
         }
         lastSolveNanos = System.nanoTime() - t0;
+        // Кинематика привода: момент берём из тока, который только что посчитали,
+        // а обороты возвращаем в speedPrev — на следующем шаге их увидит решатель.
+        try {
+            plugin.kinetics().tick();
+        } catch (RuntimeException ex) {
+            plugin.getLogger().warning("ошибка привода: " + ex.getClass().getSimpleName()
+                    + ": " + ex.getMessage());
+            if (plugin.config().debug) {
+                ex.printStackTrace();
+            }
+        }
         lastComponents = size();
         dirty = false;
     }

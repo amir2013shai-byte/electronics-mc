@@ -271,6 +271,33 @@ public final class Recipes {
                 map("P", Material.PAPER, "R", Material.REDSTONE, "I", Material.COPPER_INGOT)));
         DEFS.put("empty_circuit", new Shaped(new String[]{"GRG", "RPR", "GRG"},
                 map("G", Material.GOLD_NUGGET, "R", Material.REDSTONE, "P", Material.PAPER)));
+
+        // ---- привод (v1.4.0): механика, которая живёт от тока
+        // Кварц и стекло — изоляторы вводной колодки, реле — контактор, железо — корпус.
+        DEFS.put("supply_220v", new Shaped(new String[]{"QGQ", "CRC", "IRI"},
+                map("Q", Material.QUARTZ_BLOCK, "G", Material.GLASS, "C", Material.COPPER_INGOT,
+                        "R", Material.REPEATER, "I", Material.IRON_BLOCK)));
+        // Медленный предохранитель на 10 А: толстая вставка в керамике — пусковой ток
+        // мотора её выдерживает, а заклинивание — нет.
+        DEFS.put("fuse_slow_10a", new Shaped(new String[]{"I I", "CBC", "I I"},
+                map("I", Material.IRON_NUGGET, "C", Material.COPPER_INGOT, "B", Material.CLAY)));
+        // Вал — пруток: три куска железа в линию, это и есть прокатка.
+        DEFS.put("shaft_kinetic", new Shaped(new String[]{"III"},
+                map("I", Material.IRON_INGOT)));
+        // Колесо: обод из железа, ступица — медная втулка, ось — палка.
+        DEFS.put("wheel_kinetic", new Shapeless(List.of(Material.IRON_INGOT, Material.IRON_INGOT,
+                Material.COPPER_INGOT, Material.STICK)));
+        // Заготовки для пайки: то, что приносишь на стол (дальше — свои металлы).
+        DEFS.put("motor_220v", new Shaped(new String[]{" I ", "CRC", " I "},
+                map("I", Material.IRON_INGOT, "C", Material.COPPER_INGOT, "R", Material.REDSTONE)));
+        DEFS.put("gearbox_3x", new Shaped(new String[]{"IR", "RI"},
+                map("I", Material.IRON_NUGGET, "R", Material.REDSTONE)));
+        DEFS.put("flywheel_kinetic", new Shaped(new String[]{"III", "I I", "III"},
+                map("I", Material.IRON_NUGGET)));
+        DEFS.put("saw_kinetic", new Shaped(new String[]{" P ", "PSP", " P "},
+                map("P", Material.IRON_NUGGET, "S", Material.STICK)));
+        DEFS.put("drill_kinetic", new Shaped(new String[]{"I", "S", "I"},
+                map("I", Material.IRON_INGOT, "S", Material.STONE)));
     }
 
     private int smeltCount;

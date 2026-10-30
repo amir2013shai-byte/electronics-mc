@@ -44,6 +44,8 @@ public final class Renderer {
         String modelKey = "";
         String textKey = "";
         int lightLevel = -1;
+        /** Последний угол, который мы отдали детали привода (чтобы не дёргать сущность зря). */
+        float spin = -9999f;
     }
 
     public Renderer(ElectronicsPlugin plugin) {
@@ -113,6 +115,10 @@ public final class Renderer {
         Ent ent = entities.computeIfAbsent(c.key, k -> new Ent());
         Location loc = base.getLocation().add(0.5, 0.5 + plugin.config().offsetY, 0.5);
         float yaw = yawOf(c);
+        if (c.def.kind == me.arena.electronics.registry.Kind.KINETIC) {
+            // деталь привода крутится: угол модели — это и есть «движение» без клиентского мода
+            yaw = (yaw + c.spin) % 360.0f;
+        }
         String modelKey = c.def.id + "|" + c.state + "|" + c.orientation.name();
 
         if (ent.item == null || !ent.item.isValid()) {
@@ -122,6 +128,12 @@ public final class Renderer {
             ent.item.setItemStack(plugin.items().displayItem(c.def, c.state));
             ent.item.setTransformation(transformation(yaw));
             ent.modelKey = modelKey;
+            ent.spin = c.spin;
+        } else if (c.def.kind == me.arena.electronics.registry.Kind.KINETIC
+                && Math.abs(ent.spin - c.spin) > 2.0f) {
+            // тот же предмет, другой угол: только трансформация, без пересоздания сущности
+            ent.item.setTransformation(transformation(yaw));
+            ent.spin = c.spin;
         }
 
         // подсветка блока (для «лампочка/светодиод горит»): пробуем свет через API,

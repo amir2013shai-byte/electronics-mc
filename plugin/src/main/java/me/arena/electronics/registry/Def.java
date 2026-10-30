@@ -105,7 +105,10 @@ public final class Def {
     }
 
     public boolean isTimeDependent() {
+        // KINETIC: у привода есть обороты и инерция — состояние живёт между тиками,
+        // значит остров с деталями привода обязан тикать, даже когда в нём нет конденсаторов
         return kind == Kind.CAPACITOR || kind == Kind.GENERATOR || kind == Kind.MOTOR || kind == Kind.LAMP
+                || kind == Kind.KINETIC
                 || kind == Kind.INDUCTOR || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY
                 // тепловая инерция PTC и стабилизатора, накопленный I²t предохранителя,
                 // поток в трансформаторе и деградация варистора — это тоже «память
@@ -149,6 +152,25 @@ public final class Def {
     /** Трансформатор: коэффициент витков и коэффициент связи. */
     public double ratio = 1.0;
     public double coupling = 0.98;
+    /**
+     * Привод (KINETIC) и моторы: обороты холостого хода, момент инерции кг·м²,
+     * масса кг и рабочий радиус м. Для KINETIC ratio — передаточное отношение,
+     * coupling — КПД пары (у вала это потери подшипников).
+     */
+    public double rpm = 0.0;
+    public double inertia = 0.0;
+    public double mass = 0.0;
+    public double radius = 0.15;
+
+    /** Роль детали в кинематической цепочке — берётся из «shape». */
+    public me.arena.electronics.kinetics.Kinetics.Role kineticRole() {
+        return kind == Kind.KINETIC ? me.arena.electronics.kinetics.Kinetics.Role.of(shape) : null;
+    }
+
+    /** Мотор с обмоткой: k = U₀/ω₀ — по этой константе решатель и «крутит» вал. */
+    public boolean drivesShaft() {
+        return rpm > 0 && (kind == Kind.MOTOR || kind == Kind.GENERATOR);
+    }
 
     /** Целевое напряжение стабилизатора с учётом подстройки (для LM317). */
     public double regulatorTarget(double tuneFraction) {
@@ -208,9 +230,21 @@ public final class Def {
     public String nominal() {
         return switch (kind) {
             case RESISTOR, AMMETER, VOLTMETER -> "R=" + trim(resistance) + " Ом";
+            case KINETIC -> switch (shape == null ? "" : shape) {
+                case "gear" -> "редуктор 1:" + trim(ratio) + ": момент ×" + trim(ratio * coupling)
+                        + ", обороты ÷" + trim(ratio);
+                case "flywheel" -> "маховик J=" + trim(inertia) + " кг·м², " + trim(mass) + " кг";
+                case "wheel" -> "колесо r=" + trim(radius) + " м, редуктор хода 1:" + trim(ratio);
+                case "saw" -> "пила: режет блок перед собой, дерево валит целиком";
+                case "drill" -> "бур: шпуры по породе, руду отдаёт куском";
+                default -> "вал: J=" + trim(inertia) + " кг·м², потери "
+                        + (int) Math.round(Math.max(0.0, 1.0 - coupling) * 100) + "%";
+            };
             case SOURCE, GENERATOR, SOLAR -> (acHz > 0 ? "U=" + trim(voltage) + " В, синус "
                     + trim(acHz) + " Гц" : "U=" + trim(voltage) + " В");
             case CAPACITOR -> "C=" + trim(capacitance) + " Ф";
+            case MOTOR -> "U=" + trim(ratedVoltage) + " В, R обм. " + trim(winding) + " Ом"
+                    + (rpm > 0 ? ", " + (int) rpm + " об/мин ХХ" : "");
             case INDUCTOR -> "L=" + (inductance >= 1 ? trim(inductance) + " Гн"
                     : trim(inductance * 1000) + " мГн") + ", R=" + trim(resistance) + " Ом";
             case ELECTROMAGNET -> "R=" + trim(resistance) + " Ом, L=" + trim(inductance * 1000)

@@ -30,14 +30,16 @@ javac -encoding UTF-8 -d "$OUT" -cp "$CP" \
   plugin/src/main/java/me/arena/electronics/circuit/Topology.java \
   plugin/src/main/java/me/arena/electronics/registry/Kind.java \
   plugin/src/main/java/me/arena/electronics/deposit/Deposits.java \
+  plugin/src/main/java/me/arena/electronics/kinetics/Kinetics.java \
   plugin/src/main/java/me/arena/electronics/fw/Firmware.java \
   tools/TestMna.java tools/TestTopology.java tools/TestCoupled.java \
-  tools/TestDeposits.java tools/TestFirmware.java
-java -Dfile.encoding=UTF-8 -cp "$OUT" TestMna
-java -Dfile.encoding=UTF-8 -cp "$OUT" TestTopology
-java -Dfile.encoding=UTF-8 -cp "$OUT" TestCoupled
-java -Dfile.encoding=UTF-8 -cp "$OUT" TestDeposits
-java -Dfile.encoding=UTF-8 -cp "$OUT" TestFirmware
+  tools/TestDeposits.java tools/TestFirmware.java tools/TestKinetics.java
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestMna
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestTopology
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestCoupled
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestDeposits
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestFirmware
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestKinetics
 
 # --- ресурспак: сверка ссылок на модели/текстуры (если пак собран) ----------------
 if [ -d build/resourcepack ]; then

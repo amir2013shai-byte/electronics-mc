@@ -33,6 +33,8 @@ public final class ElectronicsPlugin extends JavaPlugin {
     private LabManager labs;
     private Recipes recipes;
     private me.arena.electronics.lab.BuildLoader builds;
+    private me.arena.electronics.kinetics.KineticEngine kinetics;
+    private Events events;
 
     @Override
     public void onEnable() {
@@ -60,6 +62,7 @@ public final class ElectronicsPlugin extends JavaPlugin {
         deposits.load(new File(getDataFolder(), "deposits.json").toPath());
         builds = new me.arena.electronics.lab.BuildLoader(this);
         builds.installBuiltin();
+        kinetics = new me.arena.electronics.kinetics.KineticEngine(this);
 
         labs.loadAll();
         recipes.register();
@@ -76,7 +79,8 @@ public final class ElectronicsPlugin extends JavaPlugin {
             }
         }, 40L, 40L);
 
-        getServer().getPluginManager().registerEvents(new Events(this), this);
+        events = new Events(this);
+        getServer().getPluginManager().registerEvents(events, this);
         ElecCommand elecCmd = new ElecCommand(this);
         registerCommand("elec", elecCmd);
         registerCommand("lab", new LabCommand(this));
@@ -135,6 +139,16 @@ public final class ElectronicsPlugin extends JavaPlugin {
                 .filter(w -> w != null).map(w -> w.getSeed()).findFirst().orElse(0L);
         deposits.configure(seed, c.depositsEnabled, c.depositChance, c.depositVeinSize,
                 c.depositVeinJitter, c.depositYMin, c.depositYBand, c.depositYield);
+    }
+
+    /** Механика привода: установки, обороты, ход кареток. */
+    public me.arena.electronics.kinetics.KineticEngine kinetics() {
+        return kinetics;
+    }
+
+    /** События — нужны приводу, чтобы добывать породу тем же конвейером, что и игрок. */
+    public Events events() {
+        return events;
     }
 
     public me.arena.electronics.deposit.Deposits deposits() {

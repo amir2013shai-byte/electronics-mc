@@ -161,6 +161,12 @@ public final class Components {
         d.acHz = Json.num(o, "ac_hz", 0);
         d.ratio = Json.num(o, "ratio", 1.0);
         d.coupling = Json.num(o, "coupling", 0.98);
+        // привод: обороты, инерция, масса и радиус — из того же реестра,
+        // чтобы игрок мог прочитать числа в F3, а не гадать
+        d.rpm = Json.num(o, "rpm", 0);
+        d.inertia = Json.num(o, "inertia", 0);
+        d.mass = Json.num(o, "mass", 0);
+        d.radius = Json.num(o, "radius", d.kind == Kind.KINETIC ? 0.15 : 0.0);
         d.orientable = Json.bool(o, "orientable", false);
         d.stack = Json.bool(o, "stack", false);
         d.hub = Json.bool(o, "hub", false) || d.kind == Kind.GROUND || d.kind == Kind.DISTRIBUTOR;
@@ -193,7 +199,7 @@ public final class Components {
             case RELAY -> 4;              // 0/1 — катушка, 2/3 — контакт
             case BRIDGE, TRANSFORMER -> 4; // мост: 0/1 — «~», 2/3 — «+»/«−»; тр-р: 2/3 — вторичка
             case REGULATOR -> 3;          // IN / OUT / GND
-            case MAGNET, STATION, TOOL, SUPPLY -> 0;
+            case MAGNET, STATION, TOOL, SUPPLY, KINETIC -> 0;
             case TRANSISTOR, POT -> 3;
             case GATE -> 3;
             case SWITCH -> spdt ? 3 : 2;

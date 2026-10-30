@@ -54,6 +54,16 @@ public final class Config {
     public boolean recipesEnabled = true;
     public boolean creativeGiveAll = true;
 
+    // ---- механика привода (v1.4.0)
+    /** Главный выключатель: выключено — детали привода просто лежат блоками. */
+    public boolean kineticsEnabled = true;
+    /** Разрешить пиле и буру ломать блоки мира (сервер может это запретить). */
+    public boolean kineticsBreak = true;
+    /** Разрешить каретке на колёсах ездить (перенос механизма на блок вперёд). */
+    public boolean kineticsMove = true;
+    /** Сколько блоков за минуту имеет право разрушить один механизм. */
+    public int kineticsBlocksPerMinute = 40;
+
     // --- прочее ---
     public boolean resourcePackAuto = false;
     public String resourcePackUrl = "";
@@ -113,6 +123,12 @@ public final class Config {
         recipesEnabled = c.getBoolean("world.recipes", recipesEnabled);
         creativeGiveAll = c.getBoolean("world.give-in-creative", creativeGiveAll);
 
+        kineticsEnabled = c.getBoolean("kinetics.enabled", kineticsEnabled);
+        kineticsBreak = c.getBoolean("kinetics.break-blocks", kineticsBreak);
+        kineticsMove = c.getBoolean("kinetics.carriage-move", kineticsMove);
+        kineticsBlocksPerMinute = Math.max(1, c.getInt("kinetics.blocks-per-minute",
+                kineticsBlocksPerMinute));
+
         resourcePackAuto = c.getBoolean("resource-pack.auto-apply", resourcePackAuto);
         resourcePackUrl = c.getString("resource-pack.url", resourcePackUrl);
         resourcePackHash = c.getString("resource-pack.sha1", resourcePackHash);
@@ -141,6 +157,10 @@ public final class Config {
         c.set("deposits.vein-jitter", depositVeinJitter);
         c.set("deposits.yield-per-block", depositYield);
         c.set("simulation.generator-period-ticks", generatorPeriodTicks);
+        c.set("kinetics.enabled", kineticsEnabled);
+        c.set("kinetics.break-blocks", kineticsBreak);
+        c.set("kinetics.carriage-move", kineticsMove);
+        c.set("kinetics.blocks-per-minute", kineticsBlocksPerMinute);
         c.set("world.hints", hintsEnabled);
         c.set("world.recipes", recipesEnabled);
         c.set("resource-pack.url", resourcePackUrl);

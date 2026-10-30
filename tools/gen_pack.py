@@ -12,7 +12,7 @@
            build/datapack/**,  build/datapack.zip
 """
 
-import json, os, shutil, zipfile, sys
+import json, math, os, shutil, zipfile, sys
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -309,6 +309,78 @@ def base_canvas(comp):
             d.line([i * 2, 6 * 2, i * 2, 10 * 2], fill=shade(accent, 0.8) + (255,), width=1)
         rect(4, 3, 11, 5, shade(detail, 1.05))
         rect(5, 4, 10, 4, shade(detail, 0.8))
+    elif shape == "shaft":
+        # пруток вдоль оси: грани, лыска под шпонку, торцы светлее
+        rect(0, 6, 15, 9, body)
+        rect(1, 6, 14, 6, shade(body, 1.35))
+        rect(1, 9, 14, 9, shade(body, 0.62))
+        for i in (3, 7, 11):
+            rect(i, 7, i, 8, shade(accent, 0.75))
+        rect(0, 7, 0, 8, detail)
+        rect(15, 7, 15, 8, detail)
+        rect(5, 5, 10, 5, shade(accent, 1.2))
+    elif shape == "gear":
+        # цилиндрическая шестерня: зубья по кругу, ступица, отверстие под вал
+        d.ellipse([5, 5, 27, 27], fill=body, outline=shade(body, 0.65))
+        d.ellipse([8, 8, 24, 24], fill=shade(body, 1.22))
+        for k in range(10):
+            a = math.radians(k * 36.0)
+            x0, y0 = 16 + 10.4 * math.cos(a), 16 + 10.4 * math.sin(a)
+            x1, y1 = 16 + 14.6 * math.cos(a), 16 + 14.6 * math.sin(a)
+            d.line([x0, y0, x1, y1], fill=shade(accent, 1.15), width=4)
+        d.ellipse([11, 11, 21, 21], fill=shade(accent, 0.85))
+        d.ellipse([14, 14, 18, 18], fill=(28, 28, 33, 255))
+        rect(7, 15, 9, 16, shade(detail, 1.25))
+    elif shape == "flywheel":
+        # тяжёлый обод + спицы: масса по краю, поэтому J большая при маленькой массе
+        d.ellipse([2, 2, 30, 30], fill=shade(body, 0.72), outline=shade(body, 0.5))
+        d.ellipse([5, 5, 27, 27], fill=shade(body, 1.12))
+        d.ellipse([10, 10, 22, 22], fill=(0, 0, 0, 0))
+        for k in range(4):
+            a = math.radians(45 + k * 90)
+            d.line([16 - 10 * math.cos(a), 16 - 10 * math.sin(a),
+                    16 + 10 * math.cos(a), 16 + 10 * math.sin(a)],
+                   fill=shade(accent, 1.05), width=3)
+        d.ellipse([12, 12, 20, 20], fill=shade(detail, 1.0), outline=shade(body, 0.6))
+        d.ellipse([15, 15, 17, 17], fill=(30, 30, 35, 255))
+    elif shape == "wheel":
+        # колесо каретки: реборда (двойной буртик), бандаж, болты, ступица
+        d.ellipse([1, 1, 31, 31], fill=shade(body, 0.55), outline=shade(body, 0.4))
+        d.ellipse([4, 4, 28, 28], fill=shade(body, 1.25))
+        d.ellipse([7, 7, 25, 25], fill=shade(body, 0.85))
+        for k in range(6):
+            a = math.radians(k * 60)
+            bx, by = 16 + 9 * math.cos(a), 16 + 9 * math.sin(a)
+            d.ellipse([bx - 1, by - 1, bx + 1, by + 1], fill=shade(detail, 1.2))
+        d.ellipse([12, 12, 20, 20], fill=shade(accent, 1.1), outline=shade(accent, 0.7))
+        d.ellipse([15, 15, 17, 17], fill=(35, 35, 40, 255))
+    elif shape == "saw":
+        # диск пилы: тонкий обод с зубьями, прорези против коробления, ступица
+        d.ellipse([1, 1, 31, 31], fill=shade(body, 1.02), outline=shade(body, 0.6))
+        d.ellipse([4, 4, 28, 28], fill=shade(body, 1.3))
+        for k in range(18):
+            a = math.radians(k * 20.0)
+            x0, y0 = 16 + 13.6 * math.cos(a), 16 + 13.6 * math.sin(a)
+            x1, y1 = 16 + 15.6 * math.cos(a + 0.13), 16 + 15.6 * math.sin(a + 0.13)
+            d.line([x0, y0, x1, y1], fill=shade(accent, 1.3), width=2)
+        for k in range(4):
+            a = math.radians(45 + k * 90)
+            d.line([16 + 6 * math.cos(a), 16 + 6 * math.sin(a),
+                    16 + 12 * math.cos(a), 16 + 12 * math.sin(a)],
+                   fill=(24, 24, 28, 255), width=2)
+        d.ellipse([12, 12, 20, 20], fill=shade(detail, 0.9), outline=shade(body, 0.65))
+        d.ellipse([14, 14, 18, 18], fill=(30, 30, 34, 255))
+    elif shape == "drill":
+        # патрон, спираль канавок, победитовая пластина на торце
+        rect(1, 5, 5, 10, shade(body, 0.78))
+        rect(5, 6, 13, 9, body)
+        for i in range(0, 17, 3):
+            d.line([5 * 2 + i, 6 * 2, 5 * 2 + i + 5, 9 * 2 + 1],
+                   fill=shade(body, 1.45), width=1)
+        d.line([5 * 2, 9 * 2 + 1, 15 * 2, 6 * 2], fill=shade(body, 0.55), width=1)
+        rect(13, 6, 14, 9, shade(accent, 1.15))
+        rect(14, 7, 15, 8, detail)
+        rect(2, 6, 4, 6, shade(accent, 0.8))
     else:  # box
         rect(1, 3, 14, 12, body)
         rect(2, 4, 13, 8, shade(body, 1.3))
@@ -564,6 +636,30 @@ RECIPES = {
                "note": "мягкий металл + абразивная присадка"},
     "flux": {"type": "shapeless", "ing": {"glowstone_dust": 1, "honey_bottle": 1}, "count": 2,
              "note": "канифоль со растворителем: без флюса площадка окислится"},
+    # ---- привод (v1.4.0): содержимое обязано совпадать с Recipes.DEFS
+    "supply_220v": {"shape": ["QGQ", "CRC", "IRI"],
+                    "key": {"Q": "quartz_block", "G": "glass", "C": "copper_ingot",
+                            "R": "repeater", "I": "iron_block"},
+                    "note": "кварц и стекло — изоляторы, реле — контактор"},
+    "fuse_slow_10a": {"shape": ["I I", "CBC", "I I"],
+                      "key": {"I": "iron_nugget", "C": "copper_ingot", "B": "clay"},
+                      "note": "керамическая трубка: пусковой ток мотора выдерживает"},
+    "shaft_kinetic": {"shape": ["III"], "key": {"I": "iron_ingot"},
+                      "note": "пруток прокатки: три куска железа"},
+    "wheel_kinetic": {"type": "shapeless", "ing": {"iron_ingot": 2, "copper_ingot": 1,
+                                                   "stick": 1},
+                      "note": "обод, медная втулка, ось"},
+    "motor_220v": {"shape": [" I ", "CRC", " I "],
+                   "key": {"I": "iron_ingot", "C": "copper_ingot", "R": "redstone"},
+                   "note": "заготовка; обмотку мотают эмальпроводом на столе"},
+    "gearbox_3x": {"shape": ["IR", "RI"], "key": {"I": "iron_nugget", "R": "redstone"},
+                   "note": "две шестерни в зацеплении — так и выглядит 1:3"},
+    "flywheel_kinetic": {"shape": ["III", "I I", "III"], "key": {"I": "iron_nugget"},
+                         "note": "массивный диск: 8 кусков железа на обод"},
+    "saw_kinetic": {"shape": [" P ", "PSP", " P "], "key": {"P": "iron_nugget", "S": "stick"},
+                    "note": "диск на оси; зубья наплавляют бронзой"},
+    "drill_kinetic": {"shape": ["I", "S", "I"], "key": {"I": "iron_ingot", "S": "stone"},
+                      "note": "штанга с победитовыми вставками из шлакового корунда"},
 }
 
 
@@ -691,7 +787,9 @@ def main():
         # custom_model_data (индекс = состояние), остальным — базовая модель:
         # состояние в мире всё равно задаёт плагин через item_model.
         dispatch_kinds = {"LED", "SWITCH", "BUTTON", "TOGGLE", "FUSE", "LAMP", "DIODE", "PROBE", "VOLTMETER",
-                          "AMMETER", "RELAY", "REED", "PTC", "VARISTOR", "BRIDGE", "REGULATOR", "TRANSFORMER", "MCU"}
+                          "AMMETER", "RELAY", "REED", "PTC", "VARISTOR", "BRIDGE", "REGULATOR", "TRANSFORMER", "MCU",
+                          # привод: состояние «стоит / крутится / заклинил» видно по предмету
+                          "KINETIC"}
         if comp["kind"] in dispatch_kinds and nstates > 1:
             entries = []
             for st in range(nstates):
