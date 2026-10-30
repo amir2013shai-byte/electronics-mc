@@ -144,7 +144,15 @@ public final class Events implements Listener {
                     info(p, existing);
                 }
             }
-            case STATION -> me.arena.electronics.gui.SolderGui.open(plugin, p, b, true);
+            case STATION -> {
+                // у тигля и стана своё окно: там нет паяльника, припоя и жара,
+                // там материалы из инвентаря уходит в операцию целиком
+                if (me.arena.electronics.recipes.Metallurgy.isStation(existing.def.id)) {
+                    me.arena.electronics.gui.MetalGui.open(plugin, p, existing.def.id);
+                } else {
+                    me.arena.electronics.gui.SolderGui.open(plugin, p, b, true);
+                }
+            }
             case SCHEMATIC -> {
                 // планшет без привязанной лабораторной = лист для рисования
                 if (existing.lab.isEmpty()) {

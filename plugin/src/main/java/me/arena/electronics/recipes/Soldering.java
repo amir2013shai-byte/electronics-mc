@@ -78,6 +78,8 @@ public final class Soldering {
         OUR_INGREDIENTS.put("wire_tinned", Map.of("wire_bare", 1));
         OUR_INGREDIENTS.put("battery_zinc", Map.of("ingot_zinc", 2));
         OUR_INGREDIENTS.put("mcu_atmega328", Map.of("wire_tinned", 1, "crystal_16mhz", 1));
+        // латунь для шунта — с тигля: без плавки большие токи не измерить
+        OUR_INGREDIENTS.put("resistor_shunt_0r01", Map.of("ingot_brass", 1));
     }
 
     /** Наши ингредиенты детали (пусто, если их не нужно). */

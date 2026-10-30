@@ -444,6 +444,21 @@ RECIPES = {
     "mcu_atmega328": {"type": "shapeless", "ing": {"quartz": 1, "gold_nugget": 1}},
     "programmer_usb": {"shape": ["IG", "CR"], "key": {"I": "iron_nugget", "G": "gold_nugget",
                                                      "C": "copper_ingot", "R": "repeater"}},
+    # металлургия: станки собираются в верстаке, рудный концентрат — тоже
+    # (это и есть путь «без шахты»); сплавы и проволоку делает сам стан,
+    # их содержимое описано в Metallurgy, а не здесь
+    "crucible_station": {"shape": ["B B", "BLB", "IFI"], "key": {"B": "bricks",
+                                                 "L": "lava_bucket", "I": "iron_ingot",
+                                                 "F": "furnace"}},
+    "mill_station": {"shape": ["IRI", "CPC", "IRI"], "key": {"I": "iron_ingot",
+                                            "R": "redstone_block", "C": "copper_ingot",
+                                            "P": "piston"}},
+    "raw_copper_chunk": {"type": "shapeless", "ing": {"copper_ingot": 2, "calcite": 1}},
+    "raw_tin_chunk": {"type": "shapeless", "ing": {"iron_nugget": 4, "quartz": 1,
+                                                   "calcite": 1}},
+    "raw_zinc_chunk": {"type": "shapeless", "ing": {"iron_nugget": 2, "coal": 1,
+                                                    "gunpowder": 1, "calcite": 1}},
+    "resistor_shunt_0r01": {"type": "shapeless", "ing": {"gold_nugget": 1}},
     "breadboard": {"shape": ["HRH", "RRR", "RSR"], "key": {"H": "hopper", "R": "repeater", "S": "redstone"}},
     "wire_red": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "redstone": 1}, "count": 4},
     "wire_black": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "ink_sac": 1}, "count": 4},
@@ -768,7 +783,7 @@ def main():
     print(f"компонентов: {len(COMPONENTS)}; индексов состояния модели: {state_models}")
     print(f"файлов ресурспака: {files}; рецептов в датапаке: {nrecipes} "
           f"(через пайку: {skipped_solder})")
-    BY_DESIGN = {"raw_copper_chunk", "raw_tin_chunk", "raw_zinc_chunk",
+    BY_DESIGN = {"ingot_bronze", "ingot_brass", "slag", "wire_enamelled",
                  "ingot_copper", "ingot_tin", "ingot_zinc"}
     missing = [m for m in missing if m not in BY_DESIGN]
     if missing:

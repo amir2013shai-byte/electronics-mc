@@ -375,6 +375,17 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             s.sendMessage(Items.color("&cВозьмите компонент в руку или наведите на него."));
             return;
         }
+        java.util.Map<String, me.arena.electronics.recipes.Metallurgy.Recipe> metal =
+                me.arena.electronics.recipes.Metallurgy.table(def.id);
+        if (metal != null) {
+            s.sendMessage(Items.color("&a⚒ «" + def.nameRu + "» &7— станок на &f" + metal.size()
+                    + " &7операций: держи материалы в инвентаре и нажми ПКМ по станку"));
+        } else {
+            String mt = me.arena.electronics.recipes.Metallurgy.ingredientText(def.id);
+            if (!mt.isEmpty()) {
+                s.sendMessage(Items.color("&7Металлургия: " + mt));
+            }
+        }
         if (me.arena.electronics.registry.Components.isSoldered(def.id)) {
             s.sendMessage(Items.color("&a⚡ «" + def.nameRu + "» &7паяется на столе&8, "
                     + "в верстаке этого нет"));
@@ -938,6 +949,60 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 + "&7коротыш порта в землю: &f" + (int) iPortShort + " мА&7 (паспорт 40 мА/нога, не 120),"
                 + " счётчик «горячих» ног &f" + hotPins + "&7; синтаксическая ошибка — чип встаёт:"
                 + " &f«" + sh.mcuHalt + "&f», нога отпущена, ток &f" + (int) iAfterErr + " мА"));
+
+        // ---- (15) металлургия: тигель, стан, шунт ---------------------------
+        {
+            var tCruc = me.arena.electronics.recipes.Metallurgy.table(
+                    me.arena.electronics.recipes.Metallurgy.CRUCIBLE_ID);
+            var tMill = me.arena.electronics.recipes.Metallurgy.table(
+                    me.arena.electronics.recipes.Metallurgy.MILL_ID);
+            var bronze = tCruc.get("ingot_bronze");
+            var brass = tCruc.get("ingot_brass");
+            var cu = tCruc.get("raw_copper_chunk");
+            var zinc = tCruc.get("raw_zinc_chunk");
+            var enamel = tMill.get("wire_enamelled");
+            java.util.function.ToIntFunction<String> full = id -> switch (id) {
+                case "ingot_copper" -> 2;
+                case "ingot_tin", "ingot_zinc", "raw_zinc_chunk", "raw_tin_chunk", "slag" -> 1;
+                default -> 1;
+            };
+            boolean canAlloy = me.arena.electronics.recipes.Metallurgy.missing(bronze, full) == null
+                    && me.arena.electronics.recipes.Metallurgy.missing(brass, full) == null;
+            java.util.function.ToIntFunction<String> onlyCu = id -> id.equals("ingot_copper") ? 2 : 0;
+            String why = me.arena.electronics.recipes.Metallurgy.missing(bronze, onlyCu);
+            boolean tellsTin = why != null && why.contains("олова");
+            int slagFromBronze = bronze.make().getOrDefault("slag", 0);
+            boolean slagged = slagFromBronze == 1
+                    && "ingot_copper".equals(brass.result()) == false
+                    && tCruc.get("ingot_copper").need().getOrDefault("slag", 0) == 3;
+            // обмен руд идёт только в сторону менее активного металла
+            int cuOut = cu.make().getOrDefault("raw_copper_chunk", 0);
+            int znOut = zinc.make().getOrDefault("raw_zinc_chunk", 0);
+            boolean series = cuOut == 2 && znOut == 3
+                    && zinc.need().getOrDefault("raw_copper_chunk", 0) == 2
+                    && zinc.need().getOrDefault("raw_tin_chunk", 0) == 2;
+            boolean enamel2 = enamel.count() == 2
+                    && me.arena.electronics.recipes.Metallurgy.missing(enamel, onlyCu) == null;
+            s.sendMessage(Items.color(((canAlloy && tellsTin && slagged && series && enamel2)
+                    ? "&aPASS " : "&cFAIL ")
+                    + "&7металлургия: 2 Cu + 1 Sn → бронза + шлак ×" + slagFromBronze
+                    + ", без олова стол говорит «" + why + "&7»; цементация Cu ×" + cuOut
+                    + " из Zn+Sn, цинк — только возгонкой 4→" + znOut
+                    + "; слиток меди → эмальпровод ×" + enamel.count()));
+            me.arena.electronics.gui.SchematicGui gshunt =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            paintLoop(gshunt, "battery_9", "resistor_shunt_0r01", "resistor_10r");
+            gshunt.recalcSteps(null, 20);
+            double iSh = Math.abs(gshunt.currentAt(0, 2));
+            double uSh = Math.abs(gshunt.voltageAt(0, 2));
+            double uOhm = iSh * 0.01;
+            boolean shuntOk = iSh > 0.4 && iSh < 1.2 && Math.abs(uSh - uOhm) < 2e-3
+                    && uSh < 0.02;
+            s.sendMessage(Items.color((shuntOk ? "&aPASS " : "&cFAIL ")
+                    + "&7шунт 0,01 Ом в цепи 9 В с нагрузкой 10 Ом: I = &f" + Num.amp(iSh)
+                    + "&7, на шунте &f" + (int) (uSh * 1000) + " мВ&7 (по закону Ома &f"
+                    + (int) (uOhm * 1000) + " мВ&7) — так амперметр и считает большие токи"));
+        }
 
         int missing = 0;
         for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {

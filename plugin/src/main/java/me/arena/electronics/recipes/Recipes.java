@@ -239,6 +239,21 @@ public final class Recipes {
         DEFS.put("programmer_usb", new Shaped(new String[]{"IG", "CR"},
                 map("I", Material.IRON_NUGGET, "G", Material.GOLD_NUGGET,
                         "C", Material.COPPER_INGOT, "R", Material.REPEATER)));
+        // металлургия: станки и рудный концентрат собираются в верстаке из
+        // ванильного — это и есть второй путь к руде, кроме недр
+        DEFS.put("crucible_station", new Shaped(new String[]{"B B", "BLB", "IFI"},
+                map("B", Material.BRICKS, "L", Material.LAVA_BUCKET, "I", Material.IRON_INGOT,
+                        "F", Material.FURNACE)));
+        DEFS.put("mill_station", new Shaped(new String[]{"IRI", "CPC", "IRI"},
+                map("I", Material.IRON_INGOT, "R", Material.REDSTONE_BLOCK,
+                        "C", Material.COPPER_INGOT, "P", Material.PISTON)));
+        DEFS.put("raw_copper_chunk", new Shapeless(List.of(Material.COPPER_INGOT,
+                Material.COPPER_INGOT, Material.CALCITE)));
+        DEFS.put("raw_tin_chunk", new Shapeless(List.of(Material.IRON_NUGGET, Material.IRON_NUGGET,
+                Material.IRON_NUGGET, Material.IRON_NUGGET, Material.QUARTZ, Material.CALCITE)));
+        DEFS.put("raw_zinc_chunk", new Shapeless(List.of(Material.IRON_NUGGET, Material.IRON_NUGGET,
+                Material.COAL, Material.GUNPOWDER, Material.CALCITE)));
+        DEFS.put("resistor_shunt_0r01", new Shapeless(List.of(Material.GOLD_NUGGET)));
         DEFS.put("desolder_braid", new Shapeless(List.of(Material.STRING, Material.STRING,
                 Material.COPPER_INGOT)));
         DEFS.put("voltmeter", new Shaped(new String[]{"GCG", "IRI", " C "},

@@ -15,7 +15,7 @@ ep.builds();        // готовые сборки-пресеты (BuildLoader)
 ep.recipes();       // регистрация крафтов (Recipes)
 ep.persistence();   // JSON-реестр вместо PDC (Persistence)
 ep.forceSimulate(); // пересчитать сейчас
-ep.stateModelCount();  // 2784 — сколько состояний модели у ресурспака
+ep.stateModelCount();  // 2886 — сколько состояний модели у ресурспака
 ```
 
 ### Компоненты и «реестр состояний модели»
@@ -31,7 +31,10 @@ String name    = ModelState.describe(modelIndex); // "led_red [on/east]"
   5 closed` (`CompStates`); `Def#clampState` не даёт выйти за
   `states` компонента.
 * `orient` — `0 north, 1 east, 2 south, 3 west, 4 up, 5 down`.
-* Сумма `states × 6` по всем 93 видам = 2784; `Components.stateModels()`.
+* Сумма `states × 6` по всем 100 видам = 2886; `Components.stateModels()`.
+* Столы-станки: `Soldering` (пайка: припой/флюс/жар) и `Metallurgy` (плавка и
+  волочение: только наши предметы). Таблица `Metallurgy` открытая — добавить
+  операцию = одна строка `put(STATION, new Recipe(...))`, GUI подхватит сам.
 * Ключ модели в ресурспаке: `electronics:<id>` для `off` и
   `electronics:<id>_<off|dim|on|burnt|rev|closed>` для остальных — см.
   `Items#applyModel`, имена синхронизированы с `tools/gen_pack.py`

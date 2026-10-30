@@ -16,9 +16,9 @@ brightness, burnt parts. No client mod.
 | Resource pack format | **75** (75.0–75.1) |
 | Data pack format (recipes) | **94** |
 | Client mod | not required |
-| Components | 93 ids (60 soldered parts + ore chain + microcontroller + boards/tools/schematic), RU + EN names |
-| Built pack | 2051 files: 1392 item textures, 558 models (93 × 6), 93 `items/*.json` |
-| Resource-pack model states | **2784** = 464 visual states × 6 orientations |
+| Components | 100 ids (61 soldered parts + ore & alloy chain + microcontroller + three stations), RU + EN names |
+| Built pack | 2151 files: 1443 item textures, 600 models (100 × 6), 100 `items/*.json` |
+| Resource-pack model states | **2886** = 481 visual states × 6 orientations |
 
 ## Why the "modify the player" trick became a state-model registry
 
@@ -28,12 +28,12 @@ Spigot's `Player` exposes no write channel to entity NBT/state (only NMS
 `Player#sendActionBar(String)` does not exist in this API. So the "800+
 mutable states" are implemented where the vanilla client actually reads them:
 
-1. **2784 resource-pack `items` definitions** — one per
+1. **2886 resource-pack `items` definitions** — one per
    (component, visual state, orientation), selected by the server through the
    `minecraft:item_model` item component; `custom_model_data[0]` carries the
    state index for `range_dispatch` on lamp-like parts.
 2. **Orientation + state** live server-side in the plugin registry and are
-   pushed on every render: 6 orientations × 464 states = 2784 addresses ≥ 800.
+   pushed on every render: 6 orientations × 481 states = 2886 addresses ≥ 800.
 3. **World visuals** via `ItemDisplay`/`TextDisplay` entities (vanilla, no
    client changes): the model floats above the board, meters show their reading.
 4. `render.mode: none` drops displays entirely — item models + the retextured
@@ -163,7 +163,7 @@ and zeroes accumulated I²t, case temperature and MOV degradation.
 
 ## Soldering is the crafting gate
 
-60 of the 93 ids (everything with leads — resistors, capacitors, LEDs, diodes,
+61 of the 100 ids (everything with leads — resistors, capacitors, LEDs, diodes,
 transistors, gates, relay, reed, coils, motor, buzzer, meters, switches, solar
 cell, fuses, PTC, MOV, bridge, electrolytics, regulators, transformers) cannot
 be crafted in a crafting table at all: `Recipes.register()` skips
@@ -191,7 +191,7 @@ function, so GUI and tests cannot drift apart.
 ### JEI / REI / EMI without a client mod
 
 JEI reads the recipe list the server already syncs to every client
-(`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 93 ids** into it:
+(`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 100 ids** into it:
 21 real crafting recipes plus 43 *display* recipes (`recipe_solder_<id>`) for
 the soldered parts. A display recipe is a `ShapedRecipe` with the same blank
 grid the station demands, and the **soldering station sits in the free cell** —
@@ -209,7 +209,7 @@ work the same way; `world.recipes: false` hides both crafts and displays; and a
 true custom JEI *category* (progress bar, temperature gauge) would require a
 client addon, which the task forbids. `/elec selftest` proves the visible part:
 `PASS JEI: … стол в сетке рецептов: 43/43, в менеджере рецептов клиента: 64
-(30 craft recipes + 60 displays)`.
+(35 craft recipes + 61 displays)`.
 
 ### Can our `custom_model_data` leak onto other items (a disc in a jukebox)?
 
@@ -218,10 +218,10 @@ No, and the pack build proves it rather than promises it:
 * state selection happens through the **`item_model` component on the stack**
   (`electronics:<id>_<state>`); the `custom_model_data` branch in `Items.applyModel`
   is only a fallback for pre-1.21.4 cores, and `/elec selftest` fails if it ever
-  engages: `PASS item_model is set on 93/93 items,
+  engages: `PASS item_model is set on 100/100 items,
   custom_model_data не ставится ни на одном`;
 * `custom_model_data` is read inside the definition of *that* item. All our
-  definitions live in `assets/electronics/items/` (93 files, with a CMD
+  definitions live in `assets/electronics/items/` (100 files, with a CMD
   dispatch); `assets/minecraft/items/` holds **zero** files, so `music_disc_13`,
   `jukebox`, potions and spawn eggs keep vanilla behaviour;
 * `tools/check_pack_refs.py` aborts if the pack ever ships another
@@ -308,6 +308,7 @@ branch), the `while` quota, `delay` in ticks and ADC (21 checks).
 
 
 ## Checks actually run
+## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), topology and
   circuit solve `OK=25 FAIL=0` (9 V / 220 Ω / LED loop: 28.46 mA against the
@@ -315,7 +316,7 @@ branch), the `while` quota, `delay` in ticks and ADC (21 checks).
   `OK: все 64×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
 * `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.0.0.jar`.
-* Live run on Paper 1.21.11 build 132: plugin enables — 93 components, 2784
+* Live run on Paper 1.21.11 build 132: plugin enables — 100 components, 2886
   model states, `recipes: 21 (soldering: 43, skipped 0)`, 3 worksheets;
   `/elec build` placed both presets (12 + 12 parts, 13 + 13 hosts),
   `/elec sim` reported `islands=1` for a single loop and `islands=2` for the
