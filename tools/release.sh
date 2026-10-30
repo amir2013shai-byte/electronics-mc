@@ -28,7 +28,7 @@ echo "— push main + $TAG"
 GIT_TERMINAL_PROMPT=0 git -c credential.helper= push "$GITURL" main:main "+refs/tags/$TAG:refs/tags/$TAG"
 
 echo "— релиз"
-NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Числа проверки на живом сервере: /elec selftest — 30 строк PASS, 0 FAIL. sha1 jar: $(sha1sum release/Electronics-1.0.0.jar | cut -c1-40)…"
+NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Числа проверки на живом сервере: /elec selftest — 17 строк PASS на прогон, 0 FAIL. sha1 jar: $(sha1sum release/Electronics-1.0.0.jar | cut -c1-40)…"
 body=$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":"Electronics "+sys.argv[1]+" (Minecraft 1.21.11)","body":sys.argv[2]}))' "$TAG" "$NOTES")
 resp=$(curl -sf -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
         -H "Content-Type: application/json" -d "$body" "$API/releases" || true)

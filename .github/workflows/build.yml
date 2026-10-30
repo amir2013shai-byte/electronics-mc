@@ -80,21 +80,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            release/Electronics-1.0.0.jar \
-            release/electronics-resourcepack.zip \
-            release/electronics-recipes-datapack.zip \
-            release/preview.png \
-            release/sha1sums.txt \
-            release/textures/sheet-01.png \
-            release/textures/sheet-02.png \
-            release/textures/sheet-03.png \
-            release/textures/sheet-04.png \
-            release/textures/sheet-05.png \
-            release/textures/sheet-06.png \
-            release/textures/sheet-07.png \
-            release/textures/sheet-08.png \
-            --title "Electronics $GITHUB_REF_NAME (Minecraft 1.21.11)" \
-            --notes "Плагин собран против spigot-api $SPIGOT_API, ресурспак — pack_format 75.
+          # Идемпотентность важна: релиз на тот же тег уже мог выложить
+          # tools/release.sh (это штатный путь — артефакты нужны сразу). Тогда
+          # gh release create вернёт 422 «already exists», и шаг обязан
+          # перезаписать ассеты, а не уронить весь ран.
+          ASSETS="release/Electronics-1.0.0.jar release/electronics-resourcepack.zip
+          release/electronics-recipes-datapack.zip release/preview.png release/sha1sums.txt
+          release/textures/sheet-01.png release/textures/sheet-02.png
+          release/textures/sheet-03.png release/textures/sheet-04.png
+          release/textures/sheet-05.png release/textures/sheet-06.png
+          release/textures/sheet-07.png release/textures/sheet-08.png"
+          NOTES="Плагин собран против spigot-api $SPIGOT_API, ресурспак — pack_format 75.
           Ставить: jar в \`plugins/\`, архив — в \`resource-pack.url\` (или вручную клиенту).
-          Контрольные цифры с живого Paper 1.21.11 build 132 — в README. Хэши — в sha1sums.txt."
+          Контрольные цифры с живого Paper 1.21.11 build 132 — в README (17 строк PASS
+          в /elec selftest, 0 FAIL). Хэши — в sha1sums.txt."
+          if gh release create "$GITHUB_REF_NAME" $ASSETS \
+               --title "Electronics $GITHUB_REF_NAME (Minecraft 1.21.11)" --notes "$NOTES"; then
+            echo "релиз создан"
+          else
+            echo "релиз уже есть — обновляем ассеты"
+            gh release upload "$GITHUB_REF_NAME" $ASSETS --clobber
+          fi
