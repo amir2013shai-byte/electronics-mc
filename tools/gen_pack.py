@@ -232,6 +232,48 @@ def base_canvas(comp):
         rect(0, 7, 15, 8, (215, 215, 220, 255))
         rect(3, 4, 12, 11, (250, 240, 200, 220))
         rect(4, 7, 11, 8, shade(accent, 1.0))
+    elif shape == "ptc":
+        # «таблетка» PTC: полимер с углеродом, два боковых вывода, светлая полоска
+        rect(3, 5, 12, 10, body)
+        rect(4, 6, 11, 9, shade(body, 1.25))
+        rect(0, 7, 2, 8, (220, 224, 230, 255))
+        rect(13, 7, 15, 8, (220, 224, 230, 255))
+        rect(6, 6, 9, 6, accent)
+    elif shape == "varistor":
+        # диск MOV: синяя «линза», снизу два вывода
+        d.ellipse([4, 3, 28, 25], fill=body, outline=shade(body, 0.7))
+        d.ellipse([8, 5, 24, 15], fill=shade(body, 1.35))
+        rect(6, 11, 9, 12, accent)
+        d.line([10, 25, 10, 31], fill=(220, 224, 230, 255), width=2)
+        d.line([22, 25, 22, 31], fill=(220, 224, 230, 255), width=2)
+    elif shape == "bridge":
+        # KBU: квадратный корпус, светящаяся метка «+», четыре ножки
+        rect(2, 2, 13, 13, body)
+        rect(3, 3, 12, 12, shade(body, 1.35))
+        d.ellipse([5, 5, 10, 10], fill=shade(accent, 0.9))
+        d.line([6 * 2, 6 * 2, 8 * 2, 6 * 2], fill=(240, 240, 245, 255), width=2)
+        d.line([7 * 2, 5 * 2, 7 * 2, 7 * 2], fill=(240, 240, 245, 255), width=2)
+        for i in (1, 5, 9, 13):
+            rect(i, 13, i + 1, 15, (225, 228, 235, 255))
+    elif shape == "to220":
+        # TO-220: тёмный корпус, никелированная площадка с отверстием, три ножки
+        rect(1, 5, 12, 11, body)
+        rect(2, 6, 11, 10, shade(body, 1.3))
+        rect(11, 4, 15, 12, shade(accent, 1.0))
+        d.ellipse([24, 12, 28, 16], fill=(40, 42, 48, 255))
+        for i in (2, 6, 10):
+            rect(i, 11, i + 1, 15, (225, 228, 235, 255))
+    elif shape == "transformer":
+        # Ш-магнитопровод из пластин + две обмотки (первичка светлее вторички)
+        rect(1, 3, 14, 12, shade(body, 0.8))
+        for i in (1, 4, 7, 10, 13):
+            rect(i, 3, i, 12, shade(body, 1.2))
+        rect(3, 5, 6, 10, accent)
+        rect(9, 5, 12, 10, shade(accent, 0.75))
+        d.line([4 * 2, 5 * 2, 4 * 2, 10 * 2], fill=shade(accent, 1.5) + (255,), width=1)
+        d.line([11 * 2, 5 * 2, 11 * 2, 10 * 2], fill=shade(accent, 1.25) + (255,), width=1)
+        for i in (1, 4, 11, 14):
+            rect(i, 12, i + 1, 15, (225, 228, 235, 255))
     elif shape == "paper":
         rect(0, 0, 15, 15, body)
         rect(1, 1, 14, 14, shade(body, 1.05))
@@ -400,6 +442,8 @@ RECIPES = {
                                                              "R": "repeater", "I": "iron_ingot"}},
     "solar_cell": {"shape": [" GG", "QLQ", "GIG"], "key": {"G": "tinted_glass", "Q": "quartz", "L": "lapis_block",
                                                             "I": "iron_ingot"}},
+    "source_ac": {"shape": ["GCG", "RIR", "G G"], "key": {"G": "gold_nugget", "C": "copper_ingot",
+                                                           "R": "redstone", "I": "iron_ingot"}},
     "generator": {"shape": ["ICI", "RPR", "ICI"], "key": {"I": "iron_ingot", "C": "copper_ingot",
                                                            "P": "sticky_piston", "R": "repeater"}},
     "ground_bus": {"shape": ["CCC", "GRG", "CCC"], "key": {"C": "copper_block", "G": "lightning_rod", "R": "redstone"}},
@@ -424,6 +468,28 @@ RECIPES = {
                                                        "R": "redstone_block"}},
     "motor": {"shape": [" C ", "CRC", " I "], "key": {"C": "copper_ingot", "R": "redstone", "I": "iron_ingot"}},
     "fuse": {"shape": ["GC", "CR", "CG"], "key": {"G": "glass", "C": "copper_ingot", "R": "redstone"}},
+    # --- защита, выпрямление, стабилизация, трансформация (зеркало Recipes.DEFS) ---
+    "fuse_cartridge_1a": {"shape": ["I I", "CGC", "I I"],
+                          "key": {"I": "iron_nugget", "C": "copper_ingot", "G": "glass"}},
+    "fuse_cartridge_5a": {"shape": ["I I", "CCC", "I I"],
+                          "key": {"I": "iron_nugget", "C": "copper_ingot"}},
+    "fuse_slow_2a": {"shape": ["I I", "CSC", "I I"],
+                     "key": {"I": "iron_nugget", "C": "copper_ingot", "S": "sand"}},
+    "ptc_500ma": {"type": "shapeless", "ing": {"clay_ball": 1, "coal": 1, "copper_ingot": 2}},
+    "mov_275v": {"shape": [" C ", "CRC", " C "], "key": {"C": "copper_ingot", "R": "redstone"}},
+    "bridge_kbu8": {"shape": ["DRD", "R R", "DRD"], "key": {"D": "gold_nugget", "R": "redstone"}},
+    "shottky_sbr30": {"type": "shapeless", "ing": {"copper_ingot": 1, "quartz": 1, "redstone": 1}},
+    "cap_elec_2200uf": {"shape": ["PCP", "C C", "PCP"], "key": {"P": "paper", "C": "copper_ingot"}},
+    "reg_7805": {"shape": ["III", "GSG", "C C"],
+                 "key": {"I": "iron_nugget", "G": "gold_nugget", "S": "sand", "C": "copper_ingot"}},
+    "reg_7812": {"shape": ["III", "GRG", "C C"],
+                 "key": {"I": "iron_nugget", "G": "gold_nugget", "R": "redstone", "C": "copper_ingot"}},
+    "reg_lm317": {"shape": ["I I", "GSG", "CRC"],
+                  "key": {"I": "iron_nugget", "G": "gold_nugget", "S": "sand", "R": "redstone",
+                          "C": "copper_ingot"}},
+    "xfmr_230_12": {"shape": ["CIC", "I I", "CIC"], "key": {"C": "copper_ingot", "I": "iron_ingot"}},
+    "xfmr_230_9": {"shape": ["CIC", "I I", "C C"], "key": {"C": "copper_ingot", "I": "iron_ingot"}},
+    "desolder_braid": {"type": "shapeless", "ing": {"string": 2, "copper_ingot": 1}, "count": 2},
     "voltmeter": {"shape": ["GCG", "IRI", " C "], "key": {"G": "glass", "C": "copper_ingot", "I": "iron_ingot",
                                                            "R": "redstone"}},
     "ammeter": {"shape": ["GCG", "ILI", " C "], "key": {"G": "glass", "C": "copper_ingot", "I": "iron_ingot",
@@ -596,7 +662,7 @@ def main():
         # custom_model_data (индекс = состояние), остальным — базовая модель:
         # состояние в мире всё равно задаёт плагин через item_model.
         dispatch_kinds = {"LED", "SWITCH", "BUTTON", "TOGGLE", "FUSE", "LAMP", "DIODE", "PROBE", "VOLTMETER",
-                          "AMMETER", "RELAY", "REED"}
+                          "AMMETER", "RELAY", "REED", "PTC", "VARISTOR", "BRIDGE", "REGULATOR", "TRANSFORMER"}
         if comp["kind"] in dispatch_kinds and nstates > 1:
             entries = []
             for st in range(nstates):

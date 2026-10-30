@@ -204,11 +204,16 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             s.sendMessage(Items.color("&cНет права electronics.admin"));
             return;
         }
+        boolean admin = p.hasPermission("electronics.admin");
         int fixed = 0;
         if (args.length > 1 && args[1].equalsIgnoreCase("all")) {
+            if (!admin) {
+                s.sendMessage(Items.color("&c«all» — право администратора. Чини по одной детали,"
+                        + " стоя у паяльного стола с горячим жалом."));
+                return;
+            }
             for (CompInstance c : plugin.circuit().all()) {
-                if (c.burnt()) {
-                    c.clearFault();
+                if (Simulation.repair(c)) {
                     plugin.circuit().persistence().write(c);
                     plugin.renderer().requestUpdate(c);
                     fixed++;
@@ -220,13 +225,61 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 s.sendMessage(Items.color("&cНет компонента под прицелом."));
                 return;
             }
-            c.clearFault();
+            if (!c.burnt()) {
+                s.sendMessage(Items.color("&eДеталь исправна — чинить нечего."));
+                return;
+            }
+            if (!admin) {
+                String why = survivalRepair(p, c);
+                if (why != null) {
+                    s.sendMessage(Items.color("&c" + why));
+                    return;
+                }
+            }
+            Simulation.repair(c);
             plugin.circuit().persistence().write(c);
             plugin.renderer().requestUpdate(c);
             fixed = 1;
         }
         plugin.circuit().markDirty();
         s.sendMessage(Items.color("&aПочинено компонентов: " + fixed));
+    }
+
+    /**
+     * Ремонт без админского права: горячее жало, стол рядом и оплётка с припоем.
+     * Возвращает причину отказа или null, если всё честно списали.
+     */
+    private String survivalRepair(Player p, CompInstance c) {
+        Block near = null;
+        double best = 25.0;
+        for (CompInstance st : plugin.circuit().all()) {
+            if (st.def == null || st.def.kind != me.arena.electronics.registry.Kind.STATION) {
+                continue;
+            }
+            Block b = st.key.block();
+            if (b == null) {
+                continue;
+            }
+            double d2 = b.getLocation().distanceSquared(c.key.block().getLocation());
+            if (d2 < best) {
+                best = d2;
+                near = b;
+            }
+        }
+        if (near == null) {
+            return "нужен паяльный стол не дальше 4 блоков от детали (и источник тепла рядом)";
+        }
+        if (!me.arena.electronics.recipes.Soldering.heatSourceNear(near)) {
+            return "стол холодный: рядом нужен источник тепла — печь, костёр, лава или факел";
+        }
+        String why = me.arena.electronics.recipes.Soldering.repairBlocker(p);
+        if (why != null) {
+            return why;
+        }
+        me.arena.electronics.recipes.Soldering.consumeRepair(p);
+        p.sendMessage(Items.color("&7Списаны оплётка ×1 и припой ×1 &8(стол на расстоянии "
+                + String.format(java.util.Locale.US, "%.1f", Math.sqrt(best)) + " бл.)"));
+        return null;
     }
 
     private void clear(CommandSender s, String[] args) {
@@ -572,7 +625,8 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 + "), у светодиода реальным крафтом не собирается: &f"
                 + (plugin.recipes().byResult(led) == null) + "&7, стол в сетке рецептов: &f"
                 + withStation + "&7/&f" + dispCount
-                + "&7, в менеджере рецептов клиента: &f" + inManager + " &8(21 крафта + 43 витрины)"));
+                + "&7, в менеджере рецептов клиента: &f" + inManager + " &8("
+                + plugin.recipes().realCount() + " крафта + " + dispCount + " витрин)"));
         boolean solderRules = !cold.allowed() && cold.message().contains("холодное")
                 && warm.allowed() && warm.coldJoint() && warm.solder() == 1
                 && good.allowed() && !good.coldJoint() && good.consume().equals(kit)
@@ -584,6 +638,128 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 + "&7пайка: 10° — «" + cold.message() + "», 30° — холодная пайка (припой ×1 в утиль), "
                 + "90° — заготовок ×" + good.consume().size() + " + припой ×" + good.solder()
                 + " + флюс; ванильного рецепта светодиода нет: " + noVanilla));
+
+        // (12) защита по I²t, тепловая защита PTC, утечка варистора, стабилизация
+        me.arena.electronics.gui.SchematicGui gfuse =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gfuse, "battery_9", "fuse_cartridge_1a", "resistor_10r");
+        gfuse.recalcSteps(null, 30);
+        double iHold = Math.abs(gfuse.currentAt(0, 2));
+        boolean fuseHolds = gfuse.stateAt(0,2) != 3 && iHold > 0.5 && iHold < 1.0;
+        me.arena.electronics.gui.SchematicGui gblow =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gblow, "battery_9", "fuse_cartridge_1a", "wire_black");
+        gblow.recalcSteps(null, 6);
+        double iAfter = Math.abs(gblow.currentAt(0, 4));
+        boolean fuseBlown = gblow.stateAt(0, 2) == 3 && iAfter < 1e-3;
+        CompInstance fuseInst = gblow.instanceAt(0, 2);
+        boolean healed = fuseInst != null && Simulation.repair(fuseInst)
+                && !fuseInst.burnt() && fuseInst.aux[0] == 0;
+        s.sendMessage(Items.color((fuseHolds && fuseBlown && healed ? "&aPASS " : "&cFAIL ")
+                + "&7предохранитель I²t: &f" + Num.amp(iHold) + " &7не сжигает вставку за 30 шагов, "
+                + "коротыш — &cсгорел&7, нагрузку обесточило (I = &f" + Num.amp(iAfter)
+                + "&7), перепайка обнуляет накопленный I²t: " + healed));
+
+        me.arena.electronics.gui.SchematicGui gptc =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gptc, "battery_9", "ptc_500ma", "resistor_10r");
+        gptc.recalcSteps(null, 100);
+        double iPtcHold = Math.abs(gptc.currentAt(0, 2));
+        me.arena.electronics.gui.SchematicGui gptc2 =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gptc2, "battery_9", "ptc_500ma", "wire_black");
+        gptc2.recalcSteps(null, 30);           // 1.5 с коротыша: деталь обязана щёлкнуть
+        double iPtcTrip = Math.abs(gptc2.currentAt(0, 2));
+        CompInstance ptcInst = gptc2.instanceAt(0, 2);
+        gptc2.recalcSteps(null, 400);          // новый прогон: «не сгорает» за 20 с КЗ
+        double heat = ptcInst == null ? -1 : ptcInst.aux[0];
+        double ptcPeak = ptcInst == null ? 0 : ptcInst.aux[1];   // пик за всю историю прогона
+        boolean ptcOk = ptcInst != null && iPtcHold > 0.5 && iPtcHold < 1.2
+                && iPtcTrip < iPtcHold * 0.5 && ptcPeak > 90
+                && !ptcInst.burnt() && gptc2.stateAt(0, 2) != 3;
+        s.sendMessage(Items.color((ptcOk ? "&aPASS " : "&cFAIL ")
+                + "&7PTC держит &f" + Num.amp(iPtcHold) + " &7и не греется, при коротыше за 30 шагов "
+                + "уходит в защиту: I = &f" + Num.amp(iPtcTrip) + "&7, пик перегрева &f" + (int) ptcPeak
+                + " °C&7 (щелчок на 90), сейчас &f" + (int) heat + " °C&7; за 400 шагов КЗ деталь "
+                + (ptcInst.burnt() ? "&cсгорела" : "&aжива") + "&7 (мягкий режим отказов)"));
+
+        me.arena.electronics.gui.SchematicGui gmov =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gmov, "battery_9", "mov_275v", "resistor_10r");
+        gmov.recalcSteps(null, 40);
+        double iMov = Math.abs(gmov.currentAt(0, 2));
+        s.sendMessage(Items.color((iMov < 1e-6 ? "&aPASS " : "&cFAIL ")
+                + "&7варистор при 9 В не течёт: I = &f" + String.format(java.util.Locale.US, "%.2e", iMov)
+                + " А&7 (порог 390 В, α=9)"));
+
+        me.arena.electronics.gui.SchematicGui greg =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintRegulator(greg, "battery_9", false);
+        greg.recalcSteps(null, 40);
+        double vOut = Math.abs(greg.voltageAt(1, 3));
+        String regNets = greg.netsAt(1, 4) + " | U(бат) " + Num.volt(greg.voltageAt(1, 5))
+                + " U(шина) " + Num.volt(greg.voltageAt(0, 4));
+        me.arena.electronics.gui.SchematicGui greg3 =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintRegulator(greg3, "battery_3", false);
+        greg3.recalcSteps(null, 40);
+        double vOut3 = Math.abs(greg3.voltageAt(1, 3));
+        me.arena.electronics.gui.SchematicGui gregS =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintRegulator(gregS, "battery_9", true);
+        gregS.recalcSteps(null, 40);
+        double iShort = Math.abs(gregS.currentAt(1, 5));   // ток питания = отдача (у линейного они равны)
+        double vShort = Math.abs(gregS.voltageAt(1, 3));
+        boolean regOk = vOut > 4.7 && vOut < 5.3 && vOut3 < 2.0
+                && iShort <= 1.25 && iShort > 0.3 && vShort < 1.5;
+        s.sendMessage(Items.color((regOk ? "&aPASS " : "&cFAIL ")
+                + "&77805: на 330 Ом &f" + Num.volt(vOut) + " &7при 9 В на входе, при 3 В — dropout &f"
+                + Num.volt(vOut3) + "&7; коротыш: U = &f" + Num.volt(vShort) + "&7, I = &f"
+                + Num.amp(iShort) + "&7 (предел 1 А, а не 8 А)"
+                + "&8 [" + regDiag(greg) + "] &8" + regNets));
+
+        // синус: источник обязан менять знак, иначе трансформатор и мост проверять нечем
+        me.arena.electronics.gui.SchematicGui gac =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gac, "source_ac", "wire_red", "resistor_10r");
+        boolean acPos = false, acNeg = false;
+        for (int k = 0; k < 40; k++) {
+            gac.recalcSteps(null, 1);
+            double uAc = gac.voltageAt(0, 3);
+            if (uAc > 0.3) {
+                acPos = true;
+            }
+            if (uAc < -0.3) {
+                acNeg = true;
+            }
+        }
+        // «крест» из 4 выводов: мост и трансформатор в сетку 9x3 не замыкаются (оба
+        // контура требуют обхода вокруг детали), поэтому здесь только проверка, что
+        // решатель сходится, а физику считает офлайн-тест TestCoupled
+        me.arena.electronics.gui.SchematicGui gbr =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        gbr.put(1, 1, "wire_black", 0);
+        gbr.put(1, 2, "bridge_kbu8", 1);
+        gbr.put(1, 3, "wire_black", 0);
+        gbr.put(0, 2, "resistor_330r", 2);
+        gbr.put(2, 2, "wire_black", 0);
+        gbr.recalcSteps(null, 5);
+        double ub = gbr.voltageAt(1, 2);
+        me.arena.electronics.gui.SchematicGui gxf =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        gxf.put(1, 1, "wire_black", 0);
+        gxf.put(1, 2, "xfmr_230_12", 1);
+        gxf.put(1, 3, "battery_9", 3);
+        gxf.put(0, 2, "wire_black", 0);
+        gxf.put(2, 2, "wire_black", 0);
+        gxf.recalcSteps(null, 40);
+        double ix = Math.abs(gxf.currentAt(1, 2));
+        boolean crossOk = Double.isFinite(ub) && Double.isFinite(ix) && ix < 9.0;
+        s.sendMessage(Items.color((crossOk && (acPos && acNeg) ? "&aPASS " : "&cFAIL ")
+                + "&7синус меняет полярность: " + (acPos && acNeg) + "&7; мост и трансформатор "
+                + "(4 вывода крестом) решатель не ломают: U_мост = &f" + Num.volt(ub)
+                + "&7, I_перв. на постоянке = &f" + Num.amp(ix) + " &7→ постоянку тр-р не передаёт&7; "
+                + "&8Кт и насыщение считает tools/TestCoupled"));
 
         int missing = 0;
         for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {
@@ -603,6 +779,68 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
     }
 
     /** Контур «батарейка -> резистор -> геркон -> светодиод» и магнит рядом с герконом. */
+    /**
+     * Контур редактора для деталей защиты: источник в (0,1), подопытная деталь в
+     * (0,2), нагрузка в (0,3), возврат через шину земли в (2,3) — как в тесте
+     * геркона, поэтому правило «соседства пар блоков» не надо объяснять заново.
+     */
+    /** Диагностика клетки стабилизатора: собралось ли вообще три вывода в узлы. */
+    private static String regDiag(me.arena.electronics.gui.SchematicGui g) {
+        CompInstance r = g.instanceAt(1, 4);
+        if (r == null) {
+            return "в клетке (1,4) никого нет";
+        }
+        int pins = 0;
+        for (String n : r.pinNet) {
+            if (n != null) {
+                pins++;
+            }
+        }
+        return r.def.id + " Uвх=" + Num.eng(r.pinVoltage[0], "\u0411")
+                + " Uвых=" + Num.eng(r.pinVoltage[1], "\u0411") + " I=" + Num.amp(r.current)
+                + " \u0394T=" + (int) r.aux[0] + "\u00B0 k=" + String.format(java.util.Locale.US, "%.2f", r.aux[3])
+                + " state=" + r.state + " выводов в сети: " + pins
+                + (r.fault.isEmpty() ? "" : " " + r.fault);
+    }
+
+    private static void paintLoop(me.arena.electronics.gui.SchematicGui g, String source,
+                                  String dut, String load) {
+        g.put(0, 0, "wire_red", 0);
+        g.put(0, 1, source, 1);
+        g.put(0, 2, dut, 1);
+        g.put(0, 3, load, 1);
+        g.put(0, 4, "wire_red", 0);
+        g.put(0, 5, "wire_red", 0);
+        g.put(1, 5, "wire_black", 0);
+        g.put(2, 5, "wire_black", 0);
+        g.put(2, 4, "wire_black", 0);
+        g.put(2, 3, "ground_bus", 0);
+        g.put(2, 2, "wire_black", 0);
+        g.put(2, 1, "wire_black", 0);
+        g.put(2, 0, "wire_black", 0);
+        g.put(1, 0, "wire_black", 0);
+    }
+
+    /**
+     * Стабилизатор в редакторе: IN/OUT вдоль ряда, GND — «северный» вывод, поэтому
+     * деталь ставим в средний ряд (иначе выводу некуда смотреть). Нагрузка — между
+     * OUT и общей землёй, источник — между IN и той же землёй.
+     */
+    private static void paintRegulator(me.arena.electronics.gui.SchematicGui g, String source,
+                                       boolean shortCircuit) {
+        g.put(1, 4, "reg_7805", 1);                       // IN на восток, OUT на запад, GND на север
+        g.put(1, 5, source, 1);                           // «+» у источника — второй вывод,
+                                                          // он смотрит на IN
+        g.put(1, 6, "wire_black", 0);
+        g.put(0, 6, "wire_black", 0);
+        g.put(0, 5, "wire_black", 0);
+        g.put(0, 4, "wire_black", 0);                     // земля stabilizatora
+        g.put(1, 3, shortCircuit ? "wire_black" : "resistor_330r", 1);
+        g.put(1, 2, "wire_black", 0);
+        g.put(0, 3, "ground_bus", 1);                      // нулевая точка: без неё решатель
+        g.put(0, 2, "wire_black", 0);                      // выбирает «массу» сам, и знак U плавает
+    }
+
     private void paintReedLoop(me.arena.electronics.gui.SchematicGui g, boolean withMagnet) {
         g.put(0, 0, "wire_red", 0);
         g.put(0, 1, "battery_9", 1);

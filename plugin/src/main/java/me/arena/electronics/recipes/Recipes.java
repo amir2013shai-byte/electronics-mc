@@ -101,6 +101,9 @@ public final class Recipes {
                         "R", Material.REPEATER, "I", Material.IRON_INGOT)));
         DEFS.put("solar_cell", new Shaped(new String[]{" GG", "QLQ", "GIG"},
                 map("G", Material.TINTED_GLASS, "Q", Material.QUARTZ, "L", Material.LAPIS_BLOCK, "I", Material.IRON_INGOT)));
+        DEFS.put("source_ac", new Shaped(new String[]{"GCG", "RIR", "G G"},
+                map("G", Material.GOLD_NUGGET, "C", Material.COPPER_INGOT, "R", Material.REDSTONE,
+                        "I", Material.IRON_INGOT)));
         DEFS.put("generator", new Shaped(new String[]{"ICI", "RPR", "ICI"},
                 map("I", Material.IRON_INGOT, "C", Material.COPPER_INGOT, "P", Material.STICKY_PISTON, "R", Material.REPEATER)));
         DEFS.put("ground_bus", new Shaped(new String[]{"CCC", "GRG", "CCC"},
@@ -185,6 +188,39 @@ public final class Recipes {
                 map("C", Material.COPPER_INGOT, "R", Material.REDSTONE, "I", Material.IRON_INGOT)));
         DEFS.put("fuse", new Shaped(new String[]{"GC", "CR", "CG"},
                 map("G", Material.GLASS, "C", Material.COPPER_INGOT, "R", Material.REDSTONE)));
+
+        // --- защита, выпрямление, стабилизация и трансформация (v1.3) ---
+        DEFS.put("fuse_cartridge_1a", new Shaped(new String[]{"I I", "CGC", "I I"},
+                map("I", Material.IRON_NUGGET, "C", Material.COPPER_INGOT, "G", Material.GLASS)));
+        DEFS.put("fuse_cartridge_5a", new Shaped(new String[]{"I I", "CCC", "I I"},
+                map("I", Material.IRON_NUGGET, "C", Material.COPPER_INGOT)));
+        DEFS.put("fuse_slow_2a", new Shaped(new String[]{"I I", "CSC", "I I"},
+                map("I", Material.IRON_NUGGET, "C", Material.COPPER_INGOT, "S", Material.SAND)));
+        DEFS.put("ptc_500ma", new Shapeless(List.of(Material.CLAY_BALL, Material.COAL,
+                Material.COPPER_INGOT, Material.COPPER_INGOT)));
+        DEFS.put("mov_275v", new Shaped(new String[]{" C ", "CRC", " C "},
+                map("C", Material.COPPER_INGOT, "R", Material.REDSTONE)));
+        DEFS.put("bridge_kbu8", new Shaped(new String[]{"DRD", "R R", "DRD"},
+                map("D", Material.GOLD_NUGGET, "R", Material.REDSTONE)));
+        DEFS.put("shottky_sbr30", new Shapeless(List.of(Material.COPPER_INGOT, Material.QUARTZ,
+                Material.REDSTONE)));
+        DEFS.put("cap_elec_2200uf", new Shaped(new String[]{"PCP", "C C", "PCP"},
+                map("P", Material.PAPER, "C", Material.COPPER_INGOT)));
+        DEFS.put("reg_7805", new Shaped(new String[]{"III", "GSG", "C C"},
+                map("I", Material.IRON_NUGGET, "G", Material.GOLD_NUGGET, "S", Material.SAND,
+                        "C", Material.COPPER_INGOT)));
+        DEFS.put("reg_7812", new Shaped(new String[]{"III", "GRG", "C C"},
+                map("I", Material.IRON_NUGGET, "G", Material.GOLD_NUGGET, "R", Material.REDSTONE,
+                        "C", Material.COPPER_INGOT)));
+        DEFS.put("reg_lm317", new Shaped(new String[]{"I I", "GSG", "CRC"},
+                map("I", Material.IRON_NUGGET, "G", Material.GOLD_NUGGET, "S", Material.SAND,
+                        "R", Material.REDSTONE, "C", Material.COPPER_INGOT)));
+        DEFS.put("xfmr_230_12", new Shaped(new String[]{"CIC", "I I", "CIC"},
+                map("C", Material.COPPER_INGOT, "I", Material.IRON_INGOT)));
+        DEFS.put("xfmr_230_9", new Shaped(new String[]{"CIC", "I I", "C C"},
+                map("C", Material.COPPER_INGOT, "I", Material.IRON_INGOT)));
+        DEFS.put("desolder_braid", new Shapeless(List.of(Material.STRING, Material.STRING,
+                Material.COPPER_INGOT)));
         DEFS.put("voltmeter", new Shaped(new String[]{"GCG", "IRI", " C "},
                 map("G", Material.GLASS, "C", Material.COPPER_INGOT, "I", Material.IRON_INGOT, "R", Material.REDSTONE)));
         DEFS.put("ammeter", new Shaped(new String[]{"GCG", "ILI", " C "},

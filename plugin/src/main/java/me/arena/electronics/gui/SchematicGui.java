@@ -289,6 +289,12 @@ public final class SchematicGui implements Gui {
     // ------------------------------------------------------------------ расчёт
 
     /** Собирает из сетки компоненты и гоняет их через «взрослый» решатель. */
+    /** Визуальное состояние детали в клетке (0 off … 3 burnt … 5 closed), −1 если клетки нет. */
+    public int stateAt(int row, int col) {
+        CompInstance ci = instanceAt(row, col);
+        return ci == null ? -1 : ci.state;
+    }
+
     private List<CompInstance> buildGrid() {
         lastByPos = new HashMap<>();
         List<CompInstance> list = new ArrayList<>();

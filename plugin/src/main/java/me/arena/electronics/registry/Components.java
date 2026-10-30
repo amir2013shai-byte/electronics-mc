@@ -144,6 +144,23 @@ public final class Components {
         d.lightDependent = Json.bool(o, "light_dependent", false);
         d.bConstant = Json.num(o, "b_constant", 0);
         d.selfHeat = Json.num(o, "self_heat", 0);
+        d.blowI2t = Json.num(o, "blow_i2t", 0);
+        d.holdCurrent = Json.num(o, "hold_current", 0);
+        d.tripCurrent = Json.num(o, "trip_current", 0);
+        d.tripTemp = Json.num(o, "trip_temp", 90);
+        d.thermalK = Json.num(o, "thermal_k", 8);
+        d.heatJ = Json.num(o, "heat_j", 1.5);
+        d.vClamp = Json.num(o, "v_clamp", 0);
+        d.nlAlpha = Json.num(o, "nl_alpha", 8);
+        d.energyJ = Json.num(o, "energy_j", 0);
+        d.dropout = Json.num(o, "dropout", 2.0);
+        d.iLimit = Json.num(o, "i_limit", 1.0);
+        d.iQuiescent = Json.num(o, "i_quiescent", 0.005);
+        d.vOutMin = Json.num(o, "v_out_min", 0);
+        d.vOutMax = Json.num(o, "v_out_max", 0);
+        d.acHz = Json.num(o, "ac_hz", 0);
+        d.ratio = Json.num(o, "ratio", 1.0);
+        d.coupling = Json.num(o, "coupling", 0.98);
         d.orientable = Json.bool(o, "orientable", false);
         d.stack = Json.bool(o, "stack", false);
         d.hub = Json.bool(o, "hub", false) || d.kind == Kind.GROUND || d.kind == Kind.DISTRIBUTOR;
@@ -173,6 +190,8 @@ public final class Components {
     private static int defaultPins(Kind kind, boolean spdt) {
         return switch (kind) {
             case RELAY -> 4;              // 0/1 — катушка, 2/3 — контакт
+            case BRIDGE, TRANSFORMER -> 4; // мост: 0/1 — «~», 2/3 — «+»/«−»; тр-р: 2/3 — вторичка
+            case REGULATOR -> 3;          // IN / OUT / GND
             case MAGNET, STATION, TOOL, SUPPLY -> 0;
             case TRANSISTOR, POT -> 3;
             case GATE -> 3;

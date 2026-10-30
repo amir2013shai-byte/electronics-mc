@@ -99,17 +99,65 @@ public final class Def {
                 || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY;
     }
 
+    /** Переменное напряжение (у источника с ac_hz каждый шаг — новый эмис). */
+    public boolean isAc() {
+        return acHz > 0;
+    }
+
     public boolean isTimeDependent() {
         return kind == Kind.CAPACITOR || kind == Kind.GENERATOR || kind == Kind.MOTOR || kind == Kind.LAMP
-                || kind == Kind.INDUCTOR || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY;
+                || kind == Kind.INDUCTOR || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY
+                // тепловая инерция PTC и стабилизатора, накопленный I²t предохранителя,
+                // поток в трансформаторе и деградация варистора — это тоже «память
+                // между шагами»: без неё переходный процесс не увидеть
+                || kind == Kind.PTC || kind == Kind.REGULATOR || kind == Kind.TRANSFORMER
+                || kind == Kind.FUSE || kind == Kind.VARISTOR
+                // синусоидальный источник — тоже «память»: фаза пересчитывается на
+                // каждом шаге, а значит остров с ним обязан тикать и без конденсаторов
+                || (kind == Kind.SOURCE && acHz > 0);
     }
 
     /** Катушка: ток в ней — это «память», без неё шаг по времени бессмыслен. */
     public boolean isInductive() {
-        return inductance > 0 && (kind == Kind.INDUCTOR || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY);
+        return inductance > 0 && (kind == Kind.INDUCTOR || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY
+                || kind == Kind.TRANSFORMER);
     }
 
     /** Максимум визуальных состояний, которые есть у компонента. */
+    /** Плавкий предохранитель: I²t (А²·с), при котором плавится вставка. */
+    public double blowI2t = 0.0;
+    /** PTC: ток удержания и ток срабатывания, А. */
+    public double holdCurrent = 0.0;
+    public double tripCurrent = 0.0;
+    /** PTC/стабилизатор: температура срабатывания (°C выше среды), К/Вт и Дж/К. */
+    public double tripTemp = 90.0;
+    public double thermalK = 8.0;
+    public double heatJ = 1.5;
+    /** Варистор: порог (В, при котором через деталь пойдёт 1 мА), крутизна α, энергия, Дж. */
+    public double vClamp = 0.0;
+    public double nlAlpha = 8.0;
+    public double energyJ = 0.0;
+    /** Стабилизатор: dropout, предел тока, собственное потребление. */
+    public double dropout = 2.0;
+    public double iLimit = 1.0;
+    public double iQuiescent = 0.005;
+    /** Подстроечный стабилизатор (LM317): пределы выходного напряжения, В. */
+    public double vOutMin = 0.0;
+    public double vOutMax = 0.0;
+    /** Синусоидальный источник: частота, Гц (0 = постоянка). */
+    public double acHz = 0.0;
+    /** Трансформатор: коэффициент витков и коэффициент связи. */
+    public double ratio = 1.0;
+    public double coupling = 0.98;
+
+    /** Целевое напряжение стабилизатора с учётом подстройки (для LM317). */
+    public double regulatorTarget(double tuneFraction) {
+        if (vOutMax > vOutMin && vOutMin > 0) {
+            return vOutMin + Math.max(0.0, Math.min(1.0, tuneFraction)) * (vOutMax - vOutMin);
+        }
+        return voltage;
+    }
+
     public static final int MAX_STATE_SLOTS = 6;
 
     /**
@@ -159,8 +207,9 @@ public final class Def {
     /** Короткая строка номинала для подсказок/лора. */
     public String nominal() {
         return switch (kind) {
-            case RESISTOR, FUSE, AMMETER, VOLTMETER -> "R=" + trim(resistance) + " Ом";
-            case SOURCE, GENERATOR, SOLAR -> "U=" + trim(voltage) + " В";
+            case RESISTOR, AMMETER, VOLTMETER -> "R=" + trim(resistance) + " Ом";
+            case SOURCE, GENERATOR, SOLAR -> (acHz > 0 ? "U=" + trim(voltage) + " В, синус "
+                    + trim(acHz) + " Гц" : "U=" + trim(voltage) + " В");
             case CAPACITOR -> "C=" + trim(capacitance) + " Ф";
             case INDUCTOR -> "L=" + (inductance >= 1 ? trim(inductance) + " Гн"
                     : trim(inductance * 1000) + " мГн") + ", R=" + trim(resistance) + " Ом";
@@ -169,6 +218,21 @@ public final class Def {
             case RELAY -> "катушка " + trim(resistance) + " Ом; втягивание " + trim(operateMa)
                     + " мА, отпускание " + trim(releaseMa) + " мА";
             case REED -> "замыкается от поля " + trim(operateMt) + " мТл";
+            case PTC -> "удержание " + trim(holdCurrent * 1000) + " мА, срабатывание "
+                    + trim(tripCurrent * 1000) + " мА, R холодного " + trim(resistance) + " Ом";
+            case VARISTOR -> "порог " + trim(vClamp) + " В, α=" + trim(nlAlpha)
+                    + ", энергия " + trim(energyJ) + " Дж";
+            case BRIDGE -> "4 диода внутри: ~" + trim(2 * (vForward > 0 ? vForward : 0.55))
+                    + " В на мосту, " + trim(maxCurrent) + " А / " + trim(vReverseMax) + " В";
+            case REGULATOR -> (vOutMax > vOutMin && vOutMin > 0
+                    ? trim(vOutMin) + "–" + trim(vOutMax) + " В (подстроечный)"
+                    : "Uвых " + trim(voltage) + " В") + ", dropout " + trim(dropout)
+                    + " В, предел " + trim(iLimit) + " А, " + trim(iQuiescent * 1000) + " мА на себя";
+            case TRANSFORMER -> "Кт = 1:" + trim(ratio) + ", L перв. " + trim(inductance * 1000)
+                    + " мГн, связь k=" + trim(coupling) + ", " + trim(ratedPower) + " ВА";
+            case FUSE -> maxCurrent > 0 ? "на " + (maxCurrent >= 1 ? trim(maxCurrent) + " А"
+                    : trim(maxCurrent * 1000) + " мА") + ", вставка плавится при I²t=" + trim(blowI2t)
+                    : "R=" + trim(resistance) + " Ом";
             case MAGNET -> trim(fieldMt) + " мТл у полюса";
             case LED, DIODE -> "U=" + trim(vForward > 0 ? vForward : vDrop) + " В";
             case TRANSISTOR -> "h21e=" + trim(beta);

@@ -60,7 +60,10 @@ public final class Soldering {
     /** Корпуса, которые портятся перегревом/окислением — им нужен флюс. */
     private static final Set<Kind> NEEDS_FLUX = EnumSet.of(Kind.LED, Kind.LAMP, Kind.TRANSISTOR,
             Kind.GATE, Kind.RELAY, Kind.REED, Kind.ELECTROMAGNET, Kind.INDUCTOR, Kind.CAPACITOR,
-            Kind.MOTOR, Kind.BUZZER, Kind.VOLTMETER, Kind.AMMETER, Kind.MULTIMETER, Kind.DIODE);
+            Kind.MOTOR, Kind.BUZZER, Kind.VOLTMETER, Kind.AMMETER, Kind.MULTIMETER, Kind.DIODE,
+            // полупроводниковые сборки и обмотки: без флюса пайка «сухая» —
+            // 4 диода в мосту, кристалл стабилизатора и выводы трансформатора
+            Kind.BRIDGE, Kind.REGULATOR, Kind.TRANSFORMER);
 
     private Soldering() {
     }
@@ -268,6 +271,45 @@ public final class Soldering {
         Items.message(p, "&aЖало прогрето до " + HEAT_MAX + "°&7 — паять можно, остывает за "
                 + Math.round(HEAT_MAX / COOL_DEG_PER_S) + " с.");
         return true;
+    }
+
+    /** Оплётка для выпайки — расходник ремонта (собирает старый припой). */
+    public static final String BRAID_ID = "desolder_braid";
+
+    /**
+     * Что мешает починить сгоревшую деталь на паяльном столе. Возвращает текст
+     * причины или null, если всё готово: горячее жало, оплётка и припой.
+     */
+    public static String repairBlocker(Player p) {
+        int slot = ironSlot(p);
+        if (slot < 0) {
+            return "нужен паяльник в руке";
+        }
+        int h = heat(p.getInventory().getItem(slot));
+        if (h < HEAT_HOT) {
+            return "жало холодное (" + h + "°): прогрей об печь, костёр или лаву";
+        }
+        if (countOf(p, BRAID_ID) < 1) {
+            return "нужна оплётка для выпайки (1 шт.)";
+        }
+        if (countOf(p, SOLDER_ID) < 1) {
+            return "нужен припой (1 шт.)";
+        }
+        return null;
+    }
+
+    /** Списывает расходники ремонта и немного «сажает» жало (как при реальной перепайке). */
+    public static void consumeRepair(Player p) {
+        removeOurs(p, BRAID_ID, 1);
+        removeOurs(p, SOLDER_ID, 1);
+        int slot = ironSlot(p);
+        if (slot >= 0) {
+            ItemStack iron = p.getInventory().getItem(slot);
+            if (iron != null) {
+                p.getInventory().setItem(slot, withHeat(iron, Math.max(0, heat(iron) - 15)));
+            }
+        }
+        p.updateInventory();
     }
 
     /** Сколько предметов нашего реестра с таким id лежит в инвентаре. */

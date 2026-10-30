@@ -25,8 +25,44 @@ public final class Mna {
     public static final double G_CONDUCTOR = 1 / R_CONDUCTOR;
 
     private final List<Stamp> stamps = new ArrayList<>();
+    private final List<Coupled> coupled = new ArrayList<>();
     private final Set<String> nodes = new LinkedHashSet<>();
     private final Map<String, Double> ground = new HashMap<>();
+
+    /**
+     * Связанный 2-порт (трансформатор): токи на портах линейны по напряжениям,
+     * причём перекрёстные проводимости отрицательные — обычной «проводимостью
+     * между двумя узлами» это не выразить, поэтому коэффициентная запись.
+     *
+     * <p>Знаки согласованы с {@link #stamp}: строка узла a содержит
+     * y11·(Va−Vb) + y12·(Vc−Vd) = −h1 (история тока уносится в правую часть).</p>
+     */
+    public static final class Coupled {
+        final String a;
+        final String b;
+        final String c;
+        final String e;
+        final double y11;
+        final double y12;
+        final double y21;
+        final double y22;
+        final double h1;
+        final double h2;
+
+        Coupled(String a, String b, String c, String e, double y11, double y12,
+                double y21, double y22, double h1, double h2) {
+            this.a = a;
+            this.b = b;
+            this.c = c;
+            this.e = e;
+            this.y11 = y11;
+            this.y12 = y12;
+            this.y21 = y21;
+            this.y22 = y22;
+            this.h1 = h1;
+            this.h2 = h2;
+        }
+    }
 
     /** Запись о вставленном элементе. */
     public static final class Stamp {
@@ -66,6 +102,25 @@ public final class Mna {
         node(to);
         stamps.add(new Stamp(from, to, conductance, current));
         inflowCache = null;
+    }
+
+    /** Связанные обмотки: порты (a,b) и (c,e) с проводимостями y** и источниками истории h**. */
+    public void coupled(String a, String b, String c, String e,
+                        double y11, double y12, double y21, double y22, double h1, double h2) {
+        if (a.equals(b) || c.equals(e) || !(y11 > 0) || !(y22 > 0)) {
+            return;
+        }
+        node(a);
+        node(b);
+        node(c);
+        node(e);
+        coupled.add(new Coupled(a, b, c, e, y11, y12, y21, y22, h1, h2));
+        inflowCache = null;
+    }
+
+    /** Количество связанных 2-портов (для диагностики: у трансформатора их один). */
+    public int coupledCount() {
+        return coupled.size();
     }
 
     /** Идеальный проводник между узлами (для проводов, шин, замкнутых ключей). */
@@ -116,6 +171,35 @@ public final class Mna {
             // G*V = I, где в узел a втекает +i, из b вытекает
             a[ia][n] += s.i;
             a[ib][n] -= s.i;
+        }
+
+        for (Coupled k : coupled) {
+            int ka = idx.get(k.a);
+            int kb = idx.get(k.b);
+            int kc = idx.get(k.c);
+            int ke = idx.get(k.e);
+            // порт 1: i1 = y11*u1 + y12*u2 + h1  (уходит из a, приходит в b)
+            a[ka][ka] += k.y11;
+            a[kb][kb] += k.y11;
+            a[ka][kb] -= k.y11;
+            a[kb][ka] -= k.y11;
+            a[ka][kc] += k.y12;
+            a[kb][kc] -= k.y12;
+            a[ka][ke] -= k.y12;
+            a[kb][ke] += k.y12;
+            a[ka][n] -= k.h1;
+            a[kb][n] += k.h1;
+            // порт 2: i2 = y21*u1 + y22*u2 + h2
+            a[kc][kc] += k.y22;
+            a[ke][ke] += k.y22;
+            a[kc][ke] -= k.y22;
+            a[ke][kc] -= k.y22;
+            a[kc][ka] += k.y21;
+            a[ke][ka] -= k.y21;
+            a[kc][kb] -= k.y21;
+            a[ke][kb] += k.y21;
+            a[kc][n] -= k.h2;
+            a[ke][n] += k.h2;
         }
 
         boolean floating = ground.isEmpty();

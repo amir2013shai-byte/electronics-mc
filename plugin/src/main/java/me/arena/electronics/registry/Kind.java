@@ -58,6 +58,16 @@ public enum Kind {
     RELAY,
     /** Геркон: ключ, который замыкает магнитное поле. */
     REED,
+    /** PTC-предохранитель: сопротивление растёт с температурой, остывает — возвращается. */
+    PTC,
+    /** Варистор (MOV): нелинейная проводимость выше порога и деградация от энергии. */
+    VARISTOR,
+    /** Диодный мост: 4 вывода (2 переменных, «+» и «−») = 4 диода внутри корпуса. */
+    BRIDGE,
+    /** Линейный стабилизатор (78x5/7812/LM317): IN/OUT/GND, dropout и ограничение тока. */
+    REGULATOR,
+    /** Трансформатор: две связанные обмотки (взаимная индуктивность в companion-модели). */
+    TRANSFORMER,
     /** Паяльный стол: блок-станок, на котором спаивают детали. Цепь не проводит. */
     STATION,
     /** Инструмент (паяльник): предмет в руке, не деталь цепи. */
@@ -74,7 +84,8 @@ public enum Kind {
     public boolean twoTerminal() {
         return switch (this) {
             case RESISTOR, CAPACITOR, LED, LAMP, DIODE, SWITCH, BUTTON, TOGGLE, FUSE,
-                 VOLTMETER, AMMETER, WIRE, PROBE, SOURCE, GROUND, GENERATOR, SOLAR, POT -> true;
+                 VOLTMETER, AMMETER, WIRE, PROBE, SOURCE, GROUND, GENERATOR, SOLAR, POT,
+                 PTC, VARISTOR -> true;
             default -> false;
         };
     }

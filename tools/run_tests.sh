@@ -29,9 +29,10 @@ javac -encoding UTF-8 -d "$OUT" -cp "$CP" \
   plugin/src/main/java/me/arena/electronics/sim/Mna.java \
   plugin/src/main/java/me/arena/electronics/circuit/Topology.java \
   plugin/src/main/java/me/arena/electronics/registry/Kind.java \
-  tools/TestMna.java tools/TestTopology.java
+  tools/TestMna.java tools/TestTopology.java tools/TestCoupled.java
 java -Dfile.encoding=UTF-8 -cp "$OUT" TestMna
 java -Dfile.encoding=UTF-8 -cp "$OUT" TestTopology
+java -Dfile.encoding=UTF-8 -cp "$OUT" TestCoupled
 
 # --- ресурспак: сверка ссылок на модели/текстуры (если пак собран) ----------------
 if [ -d build/resourcepack ]; then

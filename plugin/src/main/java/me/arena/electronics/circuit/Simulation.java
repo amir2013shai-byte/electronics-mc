@@ -45,6 +45,9 @@ public final class Simulation {
         String hint = "";
     }
 
+    /** Общий шаг симуляции для источников со своей фазой (синусоидальный вход). */
+    static long acPhaseStep = 0;
+
     private Simulation() {
     }
 
@@ -281,6 +284,18 @@ public final class Simulation {
             }
             v = iterate(plugin, cfg, isl, dt, v, notify, true);
         }
+        // Линейный стабилизатор: ограничение тока — это петля обратной связи,
+        // поэтому коэффициент foldback пересчитываем по уже измеренному току
+        // (2–4 итерации, как с реле: иначе КЗ показывало бы «идеальный» источник).
+        for (int extra = 0; extra < 4; extra++) {
+            if (!updateLimits(isl)) {
+                break;
+            }
+            v = iterate(plugin, cfg, isl, dt, v, notify, true);
+        }
+        // один «шаг света» для синусоидальных источников: считаем решение острова,
+        // а не число проходов внутри него
+        acPhaseStep++;
     }
 
     /** Одна сборка и решение матрицы для острова. */
@@ -415,6 +430,20 @@ public final class Simulation {
                     }
                 }
                 case INDUCTOR -> stampInductive(mna, c, a, b, dt, Math.max(0.01, d.resistance), d.inductance);
+                case PTC -> {
+                    if (b != null) {
+                        mna.stamp(a, b, 1.0 / ptcResistance(c, d), 0);
+                    }
+                }
+                case VARISTOR -> {
+                    if (b != null) {
+                        double u = Math.abs(prev.getOrDefault(a, 0.0) - prev.getOrDefault(b, 0.0));
+                        mna.stamp(a, b, movConductance(c, d, u), 0);
+                    }
+                }
+                case BRIDGE -> stampBridge(isl, mna, cfg, c, prev);
+                case REGULATOR -> stampRegulator(isl, mna, cfg, c, prev);
+                case TRANSFORMER -> stampTransformer(isl, mna, c, dt);
                 case ELECTROMAGNET -> {
                     stampInductive(mna, c, a, b, dt, Math.max(1.0, d.resistance), d.inductance);
                     c.field = d.fieldPerAmp * Math.abs(c.iPrev);
@@ -431,17 +460,18 @@ public final class Simulation {
                         // получается положительная обратная связь и конденсатор «не заряжается».
                         double g = Math.max(d.capacitance, 1e-12) / dt;
                         mna.stamp(a, b, g, g * c.vcPrev);
+                        // утечка электролита: R_leak параллельно (иначе «банковские»
+                        // конденсаторы держат заряд вечно, чего в жизни не бывает)
+                        if (d.resistance > 0) {
+                            mna.stamp(a, b, 1.0 / d.resistance, 0);
+                        }
                     }
                 }
                 case LED, DIODE -> {
                     if (b != null) {
                         double vf = d.vForward > 0 ? d.vForward : Math.max(0.4, d.vDrop);
                         double ud = prev.getOrDefault(a, 0.0) - prev.getOrDefault(b, 0.0);
-                        if (ud > vf) {
-                            mna.stamp(a, b, 1.0 / 25.0, vf / 25.0);
-                        } else {
-                            mna.stamp(a, b, cfg.gLeak(), 0);
-                        }
+                        diodeEdge(mna, cfg, prev, a, b, vf);
                         double vrev = d.vReverseMax > 0 ? d.vReverseMax : 30.0;
                         if (ud < -vrev) {
                             mna.stamp(b, a, 1.0 / 20.0, -vrev / 20.0);
@@ -581,16 +611,39 @@ public final class Simulation {
         double gndV = isl.grounds.isEmpty() ? 0 : v.getOrDefault(isl.grounds.get(0), 0.0);
         boolean burned = false;
         for (CompInstance c : isl.comps) {
+            Def d = c.def;
             double v0 = nodeVoltage(isl, v, c.pinNet, 0) - gndV;
             double v1 = nodeVoltage(isl, v, c.pinNet, 1) - gndV;
             c.pinVoltage[0] = v0;
             c.pinVoltage[1] = v1;
             c.voltage = v0 - v1;
             double i = branchCurrent(c, mna, isl, v);
+            double dtF = Math.max(0.005, cfg.dt());
+            if (d.kind == Kind.REGULATOR) {
+                // стабилизатор отдаёт в нагрузку ток своего источника: берём его из
+                // собственного stamp'а «выход -> земля» (иначе branchCurrent считает
+                // только утечку IQ и «ограничение тока» было бы негде показать)
+                String outN = rep(isl, c.pinNet[1]);
+                String gndN = rep(isl, c.pinNet[2]);
+                Mna.Stamp src = outN == null ? null : mna.findBranch(outN, gndN);
+                if (src != null) {
+                    i = Math.abs(Mna.branchCurrent(src, v, outN));
+                }
+                c.reading = Math.abs(c.pinVoltage[1]);
+            } else if (d.kind == Kind.TRANSFORMER) {
+                double[] ii = transformerCurrents(c, isl, v, dtF);
+                c.reading = Math.abs(nodeVoltage(isl, v, c.pinNet, 2) - nodeVoltage(isl, v, c.pinNet, 3));
+                c.aux[0] = ii[0];
+                c.aux[1] = ii[1];
+                i = Math.abs(ii[0]);
+                if (d.ratedPower > 0 && Math.abs(ii[1]) * c.reading > d.ratedPower * 6) {
+                    c.aux[2] = 1;             // перегрузка вторички: считаем в protect()
+                }
+            }
             c.current = i;
-            if (c.def.isInductive()) {
+            if (c.def.isInductive() && d.kind != Kind.TRANSFORMER) {
                 // история катушки: по ней считается следующий шаг dt
-                c.iPrev = inductorCurrent(c, isl, v, Math.max(0.005, cfg.dt()));
+                c.iPrev = inductorCurrent(c, isl, v, dtF);
             }
             c.power = Math.abs(c.voltage * i);
             updateState(plugin, cfg, c, i);
@@ -609,6 +662,7 @@ public final class Simulation {
 
     private static void updateState(ElectronicsPlugin plugin, Config cfg, CompInstance c, double i) {
         Def d = c.def;
+        double dt = Math.max(0.005, cfg.dt());
         switch (d.kind) {
             case LED -> {
                 c.brightness = Math.max(0, Math.min(1, Math.abs(i) / 0.02));
@@ -661,7 +715,47 @@ public final class Simulation {
             }
             case REED -> c.brightness = c.state == CompStates.CLOSED ? 1 : 0;
             case RELAY -> c.brightness = c.state == CompStates.CLOSED ? 1 : 0;
-            case FUSE -> c.state = CompStates.CLOSED;
+            case FUSE -> {
+                // I²t: плавкая вставка греется не мгновенно, а копит «огонь».
+                // При 2× номинала стекло 5×20 живёт доли секунды, при 1.2× — минуты.
+                double budget = d.blowI2t;
+                if (budget > 0) {
+                    c.aux[0] = Math.max(0, c.aux[0] + c.current * c.current * dt * (c.burnt() ? 0 : 1));
+                    c.state = c.aux[0] > budget * 0.45 ? CompStates.DIM : CompStates.CLOSED;
+                } else {
+                    c.state = CompStates.CLOSED;
+                }
+            }
+            case PTC -> {
+                double cth = Math.max(0.2, d.heatJ);
+                double rth = Math.max(0.2, d.thermalK);
+                c.aux[0] = Math.max(0, c.aux[0] + dt * (c.power / cth - c.aux[0] / rth));
+                c.aux[1] = Math.max(c.aux[1], c.aux[0]);   // пик: в защите деталь остывает и греется по кругу
+                double tsw = d.tripTemp > 0 ? d.tripTemp : 90;
+                c.state = c.aux[0] >= tsw ? CompStates.ON : (c.aux[0] >= tsw * 0.35 ? CompStates.DIM : CompStates.OFF);
+            }
+            case VARISTOR -> {
+                if (c.power > 0.5) {
+                    c.aux[0] += c.power * dt;                     // Дж, накопленные «ударом»
+                    c.state = CompStates.ON;
+                } else {
+                    c.state = c.aux[1] > 0 ? CompStates.DIM : CompStates.OFF;
+                }
+            }
+            case BRIDGE -> c.state = Math.abs(i) > 0.002 ? CompStates.ON : CompStates.OFF;
+            case REGULATOR -> {
+                double cth = Math.max(0.5, d.heatJ);
+                double rth = Math.max(1.0, d.thermalK);
+                // на корпусе рассеивается (Uвх − Uвых)·Iнагр + Uвх·IQ — ровно то, что
+                // заставляет ставить радиатор
+                double pdiss = Math.abs(c.voltage) * Math.abs(i) + Math.abs(c.pinVoltage[0]) * Math.max(0, d.iQuiescent);
+                c.aux[0] = Math.max(0, c.aux[0] + dt * (pdiss / cth - c.aux[0] / rth));
+                c.reading = Math.abs(c.pinVoltage[1]);
+                c.state = c.aux[0] > 100 ? CompStates.DIM
+                        : (c.voltage > Math.max(0.2, d.dropout) * 0.98 && Math.abs(i) < 1e-9 ? CompStates.OFF
+                        : (c.pinVoltage[1] > 0.05 ? CompStates.ON : CompStates.OFF));
+            }
+            case TRANSFORMER -> c.state = Math.abs(i) > 0.005 ? CompStates.ON : CompStates.OFF;
             case TRANSISTOR -> c.state = Math.abs(i) > 0.0004 ? CompStates.ON : CompStates.OFF;
             case GATE -> c.state = c.voltage > 2.0 ? CompStates.ON : CompStates.OFF;
             case WIRE -> c.state = Math.abs(i) > 2.0 ? CompStates.ON : CompStates.OFF;
@@ -695,8 +789,43 @@ public final class Simulation {
             c.burn("полярный конденсатор включён обратной полярностью");
             return true;
         }
-        if (d.kind == Kind.FUSE && d.maxCurrent > 0 && Math.abs(c.current) > d.maxCurrent * 1.5) {
-            c.burn("предохранитель перегорел (I=" + Num.amp(Math.abs(c.current)) + ")");
+        if (d.kind == Kind.FUSE && d.maxCurrent > 0) {
+            if (d.blowI2t > 0) {
+                if (c.aux[0] > d.blowI2t) {
+                    c.burn("плавкая вставка сгорела: I²t=" + Num.eng(c.aux[0], "А²·с")
+                            + " при пределе " + Num.eng(d.blowI2t, "А²·с"));
+                    noteIsland(isl, "предохранитель перегорел — заменить/перепаять на столе: /elec repair");
+                    return true;
+                }
+            } else if (Math.abs(c.current) > d.maxCurrent * 1.5) {
+                c.burn("предохранитель перегорел (I=" + Num.amp(Math.abs(c.current)) + ")");
+                noteIsland(isl, "предохранитель перегорел — перепаять на столе: /elec repair");
+                return true;
+            }
+        }
+        if (d.kind == Kind.PTC && c.aux[0] > (d.tripTemp > 0 ? d.tripTemp : 90) * 2.6) {
+            c.burn("PTC перегрет и не восстанавливается (Δt=" + (int) c.aux[0] + " °C)");
+            noteIsland(isl, "самовосстанавливающийся предохранитель сгорел от долгого КЗ");
+            return true;
+        }
+        if (d.kind == Kind.REGULATOR && c.aux[0] > 200) {
+            c.burn("стабилизатор сгорел: Δt=" + (int) c.aux[0] + " °C, нужен радиатор");
+            noteIsland(isl, "линейный стабилизатор сгорел — (Uвх−Uвых)·I слишком велика");
+            return true;
+        }
+        // Обратную полярность у стабилизатора здесь не проверяем: для 3-выводных
+        // деталей c.voltage считается между первыми двумя выводами (IN и GND), а на
+        // итерационных проходах решателя знак там гуляет сам по себе — деталь гишла бы
+        // ни за что. Защита от обратки — диод навстречу входу (об этом describe), а
+        // сама микросхема гибнет от перегрева: он проверен выше и честно считан.
+        if (d.kind == Kind.VARISTOR && c.aux[1] >= 3) {
+            c.burn("варистор отработал ресурс (3 раза поглотил импульс): утечка выросла");
+            noteIsland(isl, "MOV деградирует с каждым импульсом — это расходник");
+            return true;
+        }
+        if (d.kind == Kind.TRANSFORMER && c.aux[2] > 0 && c.power > Math.max(1, d.ratedPower) * 5) {
+            c.burn("трансформатор перегружен: " + Num.watt(c.power) + " при " + Num.watt(d.ratedPower));
+            noteIsland(isl, "вторичка трансформатора гружен — греется и сгорает");
             return true;
         }
         if (d.kind == Kind.MOTOR && d.ratedVoltage > 0 && Math.abs(c.voltage) > d.ratedVoltage * 1.6) {
@@ -735,6 +864,211 @@ public final class Simulation {
             return Math.abs(Mna.branchCurrent(s, v, b));
         }
         return Math.abs(mna.netInflow(a, v));
+    }
+
+    /**
+     * Сопротивление PTC-предохранителя. До температуры срабатывания оно почти
+     * линейное (1 + 0.4 %/K), после — растёт на порядок каждые 2.5 °C, чем и
+     * обеспечивается «щелчок» в защиту. Остывает — возвращается само: за это
+     * деталь и называется самовосстанавливающейся.
+     */
+    private static double ptcResistance(CompInstance c, Def d) {
+        double r0 = Math.max(1e-3, d.resistance > 0 ? d.resistance : 1.0);
+        double t = Math.max(0, c.aux[0]);
+        double tsw = d.tripTemp > 0 ? d.tripTemp : 90;
+        if (t <= tsw) {
+            return r0 * (1 + 0.004 * t);
+        }
+        return Math.min(1e7, r0 * Math.pow(10, Math.min(7, (t - tsw) / 2.5)));
+    }
+
+    /**
+     * Проводимость варистора: I = K·U^α, K подбирается так, чтобы на паспортном
+     * пороге через деталь шёл 1 мА. Выше порога α=9 даёт «кирпич»: 390 В держатся
+     * и при 1 А, и при 10 А. Деградация уменьшает сопротивление утечки на порядок
+     * за каждый поглощённый импульс — варистор расходник, а не вечный КЗ-защитник.
+     */
+    private static double movConductance(CompInstance c, Def d, double u) {
+        double rOff = d.resistance > 0 ? d.resistance : 1e9;
+        rOff = Math.max(1e3, rOff / Math.pow(10, c.aux[1]));
+        double vc = d.vClamp > 0 ? d.vClamp : 1e9;
+        double alpha = d.nlAlpha > 1 ? d.nlAlpha : 8;
+        double k = 1e-3 / Math.pow(vc, alpha);
+        double g = u > 1e-6 ? Math.min(2.0, k * Math.pow(u, alpha) / u) : 0;
+        return 1.0 / rOff + g;
+    }
+
+    /** Один p-n переход: открыт — 25 Ом с ЭДС vf, закрыт — ток утечки. */
+    private static void diodeEdge(Mna mna, Config cfg, Map<String, Double> prev,
+                                  String from, String to, double vf) {
+        double ud = prev.getOrDefault(from, 0.0) - prev.getOrDefault(to, 0.0);
+        if (ud > vf) {
+            mna.stamp(from, to, 1.0 / 25.0, vf / 25.0);
+        } else {
+            mna.stamp(from, to, cfg.gLeak(), 0);
+        }
+    }
+
+    /** Диодный мост: 4 вывода, 0/1 — «~», 2 — «+», 3 — «−». */
+    private static void stampBridge(Island isl, Mna mna, Config cfg, CompInstance c, Map<String, Double> prev) {
+        String ac1 = rep(isl, c.pinNet[0]);
+        String ac2 = rep(isl, c.pinNet[1]);
+        String plus = rep(isl, c.pinNet[2]);
+        String minus = rep(isl, c.pinNet[3]);
+        if (ac1 == null || ac2 == null || plus == null || minus == null) {
+            return;
+        }
+        double vf = c.def.vForward > 0 ? c.def.vForward : 0.55;
+        diodeEdge(mna, cfg, prev, ac1, plus, vf);
+        diodeEdge(mna, cfg, prev, minus, ac1, vf);
+        diodeEdge(mna, cfg, prev, ac2, plus, vf);
+        diodeEdge(mna, cfg, prev, minus, ac2, vf);
+    }
+
+    /**
+     * Линейный стабилизатор как «идеальный источник + последовательное
+     * сопротивление + ограничение по току». Uвых = min(Uцель, Uвх − dropout):
+     * не хватает входа — деталь честно выпадает в режим резистора и пропускает
+     * вход на выход (именно поэтому у 7805 просят 7.5 В, а не 5.1 В).
+     */
+    private static void stampRegulator(Island isl, Mna mna, Config cfg, CompInstance c, Map<String, Double> prev) {
+        Def d = c.def;
+        String in = rep(isl, c.pinNet[0]);
+        String out = rep(isl, c.pinNet[1]);
+        String gnd = rep(isl, c.pinNet[2]);
+        if (in == null || out == null || gnd == null) {
+            return;
+        }
+        double vg = prev.getOrDefault(gnd, 0.0);
+        double target = Math.max(0, d.regulatorTarget(c.tuneFraction()));
+        // Первый проход prev пуст — узла входа в нём ещё нет. Считать тогда vin = 0
+        // значит «стабилизатор никогда не стартует» (он живёт своим же решением),
+        // поэтому при неизвестном входе считаем вход «сколько угодно»: target
+        // держится, а на следующих проходах prev уже знает реальное Uвх и мы
+        // честно просядем на dropout.
+        double vin = prev.containsKey(in) ? prev.getOrDefault(in, 0.0) - vg : Double.POSITIVE_INFINITY;
+        double vout = Math.max(0, Math.min(target, vin - Math.max(0.2, d.dropout)));
+        double rz = Math.max(0.05, d.internalResistance > 0 ? d.internalResistance : 0.6);
+        // Ограничение по току. Смотрим на тог, что деталь отдавала на прошлом проходе:
+        // Uвых/rz — это и есть ток КЗ (для 7805: 5 В / 0.6 Ом = 8 А). Пока он в
+        // пределах паспорта — стабилизатор источник напряжения; как только вышел —
+        // он источник тока на head, и Uвых проседает столько, сколько нужно. Так
+        // деталь ведёт себя и на холостом ходу, и в коротыше, без «лишнего»
+        // резистора в разрыв, который портил бы Uвых на нормальной нагрузке.
+        double head = d.iLimit > 0 ? d.iLimit : 1.0;
+        if (c.aux[0] > 100) {
+            head *= Math.max(0.05, 1 - (c.aux[0] - 100) / 60.0);   // тепловая защита (корпус > 100°)
+        }
+        // берём именно знаковое «сколько отдали»: на просадке (dropout) выход
+        // выше цели и деталь ничего не отдаёт — ограничивать нечего
+        double iOut = prev.containsKey(out) ? (vout - (prev.get(out) - vg)) / rz : 0.0;
+        boolean limit = iOut > head;
+        c.aux[3] = limit ? head / Math.max(head, iOut) : 1.0;
+        if (limit) {
+            mna.stamp(out, gnd, 1.0 / 1e6, head);                  // генератор тока: держит head
+        } else {
+            mna.stamp(out, gnd, 1.0 / rz, vout / rz);
+        }
+        // Линейный стабилизатор берёт из входа ровно столько, сколько отдаёт в
+        // нагрузку (плюс свои 5..10 мА) — именно поэтому его греют радиатором.
+        // Штампуем это отдельной ветвью, иначе «коротыш на выходе» не было бы
+        // видно по току питания, а он как раз и есть главный учебный сюжет.
+        double iDeliver = Math.max(0.0, limit ? head : iOut);
+        mna.stamp(in, gnd, cfg.gLeak(), -(Math.max(0.0005, d.iQuiescent) + iDeliver));
+        if (vin < target + Math.max(0.2, d.dropout)) {
+            // dropout: переход не открыт полностью -> выход подтянут входом через
+            // сопротивление прохождения; иначе «нестabilизированный» режим выглядел бы
+            // как полный обрыв, а не как «5 В не держатся, держи 7 В»
+            mna.stamp(in, out, 1.0 / Math.max(1.0, rz * 30), 0);
+        }
+    }
+
+    /**
+     * Трансформатор = две связанные индуктивности с обратным Эйлером:
+     *   u1 = R1·i1 + L1·di1/dt + M·di2/dt,  u2 = R2·i2 + M·di1/dt + L2·di2/dt
+     * После дискретизации получаем 2-порт с проводимостями y** и «памятью» h**.
+     * При M = 0 формула вырождается ровно в stampInductive (проверено в тестах),
+     * поэтому вторичка без связи — это просто вторая катушка.
+     */
+    private static void stampTransformer(Island isl, Mna mna, CompInstance c, double dt) {
+        Def d = c.def;
+        String p1 = rep(isl, c.pinNet[0]);
+        String p2 = rep(isl, c.pinNet[1]);
+        String s1 = rep(isl, c.pinNet[2]);
+        String s2 = rep(isl, c.pinNet[3]);
+        if (p1 == null || p2 == null || s1 == null || s2 == null) {
+            return;
+        }
+        double n = d.ratio > 1.0001 ? d.ratio : 1.0;
+        double l1 = Math.max(1e-4, d.inductance);
+        double l2 = l1 / (n * n);
+        double k = Math.max(0.5, Math.min(0.9999, d.coupling > 0 ? d.coupling : 0.98));
+        double m = k * Math.sqrt(l1 * l2);
+        double r1 = Math.max(0.01, d.resistance);
+        double r2 = Math.max(0.01, r1 / (n * n));
+        double a11 = r1 + l1 / dt;
+        double a22 = r2 + l2 / dt;
+        double a12 = m / dt;
+        double det = a11 * a22 - a12 * a12;
+        if (!(det > 1e-9)) {
+            stampInductive(mna, c, p1, p2, dt, r1, l1);
+            return;
+        }
+        double e1 = (l1 * c.aux[0] + m * c.aux[1]) / dt;
+        double e2 = (m * c.aux[0] + l2 * c.aux[1]) / dt;
+        mna.coupled(p1, p2, s1, s2, a22 / det, -a12 / det, -a12 / det, a11 / det,
+                (a22 * e1 - a12 * e2) / det, (a11 * e2 - a12 * e1) / det);
+    }
+
+    /** Токи обмоток «как они получились» — та же формула, что в штампе. */
+    private static double[] transformerCurrents(CompInstance c, Island isl, Map<String, Double> v, double dt) {
+        Def d = c.def;
+        double n = d.ratio > 1.0001 ? d.ratio : 1.0;
+        double l1 = Math.max(1e-4, d.inductance);
+        double l2 = l1 / (n * n);
+        double k = Math.max(0.5, Math.min(0.9999, d.coupling > 0 ? d.coupling : 0.98));
+        double m = k * Math.sqrt(l1 * l2);
+        double r1 = Math.max(0.01, d.resistance);
+        double r2 = Math.max(0.01, r1 / (n * n));
+        double u1 = nodeVoltage(isl, v, c.pinNet, 0) - nodeVoltage(isl, v, c.pinNet, 1);
+        double u2 = nodeVoltage(isl, v, c.pinNet, 2) - nodeVoltage(isl, v, c.pinNet, 3);
+        double a11 = r1 + l1 / dt;
+        double a22 = r2 + l2 / dt;
+        double a12 = m / dt;
+        double det = a11 * a22 - a12 * a12;
+        if (!(det > 1e-9)) {
+            return new double[]{c.aux[0], c.aux[1]};
+        }
+        double e1 = (l1 * c.aux[0] + m * c.aux[1]) / dt;
+        double e2 = (m * c.aux[0] + l2 * c.aux[1]) / dt;
+        return new double[]{((u1 + e1) * a22 - (u2 + e2) * a12) / det,
+                ((u2 + e2) * a11 - (u1 + e1) * a12) / det};
+    }
+
+    /** Петля ограничения тока стабилизатора: возвращает true, если коэффициент поменялся. */
+    private static boolean updateLimits(Island isl) {
+        // К.т. стабилизатора теперь считается прямо в stampRegulator (по току отдачи
+        // с прошлого прохода) — здесь было бы не на что опереться: провод ветви
+        // «IN–OUT» через проходит только в dropout'е, и ограничение никогда не
+        // включалось. Функция оставлена как точка роста для других видов лимитов.
+        return false;
+    }
+
+    /**
+     * Восстановление сгоревшей детали на паяльном столе: снимает отметку
+     * неисправности и обнуляет переходную память (накопленный I²t, перегрев,
+     * деградацию). Возвращает false, если чинить нечего.
+     */
+    public static boolean repair(CompInstance c) {
+        if (c == null || !c.burnt()) {
+            return false;
+        }
+        c.clearFault();
+        java.util.Arrays.fill(c.aux, 0);
+        c.iPrev = 0;
+        c.vcPrev = 0;
+        c.brightness = 0;
+        return true;
     }
 
     /**
@@ -811,6 +1145,17 @@ public final class Simulation {
 
     private static double sourceVoltage(ElectronicsPlugin plugin, Config cfg, CompInstance c) {
         Def d = c.def;
+        if (d.acHz > 0) {
+            // Фаза — общий счётчик шагов симуляции, а не память детали: сетку
+            // редактора пересобирают заново на каждый прогон, и у aux[3] не было бы
+            // шанса дорасти до полупериода (источник застрял бы на нуле).
+            // Честные 50 Гц на шаге dt = 50 мс не размещаются (Никвист 10 Гц),
+            // поэтому у источника в реестре 1 Гц: период 20 шагов — видно и
+            // переходный процесс моста с конденсатором, и переход через ноль.
+            double period = 1.0 / Math.max(0.01, d.acHz);
+            double t = (acPhaseStep * Math.max(0.005, cfg.dt())) % period;
+            return c.tunedVoltage() * Math.sin(2 * Math.PI * t / period);
+        }
         if (d.kind == Kind.GENERATOR) {
             long period = Math.max(2, cfg.generatorPeriodTicks);
             long phase = plugin.circuit().tick() % (period * 2);

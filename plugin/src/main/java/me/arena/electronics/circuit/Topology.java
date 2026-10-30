@@ -83,6 +83,11 @@ public final class Topology {
                 return 3;
             case RELAY:
                 return 4;      // катушка вдоль оси + контакт вбок
+            case BRIDGE:
+            case TRANSFORMER:
+                return 4;      // плечи вдоль оси + два боковых (у моста «+»/«−», у тр-ра вторичка)
+            case REGULATOR:
+                return 3;      // IN/OUT вдоль оси, GND вбок — как у транзистора
             case BREADBOARD:
             case STATION:
             case TOOL:
@@ -138,6 +143,7 @@ public final class Topology {
         }
         switch (def.kind()) {
             case TRANSISTOR:
+            case REGULATOR:
                 return new int[]{along0, along1, a, up, down, b};
             case GATE:
                 if ("NOT".equalsIgnoreCase(safe(def.logic()))) {
