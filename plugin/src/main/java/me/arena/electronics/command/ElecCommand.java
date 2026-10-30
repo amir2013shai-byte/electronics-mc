@@ -523,6 +523,29 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 }
             }
         }
+        // (5) ни один ванильный предмет под наш переключатель моделей попасть не может:
+        //     состояние выбирается компонентом item_model на СТЕКЕ, custom_model_data
+        //     мы не пишем вовсе (он только fallback для старых ядер)
+        int modelOk = 0;
+        int cmdOnOurs = 0;
+        for (Def d : Components.all()) {
+            ItemStack probe = plugin.items().componentItem(d, 1);
+            if (!probe.hasItemMeta()) {
+                continue;
+            }
+            org.bukkit.inventory.meta.ItemMeta m = probe.getItemMeta();
+            if (m.getItemModel() != null) {
+                modelOk++;
+            }
+            if (m.hasCustomModelData()) {
+                cmdOnOurs++;
+            }
+        }
+        boolean modelComponent = modelOk == Components.size() && cmdOnOurs == 0;
+        s.sendMessage(Items.color((modelComponent ? "&aPASS " : "&cFAIL ")
+                + "&7модель задаётся компонентом item_model у &f" + modelOk + "&7/&f"
+                + Components.size() + " &7предметов, custom_model_data не ставится ни на одном"
+                + " &8(чужие предметы — пластинка в проигрывателе, зелья — наших моделей не видят)"));
         int inManager = 0;
         java.util.Iterator<org.bukkit.inventory.Recipe> it = plugin.getServer().recipeIterator();
         while (it.hasNext()) {

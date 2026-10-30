@@ -11,8 +11,39 @@ import json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RP = os.path.join(ROOT, "build", "resourcepack")
 SUFFIX = ["", "_dim", "_on", "_burnt", "_rev", "_closed"]
+if not os.path.isdir(RP):
+    sys.exit("пак не собран: сначала python3 tools/gen_pack.py (ждал "
+             + os.path.relpath(RP, ROOT) + ")")
+
 DOC = json.load(open(os.path.join(ROOT, "shared", "components.json"), encoding="utf-8"))
 comps = DOC["components"]
+
+# --- пак не имеет права перекрывать ванильные определения предметов и блоков:
+#     иначе чужие вещи (пластинка в проигрывателе, зелье, яйцо спавна) начнут
+#     одевать наши модели. Разрешены ровно два «чужих» файла: список источников
+#     атласа (он дополняет ванильный, а не заменяет) и текстура блока-основы платы.
+ALLOWED_MC_DIRS = ("textures/block/quartz_block_",)
+ALLOWED_MC_FILES = {"atlases/blocks.json"}
+stomp = []
+mc_root = os.path.join(RP, "assets", "minecraft")
+for sub, _, files in os.walk(mc_root):
+    for fn in files:
+        rel = os.path.relpath(os.path.join(sub, fn), mc_root).replace(os.sep, "/")
+        if rel in ALLOWED_MC_FILES or rel.startswith(ALLOWED_MC_DIRS):
+            continue
+        stomp.append(rel)
+if stomp:
+    print("ПОЗОР: пак перекрывает ванильные ресурсы:", stomp[:8])
+    sys.exit(1)
+atlas = os.path.join(mc_root, "atlases", "blocks.json")
+if os.path.isfile(atlas):
+    srcs = json.load(open(atlas, encoding="utf-8")).get("sources", [])
+    alien = [x for x in srcs if not str(x.get("source", "")).startswith("electronics/")]
+    if alien:
+        print("ПОЗОР: atlases/blocks.json претендует на чужие папки (заменил бы ванильный список):", alien)
+        sys.exit(1)
+print("ванильные определения не перекрываем: в assets/minecraft только",
+      "атлас-источник (дополняется) и текстуры кварца-основы")
 
 missing_model, missing_tex, missing_tex_ref = [], [], 0
 acc = 0

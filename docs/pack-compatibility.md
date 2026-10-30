@@ -50,6 +50,20 @@ build/resourcepack/
 └── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1035 текстур 32×32
 ```
 
+Файлы в чужом namespace ровно два вида, и оба безопасны:
+
+* `assets/minecraft/atlases/blocks.json` — **дополняет** список источников
+  атласа (клиент склеивает `sources` из всех паков, а не заменяет файл), поэтому
+  ванильные `block/` и `item/` никуда не деваются; у пака нет ни одного файла в
+  `assets/minecraft/items/`, то есть определения предметов ванилы (включая
+  `music_disc_*` и `jukebox`) не перезаписаны — `tools/check_pack_refs.py` падает,
+  если там что-то появится;
+* `assets/minecraft/textures/block/quartz_block_*.png` — текстура блока-основы.
+
+С 1.21.11 текстуры предметов вынесены в отдельный атлас `items`, и одна модель
+не может смешивать атласы: все наши спрайты (1023 штуки) попадают в `blocks`
+через наш же источник `electronics/item`, поэтому каждая модель одноатласная ✓.
+
 Всего 1491 файл, zip ≈ 0.8 МБ (`build/electronics-resourcepack.zip`).
 Состояние модели = `baseModelIndex + state·6 + orientation` — та же арифметика
 в `registry/Components.java` (плагин) и в `tools/gen_pack.py` (пак); индекс

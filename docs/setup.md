@@ -72,7 +72,7 @@ cd /home/user/srv && rm -rf plugins/Electronics/builds plugins/Electronics/regis
 Ожидаемое (проверено на Paper 1.21.11 build 132): `Загружено компонентов: 64,
 состояний модели ресурспака: 2070`,
 `зарегистрировано рецептов: 21 (пайка: 43 витрин для JEI, пропущено 0)`;
-`/elec selftest` печатает 10 строк `PASS` и ни одного `FAIL`, в том числе
+`/elec selftest` печатает 11 строк `PASS` и ни одного `FAIL`, в том числе
 `PASS геркон: без магнита I = 0.14 мкА, с магнитом I = 20.2 мА`,
 `PASS дроссель 10 Гн: шаг 1 -> 13.2 мА, 20 шагов -> 18.7 мА` и
 `PASS пайка: … ванильного рецепта светодиода нет: true`
@@ -89,7 +89,7 @@ cd /home/user/srv && rm -rf plugins/Electronics/builds plugins/Electronics/regis
 
 Jar собирается воспроизводимо: `project.build.outputTimestamp` в `pom.xml`
 фиксирует mtime записей архива, поэтому `mvn clean package` дважды даёт
-один и тот же sha1 (`2f5545c02b12ac52cb07f30f7775161c04ece302`, 222 256 Б) —
+один и тот же sha1 (`b0fca4426e6c5cc52a3d4d7032884d281a009634`, 222741 байт) —
 на этом держится `release/sha1sums.txt`. Оба архива (`build/*.zip`) наоборот
 не воспроизводимы: `zip` пишет текущее время, так что их sha1 меняется на
 каждой пересборке при неизменном содержимом.

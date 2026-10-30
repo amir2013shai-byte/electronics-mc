@@ -182,6 +182,36 @@ client addon, which the task forbids. `/elec selftest` proves the visible part:
 `PASS JEI: … стол в сетке рецептов: 43/43, в менеджере рецептов клиента: 64
 (21 крафта + 43 витрины)`.
 
+### Can our `custom_model_data` leak onto other items (a disc in a jukebox)?
+
+No, and the pack build proves it rather than promises it:
+
+* state selection happens through the **`item_model` component on the stack**
+  (`electronics:<id>_<state>`); the `custom_model_data` branch in `Items.applyModel`
+  is only a fallback for pre-1.21.4 cores, and `/elec selftest` fails if it ever
+  engages: `PASS модель задаётся компонентом item_model у 64/64 предметов,
+  custom_model_data не ставится ни на одном`;
+* `custom_model_data` is read inside the definition of *that* item. All our
+  definitions live in `assets/electronics/items/` (64 files, 16 with a CMD
+  dispatch); `assets/minecraft/items/` holds **zero** files, so `music_disc_13`,
+  `jukebox`, potions and spawn eggs keep vanilla behaviour;
+* `tools/check_pack_refs.py` aborts if the pack ever ships another
+  `assets/minecraft/**` file beyond the atlas source list and the three quartz
+  textures — a silent vanilla override is now a build error;
+* the indices (0…2069) are not global numbers: in the fallback case the integer
+  sits on a `SMOOTH_QUARTZ_SLAB`/`BRUSH` stack, never on a disc, and the plugin
+  refuses to touch items that are not in its registry (`Items.defOf` → null);
+* no `music_disc`/`jukebox`/`RECORD_` references exist in the plugin or tools
+  (the only `disc` hit is the shape of a ceramic capacitor); buzzer/reed sounds
+  go through `world.playSound`.
+
+The one genuine override in a foreign namespace is `quartz_block_side/top/bottom`
+— smooth quartz looks like a PCB world-wide, which is the point of the
+`blocks.base` config. Which also shows how you *could* break a jukebox: set
+`blocks.base: JUKEBOX` and every jukebox becomes a plate (and the inserted disc
+disappears, since it is part of the block model). The default is a building
+block, not a machine, for exactly this reason.
+
 ## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), topology and
@@ -206,8 +236,13 @@ CI: `.github/workflows/build.yml` runs `mvn package`, `tools/publish.sh`,
 `tools/run_tests.sh`, `check_pack_refs.py` and asserts `pack_format == 75`;
 artifacts go to the run, and a `v*` tag additionally publishes a GitHub Release.
 The jar is reproducible (`project.build.outputTimestamp` in `pom.xml`), so the
-sha1 in `release/sha1sums.txt` is stable across rebuilds
-(currently `0805afc5e21a0d3d5db00680a7ad9f460f17c9e1`).
+the jar is reproducible: two clean `mvn clean package` runs and the jar that
+GitHub Actions publishes to the release all share sha1
+`b0fca4426e6c5cc52a3d4d7032884d281a009634` (222 741 B), which is also what
+`release/sha1sums.txt` records — so "works on my machine" can be checked by
+everybody. The plugin targets Spigot 1.21.11 (`spigot-api` 1.21.11-R0.2); the
+1.21.4–1.21.11 branch is the only one verified live, the newer Spigot 26.2.x
+line is documented and code-covered, not tested.
 
 Repo: **https://github.com/amir2013shai-byte/electronics-mc**
 See `README.md` (Russian) for the full description, `docs/config.md`,
