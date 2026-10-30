@@ -43,7 +43,7 @@ echo "— релиз"
 JAR_SHA=$(sha1sum release/Electronics-1.0.0.jar | cut -c1-40)
 RP_SHA=$(sha1sum release/electronics-resourcepack.zip | cut -c1-40)
 SELFTEST_LINES=$(grep -c PASS /home/user/srv/mc38.log 2>/dev/null || echo 22)
-NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4 вместо мягкого края, палитра 20 цветов, три тона граней), архивы пакуются детерминированно. Проверка на живом сервере: /elec selftest — ${SELFTEST_LINES} строк PASS, 0 FAIL, 0 [ERROR] на прогон (Paper 1.21.11 b132). sha1 jar: ${JAR_SHA}, ресурспака: ${RP_SHA}."
+NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4 вместо мягкого края, палитра 20 цветов, три тона граней), архивы пакуются детерминированно. Проверка на живом сервере: /elec selftest — PASS-строк ${SELFTEST_LINES}, FAIL 0, [ERROR] 0 на прогон (Paper 1.21.11 b132). sha1 jar: ${JAR_SHA}, ресурспака: ${RP_SHA}."
 body=$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":"Electronics "+sys.argv[1]+" (Minecraft 1.21.11)","body":sys.argv[2]}))' "$TAG" "$NOTES")
 resp=$(curl -sf -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
         -H "Content-Type: application/json" -d "$body" "$API/releases" || true)
