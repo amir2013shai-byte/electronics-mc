@@ -418,7 +418,7 @@ tools/preview.py           — PNG-монтаж текстур для ревью
 **одинаковый** `Electronics-1.0.0.jar` (проверено: `2f5545c02b12ac52cb07f30f7775161c04ece302`
 в обоих прогонов, 222 256 Б) — sha1 из `release/sha1sums.txt` имеет смысл.
 
-**Готовые файлы:** Releases → **v1.1.0** → Assets: `Electronics-1.0.0.jar`,
+**Готовые файлы:** Releases → **v1.1.1** → Assets: `Electronics-1.0.0.jar`,
 `electronics-resourcepack.zip` (ставить в `resource-pack.url` на сервере или в
 `.minecraft/resourcepacks`), `electronics-recipes-datapack.zip`, `preview.png`
 (все 64 предмета на одном листе) и `sha1sums.txt`. Тот же набор лежит в
