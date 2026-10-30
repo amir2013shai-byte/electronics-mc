@@ -123,3 +123,7 @@ git -c credential.helper= push origin main          # если есть прав
 
 Токен в remote не записывается: `git remote -v` должен показывать чистый
 `https://github.com/...` без `user:token@`. Проверка: `grep -c github_pat .git/config` → 0.
+Токен для пуша лежит в `~/.secrets/github.env` — **вне** репозитория (`git` до него
+не дотягивается), и `.secrets/` на всякий случай в `.gitignore`. `tools/push.sh`
+и `tools/release.sh` берут его оттуда сами, поэтому каждый раз вставлять ключ не
+нужно: `bash tools/push.sh` — main, `bash tools/push.sh v1.3.2` — main + тег + релиз.
