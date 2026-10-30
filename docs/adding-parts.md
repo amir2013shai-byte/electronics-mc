@@ -392,7 +392,7 @@ bash tools/push.sh v1.3.2  # main (+ тег, релиз и ассеты, есл�
    (RESISTOR, `resistance: 0.01`, `i_limit: 5.0`, `states: 6`).
    `meta.soldered += resistor_shunt_0r01`. Итог: 100 id, 61 спаечная,
    481×6 = 2886 индексов.
-2. **Пак**: `gen_pack` сам нарисовал 512×… текстуры и модели; в `RECIPES`
+2. **Пак**: `gen_pack` сам нарисовал новые текстуры (+51 файл: 1392 → 1443) и модели; в `RECIPES`
    добавили 6 записей (2 станка, 3 куска руды, «болванка» для спаечного
    шунта), из `BY_DESIGN` убрали `raw_*` (теперь крафтятся) и вписали
    `slag/ingot_bronze/ingot_brass/wire_enamelled`.
