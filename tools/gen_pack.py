@@ -389,6 +389,163 @@ def base_canvas(comp):
     return img
 
 
+# ---------------------------------------------------------------------------
+# «Майнкрафтовость» текстур.
+#
+# Рисование даёт гладкую картинку 32×32: круги со сглаженными краями, мягкие
+# свечения на альфе, десятки полутонов. Ванильные текстуры устроены иначе, и
+# это не «стилизация ради стиля», а следствие формата 16×16:
+#
+#   * пиксельная сетка coarse — деталь не тоньше 1 клетки, никаких полупикселей;
+#   * 3-5 тонов на материал, переходы — порядковым дизерингом (Bayer), а не
+#     градиентом;
+#   * альфа бинарная: либо пиксель есть, либо его нет (свечение — точками);
+#   * фаска: верхняя кромка светлее, нижняя темнее, контур затемнён.
+#
+# Поэтому все три вида текстуры прогоняются через один пост-проход. Он
+# детерминирован (зерно — из хэша имени файла), иначе поедет sha1 сборки.
+# ---------------------------------------------------------------------------
+
+BAYER4 = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
+
+
+def _hash2(seed, x, y):
+    """Стабильный «шум» 0..255 без random: имя файла + координаты (иначе
+    поедет воспроизводимость сборки)."""
+    h = 2166136261
+    for ch in seed:
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    for v in (x, y, x * 31 + y * 17):
+        h = ((h ^ (v & 0xFF)) * 16777619) & 0xFFFFFFFF
+        h ^= h >> 13
+    return h & 0xFF
+
+
+def mc_texture(img, seed, colors=20, grain=6, rim=True):
+    """Финальный проход «под ванильный блок».
+
+    Процедурная канва рисует деталь сглаженными градиентами: на 32 px это
+    выглядит как иконка модификации, а не как часть Minecraft. Здесь она
+    перерисовывается теми же приёмами, каким нарисован ванильный ресурс:
+
+      * 16-пиксельная сетка: деталь мыслится клетками 2x2, шаг назад — только
+        NEAREST, никаких BILINEAR/BICUBIC;
+      * плоская палитра (median cut) без дизеринга при квантовании;
+      * дизер Bayer 4x4 вместо мягкого края там, где прозрачность;
+      * лёгкое зерно, задающее «шум» камня и дерева;
+      * три тона граней: верх светлее, бок и низ темнее — у ванильного блока
+        это единственный источник объёма, нормалей здесь нет.
+
+    seed (хэш от id) детерминирует зерно, поэтому два прогона генератора дают
+    побайтово одинаковый ресурспак.
+    """
+    img = img.convert("RGBA")
+    w, h = img.size
+    step = max(1, w // 16)
+    gw, gh = w // step, h // step
+    px = img.load()
+
+    # Средний цвет непрозрачных пикселей — «материал» детали; от него считаются
+    # контраст (что в клетке главное) и зерно.
+    tot = [0, 0, 0]
+    cnt = 0
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a > 200:
+                tot[0] += r; tot[1] += g; tot[2] += b; cnt += 1
+    base = [t // cnt for t in tot] if cnt else [128, 128, 128]
+
+    def cell(gx, gy):
+        """Пиксель клетки = самый непрозрачный пиксель; при равенстве — самый
+        контрастный к материалу. Усреднять нельзя: 1 px дорожек и цифры
+        семисегментника тонули в фоне, а размытая прозрачность по краю делала
+        всю грань полупрозрачной, и дизер рассыпал её в «шипы»."""
+        x0, y0 = gx * step, gy * step
+        best = None
+        for y in range(y0, min(h, y0 + step)):
+            for x in range(x0, min(w, x0 + step)):
+                r, g, b, a = px[x, y]
+                if a == 0:
+                    continue
+                d = (abs(r - base[0]) + abs(g - base[1]) + abs(b - base[2])) \
+                    if a >= 200 else 0
+                key = (a, d)
+                if best is None or key > best[0]:
+                    best = (key, (r, g, b, a))
+        return best[1] if best else (0, 0, 0, 0)
+
+    cells = [[cell(gx, gy) for gx in range(gw)] for gy in range(gh)]
+
+    flat = Image.new("RGB", (w, h), tuple(base))
+    fp = flat.load()
+    alpha = Image.new("L", (w, h), 0)
+    ap = alpha.load()
+    # Слой `on` кладёт поверх канвы белёсый halo (α 64…190). Если считать такие
+    # пиксели сплошными, грань превращается в белый лист; если все они — точки,
+    # в шахматку рассыпается залитая деталь. Различает их сосед: полупрозрачная
+    # клетка, примыкающая к телу, — это край залитой детали (так светятся лампа
+    # и раскалённый резистор), а висящая в пустоте — ореол, и он остаётся точками
+    # цвета самой детали, тем же приёмом, каким в ваниле светятся зачарованный
+    # предмет и редстоун-пыль.
+    glow = tuple(min(255, int(c * 1.22) + 12) for c in base)
+    for gy in range(gh):
+        for gx in range(gw):
+            r, g, b, a = cells[gy][gx]
+            if a < 128:
+                # Всё, что ниже 128, cutout в игре не рисует вообще, поэтому
+                # здесь мы ничего не теряем: решаем сами — оставить точку или
+                # нет. Точка берётся того же цвета, что материал детали, и
+                # шагает по Bayer 4x4: так край выглядит дизерингом ванильного
+                # предмета, а не размытой тенью.
+                if a <= 10:
+                    continue
+                if a < 16 + BAYER4[gy & 3][gx & 3] * 15:
+                    continue
+                r, g, b = glow
+            for yy in range(gy * step, min(h, (gy + 1) * step)):
+                for xx in range(gx * step, min(w, (gx + 1) * step)):
+                    ap[xx, yy] = 255
+                    fp[xx, yy] = (r, g, b)
+
+    # Палитра. Квантуем только там, где цветов и правда много: у мелких цифр и
+    # тонких ножек median cut забирал их вместе с фоном, а выигрывают от плоской
+    # палитры лишь шумные корпуса и текстурные поля.
+    uniq = len(set(fp[x, y] for y in range(h) for x in range(w)))
+    if uniq > colors + 6:
+        flat = flat.quantize(colors, method=Image.MEDIANCUT,
+                             dither=Image.Dither.NONE).convert("RGB")
+        fp = flat.load()
+
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    op = out.load()
+    for y in range(h):
+        for x in range(w):
+            if ap[x, y] == 0:
+                continue
+            r, g, b = fp[x, y]
+            # Коэффициент — вокруг 1.0, а не «светлота пикселя / 255»: второй
+            # вариант умножал цвет на его же яркость и сажал весь пак вдвое
+            # (средняя светлота 95 -> 54), превращая светлую керамику в графит.
+            f = 1.0
+            if grain:
+                # _hash2 принимает строковый ключ (имя id); варианты шума —
+                # суффиксы, не числа: тогда зерно не зависит от порядка обхода
+                # и остаётся тем же при пересборке.
+                if _hash2(seed, x, y) % 100 < 34:
+                    f += ((_hash2(seed + "\x01g", x, y) % (2 * grain)) - grain) * 2 / 255.0
+                elif _hash2(seed + "\x02g", x, y) % 100 < 100 - grain * 15:
+                    f += (_hash2(seed + "\x03g", x, y) % (2 * grain) - grain) / 255.0
+            if rim:
+                # Грань: верхняя треть светлее, нижняя темнее — объём без света.
+                f *= 1.16 if y < h // 3 else (0.80 if y >= 2 * h // 3 else 0.91)
+            op[x, y] = (max(0, min(255, int(r * f))),
+                        max(0, min(255, int(g * f))),
+                        max(0, min(255, int(b * f))), 255)
+    return out
+
+
+
 def apply_state(img, comp, state):
     """Меняет канвас под конкретное визуальное состояние."""
     d = ImageDraw.Draw(img)
@@ -439,16 +596,33 @@ def apply_state(img, comp, state):
 
 
 def side_from_top(top, comp, state):
-    """Боковая текстура: полоса из центра канваса + тёмный низ."""
-    img = top.crop((0, 12, 32, 28)).resize((32, 32))
+    """Боковая текстура: полоса из центра канваса + тёмный низ.
+
+    Две правки «под Майнкрафт»:
+      * растяжка crop 32x16 -> 32x32 только NEAREST. Без него PIL тянет BICUBIC,
+        по краям силуэта появляется каша со средней альфой, а модель рендерится
+        с `minecraft:cutout`, который такие пиксели отбрасывает: бок блока
+        выглядел размытым и обгрызенным;
+      * подсветка `on` и нагар `burnt` — сплошной цвет, а не полупрозрачная
+        подложка. Раньше поверх грани рисовался прямоугольник с альфой 60 (70
+        для гари), и cutout его не показывал вообще: светящийся резистор и
+        сгоревший автомат на боковой грани были одинаково чёрными.
+    """
+    img = top.crop((0, 12, 32, 28)).resize((32, 32), Image.NEAREST).convert("RGBA")
     d = ImageDraw.Draw(img)
     pal = [hex2rgb(c) for c in comp.get("palette", ["#888888"])]
     d.rectangle([0, 22, 32, 32], fill=shade(pal[0], 0.55, 4) + (255,))
+    src_alpha = img.split()[-1]
     if state == "on":
         glow = tuple(comp.get("glow_color", [255, 255, 255]))
-        d.rectangle([0, 0, 32, 22], fill=glow + (60,))
+        tint = Image.new("RGBA", img.size, glow + (255,))
+        band = Image.new("L", img.size, 0)
+        ImageDraw.Draw(band).rectangle([0, 0, 32, 21], fill=255)
+        img = Image.composite(Image.blend(img, tint, 0.30), img, band)
     if state == "burnt":
-        d.rectangle([0, 0, 32, 32], fill=(30, 25, 22, 70))
+        soot = Image.new("RGBA", img.size, (30, 25, 22, 255))
+        img = Image.blend(img, soot, 0.72)
+    img.putalpha(src_alpha)          # силуэт не меняем: пусто было пусто, стало пусто
     return img
 
 
@@ -768,7 +942,8 @@ def main():
             for tex, img in (("top", top), ("side", side), ("bottom", bottom)):
                 p = os.path.join(tex_dir, f"{name}_{tex}.png")
                 if p not in written:
-                    img.save(p)
+                    base = os.path.basename(p)
+                    mc_texture(img, base).save(p)
                     written.add(p)
             mpath = os.path.join(model_dir, f"{name}.json")
             model = model_of(comp)
@@ -868,11 +1043,21 @@ def main():
 
     # --- zips ---
     def zipdir(src, dst):
+        """Архив собирается детерминированно: записи отсортированы, дата в
+        заголовке зафиксирована (1980-01-01), права постоянные. Без этого
+        zipfile пишет в каждый элемент mtime файла, и два прогона генератора
+        дают разные байты при идентичном содержимом — сборку нельзя ни
+        закэшировать, ни сверить по sha1."""
         with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as z:
-            for root, _, files in os.walk(src):
-                for fn in files:
-                    full = os.path.join(root, fn)
-                    z.write(full, os.path.relpath(full, src))
+            names = sorted(os.path.relpath(os.path.join(r, fn), src)
+                           for r, _, fs in os.walk(src) for fn in fs)
+            for name in names:
+                info = zipfile.ZipInfo(name.replace(os.sep, "/"),
+                                       date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o644 << 16
+                with open(os.path.join(src, name), "rb") as fh:
+                    z.writestr(info, fh.read())
 
     zipdir(RP, os.path.join(BUILD, "electronics-resourcepack.zip"))
     zipdir(DP, os.path.join(BUILD, "electronics-recipes-datapack.zip"))

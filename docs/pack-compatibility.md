@@ -45,9 +45,9 @@ build/resourcepack/
 ├── assets/minecraft/atlases/blocks.json     # «шейте мои текстуры»
 ├── assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png  # перекраска платы
 ├── assets/electronics/lang/{ru_ru,en_us}.json
-├── assets/electronics/items/<id>.json                    # 64: выбор состояния модели
-├── assets/electronics/models/item/<id>[_<state>].json    # 384: модель + display-трансформы
-└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1035 текстур 32×32
+├── assets/electronics/items/<id>.json                    # 109: выбор состояния модели
+├── assets/electronics/models/item/<id>[_<state>].json    # 654: модель + display-трансформы
+└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1605 текстур 32×32
 ```
 
 Файлы в чужом namespace ровно два вида, и оба безопасны:
@@ -61,7 +61,8 @@ build/resourcepack/
 * `assets/minecraft/textures/block/quartz_block_*.png` — текстура блока-основы.
 
 С 1.21.11 текстуры предметов вынесены в отдельный атлас `items`, и одна модель
-не может смешивать атласы: все наши спрайты (1023 штуки) попадают в `blocks`
+не может смешивать атласы: все наши спрайты (1605 текстур предмета плюс 3
+перекрашенных текстур слаба = 1608) попадают в `blocks`
 через наш же источник `electronics/item`, поэтому каждая модель одноатласная ✓.
 
 Всего 1491 файл, zip ≈ 0.8 МБ (`build/electronics-resourcepack.zip`).

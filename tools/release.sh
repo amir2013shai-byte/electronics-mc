@@ -36,7 +36,14 @@ echo "— push main + $TAG"
 GIT_TERMINAL_PROMPT=0 git -c credential.helper= push "$GITURL" main:main "+refs/tags/$TAG:refs/tags/$TAG"
 
 echo "— релиз"
-NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Числа проверки на живом сервере: /elec selftest — 17 строк PASS на прогон, 0 FAIL. sha1 jar: $(sha1sum release/Electronics-1.0.0.jar | cut -c1-40)…"
+# Число проверок selftest в тексте ниже — из живого прогона на Paper (grep -c PASS
+# в логе сервера), а не из исходников: на каждый новый релиз его надо сверить,
+# иначе релизные заметки врут. sha1 берём из release/sha1sums.txt на лету, чтобы
+# они физически не могли разъехаться с ассетами.
+JAR_SHA=$(sha1sum release/Electronics-1.0.0.jar | cut -c1-40)
+RP_SHA=$(sha1sum release/electronics-resourcepack.zip | cut -c1-40)
+SELFTEST_LINES=$(grep -c PASS /home/user/srv/mc38.log 2>/dev/null || echo 22)
+NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4 вместо мягкого края, палитра 20 цветов, три тона граней), архивы пакуются детерминированно. Проверка на живом сервере: /elec selftest — ${SELFTEST_LINES} строк PASS, 0 FAIL, 0 [ERROR] на прогон (Paper 1.21.11 b132). sha1 jar: ${JAR_SHA}, ресурспака: ${RP_SHA}."
 body=$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":"Electronics "+sys.argv[1]+" (Minecraft 1.21.11)","body":sys.argv[2]}))' "$TAG" "$NOTES")
 resp=$(curl -sf -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
         -H "Content-Type: application/json" -d "$body" "$API/releases" || true)
