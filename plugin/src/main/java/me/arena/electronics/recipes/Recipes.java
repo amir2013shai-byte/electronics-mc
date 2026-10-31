@@ -263,6 +263,12 @@ public final class Recipes {
         DEFS.put("multimeter", new Shaped(new String[]{"GIG", "CRC", "W I"},
                 map("G", Material.GLASS, "I", Material.IRON_INGOT, "C", Material.COPPER_INGOT,
                         "R", Material.REDSTONE, "W", Material.CLOCK)));
+        // Осциллограф паяется, поэтому DEFS нужен только чтобы витрина JEI и
+        // требования стола совпадали: ingredientsOf() читает эту же форму.
+        // Дырка внизу по центру — под паяльный стол (used + 1 <= 9).
+        DEFS.put("oscilloscope", new Shaped(new String[]{"GIG", "CRC", "R R"},
+                map("G", Material.GLASS, "I", Material.IRON_INGOT, "C", Material.COPPER_INGOT,
+                        "R", Material.REDSTONE)));
         DEFS.put("wire_cutter", new Shaped(new String[]{"I I", " S ", " S "},
                 map("I", Material.IRON_INGOT, "S", Material.STICK)));
         DEFS.put("led_probe", new Shaped(new String[]{"G", "R", "S"},

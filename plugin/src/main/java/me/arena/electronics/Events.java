@@ -137,6 +137,7 @@ public final class Events implements Listener {
         switch (existing.def.kind) {
             case SWITCH, TOGGLE, BUTTON, PROBE -> toggle(existing);
             case POT -> tune(p, existing, 0.05);
+            case SCOPE -> tune(p, existing, 1.0 / 3.0);   // развёртка: 1,2,4,8 отсчётов на столбец
             case SOURCE -> {
                 if (existing.def.tunable) {
                     tune(p, existing, 0.1);

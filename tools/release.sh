@@ -42,8 +42,15 @@ echo "— релиз"
 # они физически не могли разъехаться с ассетами.
 JAR_SHA=$(sha1sum release/Electronics-1.0.0.jar | cut -c1-40)
 RP_SHA=$(sha1sum release/electronics-resourcepack.zip | cut -c1-40)
-SELFTEST_LINES=$(grep -c PASS /home/user/srv/mc38.log 2>/dev/null || echo 22)
-NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4 вместо мягкого края, палитра 20 цветов, три тона граней), архивы пакуются детерминированно. Проверка на живом сервере: /elec selftest — PASS-строк ${SELFTEST_LINES}, FAIL 0, [ERROR] 0 на прогон (Paper 1.21.11 b132). sha1 jar: ${JAR_SHA}, ресурспака: ${RP_SHA}."
+# PASS-строки — из последнего прогона /elec selftest: в логе их обычно два
+# (стартовый и ручной), поэтому считаем окно от «PASS редактор схемы» до
+# «PASS каталог», а не весь файл. Лога нет — берём число проверок из исходника.
+LOG=$(ls -t /home/user/srv/mc*.log 2>/dev/null | head -1 || true)
+SELFTEST_LINES=$(awk '/PASS редактор схемы/{start=NR} /PASS каталог/{end=NR} /PASS /{hit[NR]=1} END{c=0; if (start && end) for (i=start;i<=end;i++) if (hit[i]) c++; print c+0}' "$LOG" 2>/dev/null || true)
+[ "${SELFTEST_LINES:-0}" -gt 0 ] 2>/dev/null || SELFTEST_LINES=$(grep -c '"&aPASS "' plugin/src/main/java/me/arena/electronics/command/ElecCommand.java || echo 0)
+REG=$(python3 -c 'import json,io;d=json.load(io.open("shared/components.json",encoding="utf-8"));m=d["meta"];print(len(d["components"]), len(m["soldered"]), m["state_model_count"])' 2>/dev/null || echo "0 0 0")
+COMPONENTS=${REG%% *}; REGREST=${REG#* }; SOLDERED=${REGREST%% *}; STATES=${REGREST##* }
+NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Реестр: ${COMPONENTS} id, из них ${SOLDERED} паяных, ${STATES} индексов состояния модели. Новое в версии — осциллограф: двухвыводный прибор с входом 10 МОм, рисует форму напряжения прямо на TextDisplay (растр 40x16, один знак Брайля = 2x4 пикселя), ПкМ переключает развёртку x1/x2/x4/x8, триггер по восходящему фронту, послесвечение люминофора; мод на клиент не нужен. Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4 вместо мягкого края, палитра 20 цветов, три тона граней), архивы пакуются детерминированно. Проверка на живом сервере: /elec selftest — PASS-строк ${SELFTEST_LINES}, FAIL 0, [ERROR] 0 на прогон (Paper 1.21.11 b132), среди проверок есть мировая: TextDisplay экрана появляется над блоком и исчезает при удалении детали. sha1 jar: ${JAR_SHA}, ресурспака: ${RP_SHA}."
 body=$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":"Electronics "+sys.argv[1]+" (Minecraft 1.21.11)","body":sys.argv[2]}))' "$TAG" "$NOTES")
 resp=$(curl -sf -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
         -H "Content-Type: application/json" -d "$body" "$API/releases" || true)

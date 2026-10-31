@@ -38,6 +38,7 @@
    "motor",
    "fuse",
    "voltmeter",
+   "oscilloscope",
    "ammeter",
    "multimeter",
    "electromagnet",
@@ -71,9 +72,9 @@
    "saw_kinetic",
    "drill_kinetic"
   ],
-  "state_model_count": 3210,
+  "state_model_count": 3246,
   "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
-  "component_count": 100
+  "component_count": 110
  },
  "kinds": [
   "BOARD",
@@ -1180,6 +1181,32 @@
    "orientable": true,
    "states": 6,
    "en": "Voltmeter"
+  },
+  {
+   "id": "oscilloscope",
+   "ru": "Осциллограф",
+   "kind": "SCOPE",
+   "shape": "scope",
+   "size": [
+    14,
+    10,
+    12
+   ],
+   "palette": [
+    "#0e1f16",
+    "#3ddc84",
+    "#212f3d"
+   ],
+   "internal_resistance": 10000000.0,
+   "orientable": true,
+   "states": 6,
+   "glow": 5,
+   "glow_color": [
+    70,
+    220,
+    130
+   ],
+   "en": "Oscilloscope"
   },
   {
    "id": "ammeter",

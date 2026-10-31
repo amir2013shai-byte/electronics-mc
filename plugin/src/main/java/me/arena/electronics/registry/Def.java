@@ -96,7 +96,7 @@ public final class Def {
 
     public boolean hasGlow() {
         return kind == Kind.LED || kind == Kind.LAMP || kind == Kind.BUZZER || kind == Kind.PROBE
-                || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY;
+                || kind == Kind.ELECTROMAGNET || kind == Kind.RELAY || kind == Kind.SCOPE;
     }
 
     /** Переменное напряжение (у источника с ac_hz каждый шаг — новый эмис). */
@@ -243,6 +243,8 @@ public final class Def {
             case SOURCE, GENERATOR, SOLAR -> (acHz > 0 ? "U=" + trim(voltage) + " В, синус "
                     + trim(acHz) + " Гц" : "U=" + trim(voltage) + " В");
             case CAPACITOR -> "C=" + trim(capacitance) + " Ф";
+            case SCOPE -> "вход " + trim(internalResistance / 1e6) + " МОм, экран 40×16, "
+                    + "10 делений по горизонтали";
             case MOTOR -> "U=" + trim(ratedVoltage) + " В, R обм. " + trim(winding) + " Ом"
                     + (rpm > 0 ? ", " + (int) rpm + " об/мин ХХ" : "");
             case INDUCTOR -> "L=" + (inductance >= 1 ? trim(inductance) + " Гн"

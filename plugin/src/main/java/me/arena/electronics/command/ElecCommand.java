@@ -1256,6 +1256,77 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                     + (plugin.kinetics().rigCount() > 0 ? " &8(" + plugin.kinetics().lastNote() + ")" : "")));
         }
 
+        // Осциллограф: экран собирается чистым кодом, без мира — ровно тот путь,
+        // который проходит Renderer.updateScreen (трасса -> измерение -> масштаб
+        // -> растер -> брайль). Если тут FAIL, в игре будет пустое стекло.
+        {
+            me.arena.electronics.circuit.ScopeTrace tr =
+                    new me.arena.electronics.circuit.ScopeTrace();
+            tr.setRate(0.05, 1);
+            for (int si = 0; si < 100; si++) {
+                tr.sample(6.0 * Math.sin(2 * Math.PI * 1.0 * si * 0.05));
+            }
+            me.arena.electronics.circuit.ScopeTrace.Stats st = tr.measure();
+            double[] sc = me.arena.electronics.circuit.ScopeScreen.autoscale(
+                    st.mean(), st.vpp(), 1.3);
+            double[] vv = new double[me.arena.electronics.circuit.ScopeTrace.SCREEN_SAMPLES];
+            for (int vi = 0; vi < vv.length; vi++) {
+                vv[vi] = tr.at(st.start() + vi);
+            }
+            boolean[] px = me.arena.electronics.circuit.ScopeScreen.mask();
+            me.arena.electronics.circuit.ScopeScreen.trace(vv, sc[0], sc[1], px);
+            java.util.List<String> rows = java.util.Arrays.asList(
+                    me.arena.electronics.circuit.ScopeScreen.braille(px));
+            boolean frameOk = rows.size() == 4 && rows.stream().allMatch(r -> r.length() == 20);
+            boolean measOk = Math.abs(st.vpp() - 12.0) < 0.05 && st.frequencyKnown()
+                    && Math.abs(st.freqHz() - 1.0) < 0.02;
+            s.sendMessage(Items.color((frameOk && measOk ? "&aPASS " : "&cFAIL ")
+                    + "&7осциллограф: кадр &f" + me.arena.electronics.circuit.ScopeScreen.lit(px)
+                    + " &7пикс., строки " + rows.size() + "×" + rows.get(0).length()
+                    + " &8| Upp &f" + Num.volt(st.vpp())
+                    + " &8| f &f" + String.format(java.util.Locale.ROOT, "%.3f Гц", st.freqHz())));
+        }
+
+        // Тот же путь, что выше, но через Renderer и реальный мир: TextDisplay
+        // экрана обязан родиться над блоком и исчезнуть при удалении детали —
+        // ровно так, как его снимает Events при поломке блока.
+        {
+            org.bukkit.World sw2 = org.bukkit.Bukkit.getWorlds().get(0);
+            org.bukkit.Location sp = sw2.getSpawnLocation();
+            me.arena.electronics.registry.LocationKey sk =
+                    new me.arena.electronics.registry.LocationKey(sw2, sp.getBlockX() + 6,
+                            sp.getBlockY(), sp.getBlockZ() + 6);
+            me.arena.electronics.registry.Def sd =
+                    me.arena.electronics.registry.Components.byId("oscilloscope");
+            boolean born = false, gone = false;
+            if (sd != null) {
+                plugin.circuit().put(sk, sd, me.arena.electronics.registry.Orientation.NORTH);
+                me.arena.electronics.circuit.CompInstance wc = plugin.circuit().get(sk);
+                me.arena.electronics.circuit.ScopeTrace wt = plugin.circuit().scope(sk);
+                wt.setRate(0.05, 1);
+                for (int w2 = 0; w2 < 40; w2++) {
+                    wt.sample(6.0 * Math.sin(2 * Math.PI * w2 / 20.0));
+                }
+                if (wc != null) {
+                    plugin.renderer().requestUpdate(wc);
+                }
+                // три кадра: refresh-ticks = 2, нужен любой чётный момент
+                plugin.renderer().tick();
+                plugin.renderer().tick();
+                plugin.renderer().tick();
+                org.bukkit.Location probe = sk.block().getLocation().add(0.5, 1.6, 0.5);
+                born = screensNear(probe) > 0;
+                plugin.circuit().remove(sk);
+                plugin.renderer().drop(sk);
+                gone = screensNear(probe) == 0 && plugin.circuit().get(sk) == null
+                        && !plugin.circuit().scopes().iterator().hasNext();
+            }
+            s.sendMessage(Items.color((born && gone ? "&aPASS " : "&cFAIL ")
+                    + "&7живой экран осциллографа: TextDisplay над блоком появился: &f"
+                    + born + "&7, после удаления детали исчез: &f" + gone
+                    + " &8(мир " + sw2.getName() + ")"));
+        }
+
         int missing = 0;
         for (me.arena.electronics.registry.Def d : me.arena.electronics.registry.Components.all()) {
             if (me.arena.electronics.gui.CatalogGui.whatIs(d).isEmpty()) {
@@ -1271,6 +1342,19 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color((missing == 0 ? "&aPASS " : "&cFAIL ")
                 + "&7каталог: &f" + me.arena.electronics.registry.Components.size()
                 + " &7предметов, описаний не хватает у &f" + missing));
+    }
+
+    /** Сколько многострочных TextDisplay рядом: экран осциллографа — единственный
+     *  многострочный, у подписи значений одна строка. */
+    private static int screensNear(org.bukkit.Location at) {
+        int n = 0;
+        for (org.bukkit.entity.Entity e : at.getWorld().getNearbyEntities(at, 2, 2, 2)) {
+            if (e instanceof org.bukkit.entity.TextDisplay td && td.getText() != null
+                    && td.getText().indexOf('\n') > 0) {
+                n++;
+            }
+        }
+        return n;
     }
 
     /**

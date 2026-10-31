@@ -538,7 +538,11 @@ public final class Simulation {
                         mna.stamp(a, b, 1.0 / 240.0, 0);
                     }
                 }
-                case VOLTMETER -> {
+                case VOLTMETER, SCOPE -> {
+                    // Приборный вход: 1 МОм у вольтметра, 10 МОм у осциллографа.
+                    // Одна строка на оба, потому что осциллограф и есть вольтметр
+                    // с памятью: на цепь он не должен влиять заметнее хорошего
+                    // тестера, иначе «измерение» меняло бы измеряемое.
                     if (b != null) {
                         mna.stamp(a, b, 1.0 / Math.max(1000, d.internalResistance), 0);
                     }
@@ -896,6 +900,19 @@ public final class Simulation {
             case VOLTMETER -> {
                 c.reading = c.voltage;
                 c.state = Math.abs(c.reading) > 0.02 ? CompStates.ON : CompStates.OFF;
+            }
+            case SCOPE -> {
+                // Дифференциальное чтение: «+» без «−», иначе второй щуп прибора
+                // был бы декорацией, а «земля» на плате — обязательной.
+                c.reading = c.voltage;
+                ScopeTrace tr = plugin.circuit().scope(c.key);
+                // Развёртку задаёт «ползунок» (шаг 1,2,4,8 отсчёта на столбец).
+                // Прореживает сам трекер: пик между отсчётами обязан остаться на
+                // экране (peak-detect), а dt частотомера — шаг отсчёта, не симуляции.
+                int lvl = Math.min(3, (int) Math.round(c.tuneFraction() * 3.0));
+                tr.setRate(Math.max(0.005, cfg.dt()), 1 << lvl);
+                tr.sample(c.voltage);
+                c.state = tr.size() > 2 ? CompStates.ON : CompStates.OFF;
             }
             case AMMETER -> {
                 c.reading = Math.abs(i);

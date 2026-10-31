@@ -61,7 +61,7 @@ public final class Soldering {
     /** Корпуса, которые портятся перегревом/окислением — им нужен флюс. */
     private static final Set<Kind> NEEDS_FLUX = EnumSet.of(Kind.LED, Kind.LAMP, Kind.TRANSISTOR,
             Kind.GATE, Kind.RELAY, Kind.REED, Kind.ELECTROMAGNET, Kind.INDUCTOR, Kind.CAPACITOR,
-            Kind.MOTOR, Kind.BUZZER, Kind.VOLTMETER, Kind.AMMETER, Kind.MULTIMETER, Kind.DIODE,
+            Kind.MOTOR, Kind.BUZZER, Kind.VOLTMETER, Kind.AMMETER, Kind.MULTIMETER, Kind.SCOPE, Kind.DIODE,
             // полупроводниковые сборки и обмотки: без флюса пайка «сухая» —
             // 4 диода в мосту, кристалл стабилизатора и выводы трансформатора
             Kind.BRIDGE, Kind.REGULATOR, Kind.TRANSFORMER, Kind.MCU);

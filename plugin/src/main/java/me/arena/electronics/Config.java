@@ -14,6 +14,17 @@ public final class Config {
     public double viewRange = 48.0;
     public boolean textLabels = true;
 
+    // --- осциллограф ---
+    /**
+     * Масштаб экрана: 0.24 — чтобы 20 знаков брайля влезли в грань блока. У
+     * {@code TextDisplay} в Spigot нет «размера текста», он задаётся трансформацией.
+     */
+    public double scopeTextSize = 0.24;
+    /** Раз в сколько тиков перерисовывать экран (1 = каждый тик, дороже для всех). */
+    public int scopeRefreshTicks = 2;
+    /** Послесвечение: прошлый кадр дорисовывается через каждый третий столбец. */
+    public boolean scopeAfterglow = true;
+
     // --- блоки-основания ---
     public Material baseBlock = Material.SMOOTH_QUARTZ_SLAB;
     public Material pedestalBlock = Material.POLISHED_BLACKSTONE;
@@ -89,6 +100,9 @@ public final class Config {
         autoLight = c.getBoolean("render.block-light", autoLight);
         viewRange = c.getDouble("render.view-range", viewRange);
         textLabels = c.getBoolean("render.text-labels", textLabels);
+        scopeTextSize = c.getDouble("scope.text-size", scopeTextSize);
+        scopeRefreshTicks = Math.max(1, c.getInt("scope.refresh-ticks", scopeRefreshTicks));
+        scopeAfterglow = c.getBoolean("scope.afterglow", scopeAfterglow);
 
         baseBlock = material(c.getString("blocks.base"), baseBlock);
         pedestalBlock = material(c.getString("blocks.pedestal"), pedestalBlock);

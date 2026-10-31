@@ -82,6 +82,14 @@ public enum Kind {
      * нагрузка на валу — поэтому kind попадает в {@link Def#isTimeDependent()}.
      */
     KINETIC,
+    /**
+     * Осциллограф: измеряет напряжение МЕЖДУ своими контактами (дифференциальный
+     * вход 10 МОм, цепь не нагружает) и рисует v(t) экраном из знаков Брайля —
+     * история и измерения в {@link me.arena.electronics.circuit.ScopeTrace},
+     * растр в {@link me.arena.electronics.circuit.ScopeScreen}. Картинка меняется
+     * каждый тик, её рисует Renderer, а не ресурспак.
+     */
+    SCOPE,
     EMPTY;
 
     /** Проводит ли компонент «сквозь себя» на соседние блоки (для объединения узлов). */
@@ -92,7 +100,7 @@ public enum Kind {
     public boolean twoTerminal() {
         return switch (this) {
             case RESISTOR, CAPACITOR, LED, LAMP, DIODE, SWITCH, BUTTON, TOGGLE, FUSE,
-                 VOLTMETER, AMMETER, WIRE, PROBE, SOURCE, GROUND, GENERATOR, SOLAR, POT,
+                 VOLTMETER, AMMETER, SCOPE, WIRE, PROBE, SOURCE, GROUND, GENERATOR, SOLAR, POT,
                  PTC, VARISTOR -> true;
             default -> false;
         };

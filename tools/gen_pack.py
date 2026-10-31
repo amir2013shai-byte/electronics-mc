@@ -228,6 +228,30 @@ def base_canvas(comp):
         d.pieslice([4, 4, 28, 26], 180, 360, fill=shade(body, 1.2))
         d.line([16, 16, 24, 8], fill=(220, 60, 60, 255), width=2)
         d.ellipse([14, 14, 18, 18], fill=shade(detail, 0.8))
+    elif shape == "scope":
+        # Прибор: тёмная панель, «стекло» с делениями и трассой, две ручки снизу.
+        # Сетка рисуется здесь (в текстуре), а не на экране TextDisplay: так она
+        # стоит на месте при любом лаге и не тратит пиксели растра под трассу.
+        rect(1, 2, 15, 14, shade(body, 0.9))
+        rect(2, 3, 13, 11, (8, 24, 16, 255))                  # стекло
+        d.rectangle([5, 7, 25, 21], fill=(12, 34, 22, 255))   # та же область в пикселях
+        for gx in range(5, 26, 4):                             # вертикальные деления
+            for gy in range(7, 22, 2):
+                d.point([gx, gy], fill=(24, 62, 40, 255))
+        for gy in range(7, 22, 4):                             # горизонтальные
+            for gx in range(5, 26, 2):
+                d.point([gx, gy], fill=(24, 62, 40, 255))
+        d.line([5, 14, 25, 14], fill=(28, 78, 50, 255))       # нулевая
+        pts = [(x, 14 - int(round(5.0 * math.sin((x - 5) / 20.0 * 2 * math.pi))))
+               for x in range(5, 26)]
+        for i in range(len(pts) - 1):                          # трасса — линия, не пунктир
+            d.line([pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]],
+                   fill=accent + (255,))
+        d.rectangle([5, 7, 25, 21], outline=shade(detail, 0.6))
+        for kx in (8, 20):                                     # ручки: развёртка и яркость
+            d.ellipse([kx - 2, 24, kx + 2, 28], fill=shade(detail, 1.1),
+                      outline=(20, 20, 24, 255))
+            d.line([kx, 24, kx, 26], fill=(230, 230, 235, 255))
     elif shape == "fuse":
         rect(0, 7, 15, 8, (215, 215, 220, 255))
         rect(3, 4, 12, 11, (250, 240, 200, 220))
@@ -559,14 +583,19 @@ def apply_state(img, comp, state):
                 if a <= 30:
                     continue
                 k = 0.55 if kind not in ("LED", "LAMP") else 0.8
+                if kind == "SCOPE":
+                    # у прибора светится экран, а не корпус: иначе «on» превращал
+                    # тёмную панель в зелёное пятно и трасса не читалась вовсе
+                    k = 0.16
                 nr = int(r * (1 - k) + (glow[0] * 0.55 + 110) * k)
                 ng = int(g * (1 - k) + (glow[1] * 0.55 + 110) * k)
                 nb = int(b * (1 - k) + (glow[2] * 0.55 + 110) * k)
                 img.putpixel((x, y), (min(255, nr), min(255, ng), min(255, nb), a))
-        halo = Image.new("RGBA", img.size, (0, 0, 0, 0))
-        hd = ImageDraw.Draw(halo)
-        hd.ellipse([4, 4, 28, 28], fill=glow + (70 if kind in ("LED", "LAMP") else 30,))
-        img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(2)))
+        if kind != "SCOPE":
+            halo = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            hd = ImageDraw.Draw(halo)
+            hd.ellipse([4, 4, 28, 28], fill=glow + (70 if kind in ("LED", "LAMP") else 30,))
+            img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(2)))
     elif state == "dim":
         px = img.load()
         for y in range(32):
@@ -771,6 +800,8 @@ RECIPES = {
                                                          "L": "lapis_lazuli"}},
     "multimeter": {"shape": ["GIG", "CRC", "W I"], "key": {"G": "glass", "I": "iron_ingot", "C": "copper_ingot",
                                                             "R": "redstone", "W": "clock"}},
+    "oscilloscope": {"shape": ["GIG", "CRC", "R R"], "key": {"G": "glass", "I": "iron_ingot", "C": "copper_ingot",
+                                                             "R": "redstone"}},
     "wire_cutter": {"shape": ["I I", " S ", " S "], "key": {"I": "iron_ingot", "S": "stick"}},
     "led_probe": {"shape": ["G", "R", "S"], "key": {"G": "glass", "R": "redstone", "S": "stick"}},
     "schematic": {"shape": ["PPP", "PRP", "PIP"], "key": {"P": "paper", "R": "redstone", "I": "copper_ingot"}},

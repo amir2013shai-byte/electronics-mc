@@ -3,6 +3,8 @@ package me.arena.electronics.render;
 import me.arena.electronics.ElectronicsPlugin;
 import me.arena.electronics.circuit.CompInstance;
 import me.arena.electronics.circuit.CompStates;
+import me.arena.electronics.circuit.ScopeScreen;
+import me.arena.electronics.circuit.ScopeTrace;
 import me.arena.electronics.registry.LocationKey;
 import me.arena.electronics.registry.Orientation;
 import me.arena.electronics.util.Num;
@@ -13,6 +15,7 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.Color;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
@@ -44,6 +47,11 @@ public final class Renderer {
         String modelKey = "";
         String textKey = "";
         int lightLevel = -1;
+        /** Экран осциллографа: отдельный TextDisplay, потому что он живой. */
+        TextDisplay screen;
+        /** Прошлый растр — для послесвечения люминофора. */
+        boolean[] prevMask;
+        String screenKey = "";
         /** Последний угол, который мы отдали детали привода (чтобы не дёргать сущность зря). */
         float spin = -9999f;
     }
@@ -61,25 +69,25 @@ public final class Renderer {
 
     public void drop(LocationKey key) {
         Ent e = entities.remove(key);
-        if (e != null) {
-            if (e.item != null && e.item.isValid()) {
-                e.item.remove();
-            }
-            if (e.text != null && e.text.isValid()) {
-                e.text.remove();
+        kill(e);
+        pending.remove(key);
+    }
+
+    /** Убирает все сущности одной позиции: модель, подпись, экран. */
+    private static void kill(Ent e) {
+        if (e == null) {
+            return;
+        }
+        for (org.bukkit.entity.Entity x : new org.bukkit.entity.Entity[]{e.item, e.text, e.screen}) {
+            if (x != null && x.isValid()) {
+                x.remove();
             }
         }
-        pending.remove(key);
     }
 
     public void dropAll() {
         for (Ent e : new ArrayList<>(entities.values())) {
-            if (e.item != null && e.item.isValid()) {
-                e.item.remove();
-            }
-            if (e.text != null && e.text.isValid()) {
-                e.text.remove();
-            }
+            kill(e);
         }
         entities.clear();
         pending.clear();
@@ -99,12 +107,38 @@ public final class Renderer {
 
     /** Вызывается из основного тика: применяет накопленные изменения. */
     public void tick() {
-        if (pending.isEmpty()) {
-            sweepStale();
+        if (!pending.isEmpty()) {
+            flush();
+        }
+        // Экран осциллографа обновляется сам: pending наполняется действиями
+        // игрока и загрузкой из реестра, а не шагами симуляции, — иначе трасса
+        // замирала бы между кликами.
+        refreshScopes();
+        sweepStale();
+    }
+
+    private long screenTick;
+
+    /**
+     * Перерисовка экранов осциллографов — отдельно от {@link #update}: трасса
+     * меняется каждый тик, а {@code update} вызывается только когда у детали
+     * сменились модель или подпись. Без этого хода экран стоял бы мёртвым.
+     */
+    private void refreshScopes() {
+        if ("none".equalsIgnoreCase(plugin.config().renderMode)) {
+            return;                             // render.mode: none — экранов нет
+        }
+        int every = Math.max(1, plugin.config().scopeRefreshTicks);
+        if (screenTick++ % every != 0) {
             return;
         }
-        flush();
-        sweepStale();
+        for (Map.Entry<LocationKey, Ent> row : entities.entrySet()) {
+            CompInstance c = plugin.circuit().get(row.getKey());
+            if (c == null || c.def.kind != me.arena.electronics.registry.Kind.SCOPE) {
+                continue;
+            }
+            updateScreen(c, row.getValue());
+        }
     }
 
     private void update(CompInstance c) {
@@ -148,7 +182,7 @@ public final class Renderer {
         String text = labelText(c);
         if (plugin.config().textLabels && !text.isEmpty()) {
             if (ent.text == null || !ent.text.isValid()) {
-                ent.text = spawnText(loc.clone().add(0, 0.75, 0), text);
+                ent.text = spawnText(loc.clone().add(0, labelY(c), 0), text);
                 ent.textKey = text;
             } else if (!text.equals(ent.textKey)) {
                 ent.text.setText(text);
@@ -158,6 +192,84 @@ public final class Renderer {
             ent.text.remove();
             ent.text = null;
         }
+
+        if (c.def.kind == me.arena.electronics.registry.Kind.SCOPE) {
+            updateScreen(c, ent);
+        }
+    }
+
+    /**
+     * Подпись осциллографа живёт ВЫШЕ экрана: экран — это 4 строки по 20 знаков,
+     * и на одной высоте с ними они слились бы в кашу.
+     */
+    private double labelY(CompInstance c) {
+        return c.def.kind == me.arena.electronics.registry.Kind.SCOPE ? 1.55 : 0.75;
+    }
+
+    /**
+     * Экран осциллографа: 40×16 точек, упакованных в 4 строки по 20 знака
+     * Брайля. Один TextDisplay, а не россыпь мелких: меньше сущностей, меньше
+     * пакетов, и картинка не разъезжается по строкам на лаге.
+     */
+    private void updateScreen(CompInstance c, Ent ent) {
+        Block anchorBlock = c.key.block();
+        if (anchorBlock == null) {
+            return;
+        }
+        ScopeTrace tr = plugin.circuit().scope(c.key);
+        if (tr.size() < 2) {
+            if (ent.screen != null && ent.screen.isValid()) {
+                ent.screen.remove();
+                ent.screen = null;
+            }
+            return;
+        }
+        Location base = anchorBlock.getLocation().add(0.5, 0.5, 0.5);
+        ScopeTrace.Stats st = tr.measure();
+        double[] sc = ScopeScreen.autoscale(st.mean(), st.vpp(), 1.3);
+        double[] v = new double[ScopeTrace.SCREEN_SAMPLES];
+        for (int i = 0; i < v.length; i++) {
+            v[i] = tr.at(st.start() + i);
+        }
+        boolean[] px = ScopeScreen.mask();
+        if (plugin.config().scopeAfterglow) {
+            ScopeScreen.afterglow(px, ent.prevMask, 3);
+        }
+        ScopeScreen.trace(v, sc[0], sc[1], px);
+        ent.prevMask = px;
+        String pic = String.join("\n", ScopeScreen.braille(px));
+        if (pic.equals(ent.screenKey) && ent.screen != null && ent.screen.isValid()) {
+            return;                                     // кадры совпали — не дёргаем сущность
+        }
+        ent.screenKey = pic;
+        if (ent.screen == null || !ent.screen.isValid()) {
+            org.bukkit.entity.Entity spawned = base.getWorld().spawnEntity(
+                    base.clone().add(0, 1.05 + plugin.config().offsetY, 0), EntityType.TEXT_DISPLAY);
+            if (!(spawned instanceof TextDisplay td)) {
+                spawned.remove();
+                return;
+            }
+            td.setBillboard(Display.Billboard.CENTER);
+            td.setAlignment(TextDisplay.TextAlignment.CENTER);
+            // Фон — org.bukkit.Color, а не int. Отдельного «размера текста» у
+            // TextDisplay в Spigot нет: масштаб задаётся трансформацией (той же,
+            // что и у модели), поэтому 0.24 = 20 знаков брайля на грань блока.
+            td.setBackgroundColor(Color.fromARGB(0xE6, 0x0A, 0x24, 0x10));
+            td.setShadowed(false);
+            td.setSeeThrough(false);
+            float ts = (float) plugin.config().scopeTextSize;
+            Quaternionf ident = new Quaternionf();
+            td.setTransformation(new Transformation(new Vector3f(0f, 0f, 0f), ident,
+                    new Vector3f(ts, ts, ts), ident));
+            td.setViewRange((float) plugin.config().viewRange);
+            td.setPersistent(false);
+            td.setInvulnerable(true);
+            applyPdc(td, c.key);
+            ent.screen = td;
+        }
+        // Цвет — &-кодом (см. util/Legacy): setText у TextDisplay принимает
+        // только String, а клиент разбирает § и в тексте дисплеев.
+        ent.screen.setText(me.arena.electronics.util.Legacy.color("&a" + pic));
     }
 
     private void applyBlockLight(Block base, int level) {
@@ -244,10 +356,23 @@ public final class Renderer {
             case LED, LAMP, DIODE -> c.state == CompStates.BURNT ? "!" : (c.brightness > 0.02 ? Num.watt(c.power) : "");
             case RESISTOR -> c.state == CompStates.BURNT ? "!" : (c.power > 0.01 ? Num.watt(c.power) : "");
             case CAPACITOR -> c.voltage > 0.05 ? Num.volt(c.voltage) : "";
+            case SCOPE -> scopeLabel(c);
             case MOTOR -> c.speedPrev > 0.02 ? "n=" + Num.pct(c.speedPrev) + "%" : "";
             case GENERATOR -> "ген " + Num.volt(c.tunedVoltage());
             default -> "";
         };
+    }
+
+    /** Строка под экраном: размах, вольт на деление и измеренная частота. */
+    private String scopeLabel(CompInstance c) {
+        ScopeTrace tr = plugin.circuit().scope(c.key);
+        if (tr.size() < 4) {
+            return "осц: нет сигнала";
+        }
+        ScopeTrace.Stats st = tr.measure();
+        double tdiv = ScopeTrace.SCREEN_SAMPLES / 10.0 * tr.dt();
+        return "pk-pk " + Num.volt(st.vpp()) + " · " + Num.volt(st.vpp() / 10.0) + "/дел · "
+                + String.format(Locale.US, "%.2f Гц · %.2f с/дел", st.freqHz(), tdiv);
     }
 
     /** Раз в ~5 секунд убираем сирот-сущности (например, после /reload или взрыва чанка). */
@@ -261,12 +386,7 @@ public final class Renderer {
         while (it.hasNext()) {
             Map.Entry<LocationKey, Ent> e = it.next();
             if (plugin.circuit().get(e.getKey()) == null) {
-                if (e.getValue().item != null && e.getValue().item.isValid()) {
-                    e.getValue().item.remove();
-                }
-                if (e.getValue().text != null && e.getValue().text.isValid()) {
-                    e.getValue().text.remove();
-                }
+                kill(e.getValue());
                 it.remove();
             }
         }

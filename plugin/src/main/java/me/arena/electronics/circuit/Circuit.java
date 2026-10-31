@@ -101,14 +101,32 @@ public final class Circuit {
             return null;
         }
         CompInstance c = m.remove(pos(key.x, key.y, key.z));
+        scopes.remove(key);
         if (c != null) {
             markDirty();
         }
         return c;
     }
 
+    /**
+     * История осциллографов. Живёт здесь, а не в {@link CompInstance#aux}: буфер —
+     * 256 чисел, а aux — четыре служебных значения, и на диск история не пишется
+     * в любом случае (перезапустил сервер — трасса начинается заново, ровно как
+     * у прибора, который только что включили в розетку).
+     */
+    private final Map<LocationKey, ScopeTrace> scopes = new HashMap<>();
+
+    public ScopeTrace scope(LocationKey key) {
+        return scopes.computeIfAbsent(key, k -> new ScopeTrace());
+    }
+
+    public Iterable<java.util.Map.Entry<LocationKey, ScopeTrace>> scopes() {
+        return scopes.entrySet();
+    }
+
     public void clearWorld(String worldName) {
         Map<String, CompInstance> m = byWorld.remove(worldName);
+        scopes.keySet().removeIf(k -> k.worldName().equals(worldName));
         if (m != null) {
             markDirty();
         }
@@ -117,6 +135,7 @@ public final class Circuit {
     public void clearAll() {
         byWorld.clear();
         hostMarks.clear();
+        scopes.clear();
         markDirty();
     }
 
