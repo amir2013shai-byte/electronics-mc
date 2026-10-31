@@ -47,7 +47,7 @@ build/resourcepack/
 ├── assets/electronics/lang/{ru_ru,en_us}.json
 ├── assets/electronics/items/<id>.json                    # 110: выбор состояния модели
 ├── assets/electronics/models/item/<id>[_<state>].json    # 660: модель + display-трансформы
-└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1623 текстуры 32×32
+└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1623 текстуры 32×32 (или то, что положили в users_textures/)
 ```
 
 Файлы в чужом namespace ровно два вида, и оба безопасны:

@@ -106,7 +106,10 @@ stateModel(s, o)  = base + clamp(s) × 6 + clamp(o)
 
 1. **Текстуры 32×32** — рисует канвы по `shape`/`size`/`palette`
    (`base_canvas` → `apply_state` для состояний → `side_from_top`/`bottom_texture`
-   для боковин), всего 1623 файла (110 видов + слаба, перекраска, превью).
+   для боковин), всего 1623 файла (110 видов + слаба, перекраска, превью). Любой из этих
+   1623 слотов человек может перебить своим PNG: `users_textures/<тег>.png`
+   (правила имён и полный список тегов — `users_textures/README.md`, его
+   генерирует `tools/user_tags.py doc`), пересборка — `bash tools/user_pack.sh`.
 2. **Модели состояний** — 6 на каждый вид (660 файлов) с `elements`,
    `display`-трансформом и `gui_light`.
 3. **`assets/electronics/items/<id>.json`** — определяет `item model`. Для

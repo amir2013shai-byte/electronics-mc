@@ -23,6 +23,73 @@ BUILD = os.path.join(ROOT, "build")
 RP = os.path.join(BUILD, "resourcepack")
 DP = os.path.join(BUILD, "datapack")
 NS = "electronics"
+STATE_NAMES = ["off", "dim", "on", "burnt", "rev", "closed"]
+# Каталог, куда человек кладёт СВОИ текстуры (см. users_textures/README.md —
+# его генерирует tools/user_tags.py, поэтому список тегов не может устареть).
+# Путь можно переопределить переменной ELECTRONICS_USER_TEXTURES (тесты, CI).
+USERS_DIR = os.environ.get("ELECTRONICS_USER_TEXTURES") or os.path.join(ROOT, "users_textures")
+
+
+def user_candidates(cid, state=None, face="top"):
+    """Имена файлов, по которым ищем пользовательскую текстуру — от частного к общему.
+
+    Это и есть правило приоритета, зафиксированное в users_textures/README.md:
+    генератор и документ берут его отсюда, поэтому они не разъедутся.
+
+    Важно: общий файл ``<cid>.png`` / ``<cid>_top.png`` — это КАНВА, из которой
+    состояния (on/dim/burnt/rev/closed) выводятся, а не замена для каждого
+    состояния сразу. Иначе отдача одной текстуры убила бы «свечение» и «копоть».
+    """
+    if face != "top":
+        out = [f"{cid}_{state}_{face}.png"] if state else []
+        return out + [f"{cid}_{face}.png"]
+    specific = [f"{cid}_{state}_{face}.png", f"{cid}_{state}.png"] if state else []
+    if state in (None, "off"):
+        return specific + [f"{cid}_{face}.png", f"{cid}.png"]
+    return specific
+
+
+def user_tag_names():
+    """Все имена, которые генератор способен подхватить — для подсказки об опечатке."""
+    names = {"host_top", "host_side", "host_bottom"}
+    for comp in COMPONENTS:
+        cid = comp["id"]
+        for st in range(int(comp.get("states", 1))):
+            for face in ("top", "side", "bottom"):
+                names.update(n[:-4] for n in user_candidates(cid, STATE_NAMES[st], face))
+        for face in ("top", "side", "bottom"):
+            names.update(n[:-4] for n in user_candidates(cid, None, face))
+    return names
+
+
+def user_png(cands):
+    """Первый существующий файл из списка кандидатов (или None)."""
+    if not os.path.isdir(USERS_DIR):
+        return None
+    for name in cands:
+        path = os.path.join(USERS_DIR, name)
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+USER_SIZES = {}          # имя -> ((откуда растянули), (куда растянули))
+USER_USED = set()
+
+
+def load_user(path, size=32):
+    """Пользовательский PNG -> канвас нужного размера.
+
+    Только NEAREST: BICUBIC даёт полупрозрачные края, а модель рендерится с
+    `minecraft:cutout`, который пиксели с альфой < 128 выбрасывает — край
+    текстуры выглядел бы обгрызенным.
+    """
+    img = Image.open(path).convert("RGBA")
+    if img.size != (size, size):
+        USER_SIZES[os.path.basename(path)] = (img.size, (size, size))
+        img = img.resize((size, size), Image.NEAREST)
+    USER_USED.add(os.path.basename(path))
+    return img
 
 
 def out(*p):
@@ -916,6 +983,40 @@ def write_recipe(datapack_dir, cid, spec):
 
 # ---------------------------------------------------------------------------- main
 
+def report_users():
+    """Сколько тегов взято из users_textures/ и что там лежит неиспользованного.
+
+    Неиспользованное — это почти всегда опечатка в имени, а молчаливая опечатка
+    выглядит как «я положил текстуру, а она не подействовала».
+    """
+    if not os.path.isdir(USERS_DIR):
+        return
+    top = sorted(f for f in os.listdir(USERS_DIR) if f.lower().endswith((".png", ".jpg", ".jpeg")))
+    unused = [f for f in top if f not in USER_USED]
+    if USER_USED:
+        print(f"пользовательских текстур применено: {len(USER_USED)} из {len(top)} в {USERS_DIR}")
+        for f in sorted(USER_USED)[:12]:
+            print("   +", f)
+        if len(USER_USED) > 12:
+            print(f"   … и ещё {len(USER_USED) - 12}")
+    if USER_SIZES:
+        items = sorted(USER_SIZES.items())
+        for name, (src, dst) in items[:8]:
+            print(f"   ! {name}: исходник {src[0]}x{src[1]} -> {dst[0]}x{dst[1]} (NEAREST)")
+        if len(items) > 8:
+            print(f"   … ещё {len(items) - 8} файлов не нужного размера")
+    if unused:
+        import difflib
+        known = sorted(user_tag_names())
+        print(f"внимание: {len(unused)} файл(ов) в {os.path.basename(USERS_DIR)} не "
+              f"использованы — имя не совпало ни с одним тегом:")
+        for f in unused[:12]:
+            stem = f.rsplit(".", 1)[0]
+            guess = difflib.get_close_matches(stem, known, n=1)
+            print(f"   ? {f}" + (f"  (ближайший тег — «{guess[0]}.png»)" if guess else ""))
+        print("   полный список тегов: python3 tools/user_tags.py list")
+
+
 def main():
     if os.path.isdir(BUILD):
         shutil.rmtree(BUILD)
@@ -953,6 +1054,13 @@ def main():
         state_models += nstates * 6
 
         canvas = base_canvas(comp)
+        # своя текстура, если дали: становится канвой, из которой generator
+        # выведет все шесть состояний и боковины
+        user_base = user_png(user_candidates(cid, "off", "top"))
+        from_user = False
+        if user_base:
+            canvas = load_user(user_base, 32)
+            from_user = True
         models = {}
         for st in range(6):
             suffix = STATE_SUFFIX[st]
@@ -966,16 +1074,27 @@ def main():
                         json.dump({"parent": f"{NS}:item/{cid}"}, f, indent=1)
                 models[st] = f"{NS}:item/{name}"
                 continue
-            state_name = ["off", "dim", "on", "burnt", "rev", "closed"][st]
+            state_name = STATE_NAMES[st]
             top = apply_state(canvas.copy(), comp, state_name)
             side = side_from_top(top, comp, state_name)
             bottom = bottom_texture(comp)
             for tex, img in (("top", top), ("side", side), ("bottom", bottom)):
                 p = os.path.join(tex_dir, f"{name}_{tex}.png")
                 if p not in written:
-                    base = os.path.basename(p)
-                    mc_texture(img, base).save(p)
                     written.add(p)
+                    custom = user_png(user_candidates(cid, state_name, tex))
+                    if custom:
+                        # рука человека не переквантуется «под ванилу»: иначе
+                        # автор пака получил бы не то, что нарисовал
+                        if custom == user_base:
+                            canvas.copy().save(p)   # он уже загружен и подогнан
+                        else:
+                            load_user(custom, 32).save(p)
+                        continue
+                    if from_user:
+                        img.save(p)      # состояние выведено из чужой канвы
+                    else:
+                        mc_texture(img, os.path.basename(p)).save(p)
             mpath = os.path.join(model_dir, f"{name}.json")
             model = model_of(comp)
             model["textures"] = {
@@ -1021,6 +1140,7 @@ def main():
 
     # тема блока-основы (гладкий кварцевый полублок = «плата»)
     tb = dir_of("assets", "minecraft", "textures", "block")
+    host = {f"quartz_block_{f}": user_png([f"host_{f}.png"]) for f in ("top", "side", "bottom")}
     plate = Image.new("RGBA", (16, 16), (58, 108, 74, 255))
     dp = ImageDraw.Draw(plate)
     for i in range(0, 16, 3):
@@ -1036,6 +1156,11 @@ def main():
     d2 = ImageDraw.Draw(side)
     d2.rectangle([0, 12, 16, 16], fill=(40, 44, 48, 255))
     side.save(os.path.join(tb, "quartz_block_top.png"))
+    # «плата»-основа тоже переопределяется: host_top.png / host_side.png /
+    # host_bottom.png (16x16 — это ванильный размер блока, не 32)
+    for fname, up in host.items():
+        if up:
+            load_user(up, 16).save(os.path.join(tb, fname + ".png"))
 
     with open(os.path.join(lang_dir, "ru_ru.json"), "w", encoding="utf-8") as f:
         json.dump(ru, f, ensure_ascii=False, indent=1)
@@ -1103,6 +1228,7 @@ def main():
     if missing:
         print("рецепт не задан для:", ", ".join(missing))
     print("zip:", os.path.join(BUILD, "electronics-resourcepack.zip"))
+    report_users()
 
 
 if __name__ == "__main__":

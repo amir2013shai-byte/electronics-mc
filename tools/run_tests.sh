@@ -57,3 +57,17 @@ if [ -d build/resourcepack ]; then
 else
   echo "пропуск: собери пак — bash tools/publish.sh"
 fi
+
+# --- users_textures/README.md: список тегов обязан совпадать с генератором -------
+# Документ генерируется из того же кода, что и имена тегов (gen_pack.user_candidates),
+# поэтому расхождение значит лишь одно: MD не пересобрали после правки генератора.
+if [ -f users_textures/README.md ]; then
+  if python3 tools/user_tags.py doc --stdout | cmp -s - users_textures/README.md; then
+    echo "OK    users_textures/README.md совпадает с генератором: $(wc -l < users_textures/README.md | tr -d ' ') строк, $(python3 tools/user_tags.py list | tail -n +2 | wc -l | tr -d ' ') тегов"
+  else
+    echo "FAIL  users_textures/README.md устарел — пересоберите: python3 tools/user_tags.py doc"
+    exit 1
+  fi
+else
+  echo "пропуск: нет users_textures/README.md — сгенерируйте: python3 tools/user_tags.py doc"
+fi
