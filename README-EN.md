@@ -446,21 +446,21 @@ remembers what was done to it — and keeps remembering across server restarts.
 
 | Model | Formula | Numbers from `tools/TestBattery.java` (39 checks) |
 | --- | --- | --- |
-| EMF vs state of charge | `E = 12.65 − 0.80·(1 − soc)` V | 20 % → 12.01 V, 80 % → 12.49 V: 6 % apart, so a voltmeter cannot read the charge |
-| Ampere-hours | `Δsoc = I·Δt / (3600·C)` | 3000 schematic steps through 10 Ω: 1.26 A and +0.0263 A·h delivered |
-| Peukert | `C(I) = C_p / I^(n−1)`, n = 1.25 | 0.35 A (C20) → all 7.00 A·h; 35 A (5C) → 2.21 A·h |
-| Charge efficiency | `charge-efficiency` = 0.95 | one hour at 1 A gives back 13.4 % instead of 14.3 % |
-| A dead cell sags | `r_int ×40` below soc 5 % | at 0.15 A: 12.62 V fresh vs 11.85 V flat; 8.04 V at 35 A |
-| Sulfation | 2 % of capacity per idle hour below 20 % | a day flat and the plate is `burnt` |
-| Gassing | \|U\| > 14.4 V **or** current > 1C | 15 V / 20 A loses 20 % of capacity per hour; a normal 13 V / 6 A charge loses 0 %; 14.5 A at 13 V boils too, even though the voltage is fine |
-| Heat | `I²r + I·U_drop`, cooling `k·ΔT` | shorted at 35 A: +28.8 °C in a minute, back to 0 after 100 idle minutes |
-| Self-discharge | 4.8 % per day | 60 idle days: 7.00 → 5.36 A·h |
+| EMF vs state of charge | `E = 12.65 − 0.80·(1 − soc)` V | 20 % → 12.01 V, 80 % → 12.49 V: 0.48 V over 60 % of charge, so a voltmeter cannot read the state of charge |
+| Ampere-hours | `Δsoc = I·Δt / (3600·C)` | 3000 schematic steps through 10 Ω on the live server: 1.26 A, +0.0263 A·h out, 99 % left |
+| Peukert | `C(I) = C_p / I^(n−1)`, n = 1.25 | 0.35 A (C20) → all 7.00 A·h; 0.7 A (0.1C) → 5.89 A·h (84 %); 35 A (5C) → 2.21 A·h |
+| Charge efficiency | `charge-efficiency` = 0.95 | one hour at 1 A gives back 13.4 % instead of 14.3 %; giving 1 A·h away costs 18.8 % of charge instead of the naive 14.3 % (Peukert on discharge) |
+| A dead cell sags | `r_int ×40` below soc 5 % | 0.020 Ω when full, 0.800 Ω below soc 5 %: at 1.26 A the internal drop is 0.03 V fresh versus 1.01 V flat, so the terminals show ≈10.8 V instead of 12.62 V — the lamp dims long before a voltmeter reads zero |
+| Sulfation | 2 % of capacity per idle hour below 20 % | a day at zero costs 48 % of capacity; at ≥ 50 % lost the part reads `burnt` |
+| Gassing | \|U\| > 14.4 V **or** current > 1C | 15 V / 20 A loses 3.9 % of capacity in an hour; a normal 13 V / 6 A charge loses nothing and raises no fault; 12 A at 13 V is a current fault even though the voltage is fine |
+| Heat | `I²r + I·U_drop`, cooling `k·ΔT` | shorted at 35 A: +28.8 °C in a minute (36 W); the rise heads for the P/k equilibrium (+38.9 °C after 31 min, ceiling 40.7) and cools back to +0.00 °C at rest |
+| Self-discharge | 4.8 % per day | a full cell loses 4.8 % of its charge per idle day; `0` in the config makes it ideal |
 
 All six states are used, and every caption says exactly what the numbers say:
 `off` idle, `closed` full at rest, `dim` discharging, `rev` current flowing back
 into the cell (it is being charged), `on` charging above the limit — boiling,
-`burnt` sulfated or overheated. `/elec dump` at a battery appends
-`40 %, через клеммы −0.052 А·ч, потеря ёмкости 3 %, +24 °C`.
+`burnt` sulfated or overheated.
+the extra line `/elec dump` prints for a cell has the format `N %, через клеммы ±X.XXX А·ч, потеря ёмкости D %`, plus `+T °C` once the cell is warmer than half a degree.
 
 **What the model deliberately does not claim.** It cannot tell "cell inserted
 backwards" from "cell inserted correctly": the sign of the terminal voltage
