@@ -16,9 +16,9 @@ brightness, burnt parts. No client mod.
 | Resource pack format | **75** (75.0–75.1) |
 | Data pack format (recipes) | **94** |
 | Client mod | not required |
-| Components | 110 ids (67 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts), RU + EN names |
-| Built pack | 2401 files: 1623 item textures, 660 models (110 × 6), 110 `items/*.json` |
-| Resource-pack model states | **3246** = 541 visual states × 6 orientations |
+| Components | 111 ids (68 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts + lead-acid battery), RU + EN names |
+| Built pack | 2426 files: 1641 item textures, 666 models (111 × 6), 111 `items/*.json` |
+| Resource-pack model states | **3282** = 547 visual states × 6 orientations |
 
 ## Why the "modify the player" trick became a state-model registry
 
@@ -28,12 +28,12 @@ Spigot's `Player` exposes no write channel to entity NBT/state (only NMS
 `Player#sendActionBar(String)` does not exist in this API. So the "800+
 mutable states" are implemented where the vanilla client actually reads them:
 
-1. **3246 resource-pack `items` definitions** — one per
+1. **3282 resource-pack `items` definitions** — one per
    (component, visual state, orientation), selected by the server through the
    `minecraft:item_model` item component; `custom_model_data[0]` carries the
    state index for `range_dispatch` on lamp-like parts.
 2. **Orientation + state** live server-side in the plugin registry and are
-   pushed on every render: 6 orientations × 541 states = 3246 addresses ≥ 800.
+   pushed on every render: 6 orientations × 547 states = 3282 addresses ≥ 800.
 3. **World visuals** via `ItemDisplay`/`TextDisplay` entities (vanilla, no
    client changes): the model floats above the board, meters show their reading.
 4. `render.mode: none` drops displays entirely — item models + the retextured
@@ -89,8 +89,8 @@ Measured over the pack: pixels discarded by cutout 473 722 → 314 568, mean
 luminance unchanged (94.8 → 95.0), and no texture lost coverage (worst per-file
 delta 0). Pack archives are built deterministically — sorted entries, fixed
 1980-01-01 timestamps — so two runs of `python3 tools/gen_pack.py` give the
-same sha1 (`b1be027c18b2962881fc69433e7d126b31705ea5` for the resourcepack on
-v1.5.0; the data pack is byte-identical to v1.4.0 — `1c254875146836c1d3d6c77a080ef9301e0595d6` —
+same sha1 (`3f997520d0a12e2af2d69d62ca8d4fabf462edea` for the resourcepack on
+v1.6.0; the data pack is byte-identical to v1.4.0 — `1c254875146836c1d3d6c77a080ef9301e0595d6` —
 because the oscilloscope is soldered, so no data-pack recipe was added).
 
 Full block catalog (nominals, flags, model-index ranges): `docs/blocks.md`,
@@ -111,7 +111,7 @@ derives `dim`/`on`/`burnt`/`rev`/`closed`, the sides and the bottom — you do n
 have to draw six states. User files skip `mc_texture()` (otherwise you would get
 something else than you drew); only the per-state pixel operations are applied.
 `host_top|side|bottom.png` retextures the host block itself. The full tag list —
-**1623** slots — with RU/EN block names, palettes and vanilla anchors lives in
+**1641** slots — with RU/EN block names, palettes and vanilla anchors lives in
 `users_textures/README.md`, generated from the packer's own code
 (`python3 tools/user_tags.py doc`), so it cannot drift. With `users_textures/`
 empty the pack is byte-identical to the release.
@@ -214,7 +214,7 @@ and zeroes accumulated I²t, case temperature and MOV degradation.
 
 ## Soldering is the crafting gate
 
-67 of the 110 ids (everything with leads — resistors, capacitors, LEDs, diodes,
+68 of the 111 ids (everything with leads — resistors, capacitors, LEDs, diodes,
 transistors, gates, relay, reed, coils, motor, buzzer, meters, switches, solar
 cell, fuses, PTC, MOV, bridge, electrolytics, regulators, transformers) cannot
 be crafted in a crafting table at all: `Recipes.register()` skips
@@ -244,7 +244,7 @@ function, so GUI and tests cannot drift apart.
 ### JEI / REI / EMI without a client mod
 
 JEI reads the recipe list the server already syncs to every client
-(`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 110 ids** into it:
+(`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 111 ids** into it:
 39 real crafting recipes plus 67 *display* recipes (`recipe_solder_<id>`) for
 the soldered parts. A display recipe is a `ShapedRecipe` with the same blank
 grid the station demands, and the **soldering station sits in the free cell** —
@@ -262,7 +262,7 @@ work the same way; `world.recipes: false` hides both crafts and displays; and a
 true custom JEI *category* (progress bar, temperature gauge) would require a
 client addon, which the task forbids. `/elec selftest` proves the visible part:
 `PASS JEI: витрин 66/(нужно 66), … стол в сетке рецептов: 66/66, в менеджере
-рецептов клиента: 106 (39 крафта + 67 витрин)` — all 110 ids reach the client.`
+рецептов клиента: 107 (39 крафта + 68 витрин)` — all 111 ids reach the client.`
 
 ### Can our `custom_model_data` leak onto other items (a disc in a jukebox)?
 
@@ -271,10 +271,10 @@ No, and the pack build proves it rather than promises it:
 * state selection happens through the **`item_model` component on the stack**
   (`electronics:<id>_<state>`); the `custom_model_data` branch in `Items.applyModel`
   is only a fallback for pre-1.21.4 cores, and `/elec selftest` fails if it ever
-  engages: `PASS item_model is set on 110/110 items,
+  engages: `PASS item_model is set on 111/111 items,
   custom_model_data не ставится ни на одном`;
 * `custom_model_data` is read inside the definition of *that* item. All our
-  definitions live in `assets/electronics/items/` (110 files, with a CMD
+  definitions live in `assets/electronics/items/` (111 files, with a CMD
   dispatch); `assets/minecraft/items/` holds **zero** files, so `music_disc_13`,
   `jukebox`, potions and spawn eggs keep vanilla behaviour;
 * `tools/check_pack_refs.py` aborts if the pack ever ships another
@@ -434,8 +434,49 @@ every third column, so a rare pulse survives between refreshes).
 **Why the jar is still `Electronics-1.0.0.jar`.** The file name is the Maven
 artifact (`<version>` in `pom.xml`); renaming it would move paths referenced by
 `.github/workflows`, `tools/publish.sh` and every existing `plugins/` folder.
-The plugin version itself is real: `plugin.yml: version: 1.5.0`, which is what
+The plugin version itself is real: `plugin.yml: version: 1.6.0`, which is what
 the server logs on enable and what `/version Electronics` prints.
+
+## Lead-acid battery: a cell that remembers (v1.6.0)
+
+The 9 V block outputs 9 V forever — it is a `SOURCE`. A real cell cannot: it has
+a store, and the store runs out. The new part `battery_lead_12v` ("Свинцовый
+аккумулятор 12 В / 7 А·ч", `kind: BATTERY`, soldered) is the first component that
+remembers what was done to it — and keeps remembering across server restarts.
+
+| Model | Formula | Numbers from `tools/TestBattery.java` (39 checks) |
+| --- | --- | --- |
+| EMF vs state of charge | `E = 12.65 − 0.80·(1 − soc)` V | 20 % → 12.01 V, 80 % → 12.49 V: 6 % apart, so a voltmeter cannot read the charge |
+| Ampere-hours | `Δsoc = I·Δt / (3600·C)` | 3000 schematic steps through 10 Ω: 1.26 A and +0.0263 A·h delivered |
+| Peukert | `C(I) = C_p / I^(n−1)`, n = 1.25 | 0.35 A (C20) → all 7.00 A·h; 35 A (5C) → 2.21 A·h |
+| Charge efficiency | `charge-efficiency` = 0.95 | one hour at 1 A gives back 13.4 % instead of 14.3 % |
+| A dead cell sags | `r_int ×40` below soc 5 % | at 0.15 A: 12.62 V fresh vs 11.85 V flat; 8.04 V at 35 A |
+| Sulfation | 2 % of capacity per idle hour below 20 % | a day flat and the plate is `burnt` |
+| Gassing | \|U\| > 14.4 V **or** current > 1C | 15 V / 20 A loses 20 % of capacity per hour; a normal 13 V / 6 A charge loses 0 %; 14.5 A at 13 V boils too, even though the voltage is fine |
+| Heat | `I²r + I·U_drop`, cooling `k·ΔT` | shorted at 35 A: +28.8 °C in a minute, back to 0 after 100 idle minutes |
+| Self-discharge | 4.8 % per day | 60 idle days: 7.00 → 5.36 A·h |
+
+All six states are used, and every caption says exactly what the numbers say:
+`off` idle, `closed` full at rest, `dim` discharging, `rev` current flowing back
+into the cell (it is being charged), `on` charging above the limit — boiling,
+`burnt` sulfated or overheated. `/elec dump` at a battery appends
+`40 %, через клеммы −0.052 А·ч, потеря ёмкости 3 %, +24 °C`.
+
+**What the model deliberately does not claim.** It cannot tell "cell inserted
+backwards" from "cell inserted correctly": the sign of the terminal voltage
+depends on which nets the two pads land on, not on the part's polarity (measured:
+the same cell at orientation 3 feeds the loop, at orientation 1 absorbs). Telling
+those apart takes a neighbour — two cells in parallel, one `reversed` — and the
+solver works with magnitudes, so a "reverse polarity detector" would only teach a
+false rule. What the model does know is what a real cell knows from its own
+terminals: charge taken and given, current, temperature.
+
+**Where the memory lives.** `CompInstance.aux`: depth of discharge (`1 − soc`),
+lost capacity, the coulomb counter at the terminals and temperature. Storing
+`1 − soc` means a fresh part has an all-zero aux — a full cell needs no
+initialization. `Persistence` writes non-zero aux into `registry.json`
+(`"a":[…]`), so charge, boiling and sulfation survive a restart. Tunables:
+`battery:` in `config.yml`.
 
 ## Checks actually run
 
@@ -444,15 +485,21 @@ the server logs on enable and what `/version Electronics` prints.
   topology and
   circuit solve `OK=25 FAIL=0` (9 V / 220 Ω / LED loop: 28.46 mA against the
   hand-computed 28.9 mA), and the pack checker
-  `OK: все 110×6 ссылок на модели и текстуры разрешаются` (also standalone:
+  `OK: все 111×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
 * `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.0.0.jar`.
-* Live run on Paper 1.21.11 build 132: plugin enables — 110 components, 3246
-  model states, 106 recipes (39 crafting + 67 JEI showcases), 3 worksheets;
-  `selftest: true` → 24 PASS / 0 FAIL, including the in-world sawmill and two scope
+* Live run on Paper 1.21.11 build 132: plugin enables — 111 components, 3282
+  model states, 107 recipes (39 crafting + 68 JEI showcases), 3 worksheets;
+  `selftest: true` → 28 PASS / 0 FAIL, including the in-world sawmill, two scope
   checks — `PASS осциллограф: кадр 83 пикс., строки 4×20 | Upp 12.0 В | f 1.000 Гц`
   and the in-world one, `PASS живой экран осциллографа: TextDisplay над блоком
-  появился: true, после удаления детали исчез: true`;
+  появился: true, после удаления детали исчез: true` — plus four battery
+  lines: discharge (1.26 A over 3000 schematic steps through 10 Ω, +0.0263 A·h
+  out, 12.62 V at the terminals), normal charge (2.19 A in, −0.0457 A·h taken,
+  state of charge 100 %, 0 % capacity lost, model `rev`), overcharge (14.5 A
+  into a 7 A / 1C limit, +4.1 °C, 0.06 % of capacity lost, model `on`) and the
+  registry round trip (`a=[0.005264,0.0,0.026315,0.065376]` written to
+  `registry.json` and read back);
   `/elec build` placed both presets (12 + 12 parts, 13 + 13 hosts),
   `/elec sim` reported `islands=1` for a single loop and `islands=2` for the
   two independent ones, `/elec dump` printed U/I/P per part.
@@ -461,7 +508,9 @@ the server logs on enable and what `/version Electronics` prints.
   block state is used, parts only return when their chunk is loaded
   (`ChunkLoadEvent` plus a sweep every 2 s; `forceload add 16 16 48 48`
   reproduces it from the console). Initial capacitor voltage is not stored, so
-  a reloaded capacitor starts empty and charges again.
+  a reloaded capacitor starts empty and charges again. Part-type memory (`aux`)
+  *is* stored since v1.6.0 — that is how a battery keeps its charge, and the
+  selftest checks the whole loop: write, read back, restore into a circuit.
 
 CI: `.github/workflows/build.yml` runs `mvn package`, `tools/publish.sh`,
 `tools/run_tests.sh`, `check_pack_refs.py` and asserts `pack_format == 75`;
@@ -469,7 +518,7 @@ artifacts go to the run, and a `v*` tag additionally publishes a GitHub Release.
 The jar is reproducible (`project.build.outputTimestamp` in `pom.xml`): two clean
 `mvn clean package` runs and the jar that
 GitHub Actions publishes to the release all share sha1
-`f759e930cc4e111dbd10da72171efc38344d4576` (361 711 B, re-verified on v1.5.0; on v1.4.0 it
+`5651448dd85b90af51e20a2fcab84447f0f9528e` (372 393 B, re-verified on v1.6.0; on v1.4.0 it
 was `ca9047ad5e86ce6554785047cc770b98fb9c84db`, 348 091 B), which is also what
 `release/sha1sums.txt` records — so "works on my machine" can be checked by
 everybody. The plugin targets Spigot 1.21.11 (`spigot-api` 1.21.11-R0.2); the

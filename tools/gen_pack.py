@@ -203,6 +203,19 @@ def base_canvas(comp):
             rect(2 + i * 5, 4, 2 + i * 5, 11, shade(body, 0.6))
         rect(14, 5, 15, 10, (230, 230, 235, 255))
         d.text((4, 6), "+", fill=(255, 255, 255, 255))
+    elif shape == "accu":
+        # Свинцовый аккумулятор: банка-кирпич с двумя клеммами и «глазком».
+        # Клеммы намеренно разного цвета: «+» красный — подсказка полярности,
+        # которую игрок видит и в handheld-подписи, и на TextDisplay.
+        rect(0, 4, 15, 13, body)
+        rect(1, 5, 14, 12, shade(body, 1.22))
+        rect(2, 3, 5, 4, accent)                       # «+»
+        rect(10, 3, 13, 4, detail)                     # «−»
+        d.text((2, 6), "+", fill=(255, 255, 255, 255))
+        d.ellipse([6, 6, 9, 9], fill=shade(detail, 0.8), outline=shade(detail, 1.4))
+        rect(2, 11, 13, 12, shade(accent, 0.7))        # этикетка ёмкости
+        for i in range(3):
+            rect(2 + i * 4, 13, 3 + i * 4, 13, shade(body, 0.6))
     elif shape == "battery9":
         rect(1, 2, 14, 13, body)
         rect(2, 3, 13, 12, shade(body, 1.2))
@@ -809,6 +822,7 @@ RECIPES = {
     "battery_aa": {"shape": ["I", "R", "G"], "key": {"I": "iron_nugget", "R": "redstone", "G": "gold_nugget"}},
     "battery_3": {"type": "shapeless", "ing": {"copper_ingot": 2, "honeycomb": 1}},
     "battery_9": {"shape": ["GGG", "CRC", "GGG"], "key": {"G": "gold_nugget", "C": "copper_ingot", "R": "redstone"}},
+    "battery_lead_12v": {"shape": ["I I", "PRP", "CWC"], "key": {"I": "iron_ingot", "P": "black_concrete", "R": "redstone", "C": "copper_ingot", "W": "glass_bottle"}},
     "power_supply": {"shape": ["CGC", "RBR", "IRI"], "key": {"C": "copper_ingot", "G": "glass", "B": "copper_bulb",
                                                              "R": "repeater", "I": "iron_ingot"}},
     "solar_cell": {"shape": [" GG", "QLQ", "GIG"], "key": {"G": "tinted_glass", "Q": "quartz", "L": "lapis_block",

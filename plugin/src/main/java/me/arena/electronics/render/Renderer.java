@@ -1,6 +1,7 @@
 package me.arena.electronics.render;
 
 import me.arena.electronics.ElectronicsPlugin;
+import me.arena.electronics.circuit.Battery;
 import me.arena.electronics.circuit.CompInstance;
 import me.arena.electronics.circuit.CompStates;
 import me.arena.electronics.circuit.ScopeScreen;
@@ -357,6 +358,8 @@ public final class Renderer {
             case RESISTOR -> c.state == CompStates.BURNT ? "!" : (c.power > 0.01 ? Num.watt(c.power) : "");
             case CAPACITOR -> c.voltage > 0.05 ? Num.volt(c.voltage) : "";
             case SCOPE -> scopeLabel(c);
+            // аккумулятор: подпись — не «U=», а чем он занят (заряд/разряд/А)
+            case BATTERY -> Battery.label(c.aux, c.voltage, c.reading);
             case MOTOR -> c.speedPrev > 0.02 ? "n=" + Num.pct(c.speedPrev) + "%" : "";
             case GENERATOR -> "ген " + Num.volt(c.tunedVoltage());
             default -> "";

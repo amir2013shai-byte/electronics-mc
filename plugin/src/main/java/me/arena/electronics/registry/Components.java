@@ -118,6 +118,8 @@ public final class Components {
         d.resistance = Json.num(o, "resistance", 0);
         d.rInt = Json.num(o, "r_int", 1.0);
         d.voltage = Json.num(o, "voltage", 0);
+        d.capacityAh = Json.num(o, "capacity_ah", 0);
+        d.peukert = Json.num(o, "peukert", 1.25);
         d.vForward = Json.num(o, "v_forward", 0);
         d.vDrop = Json.num(o, "v_drop", 0);
         // обе орфографии: 52 def-а используют v_reverse_max, diode — v_rev_max;

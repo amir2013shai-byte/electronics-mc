@@ -25,6 +25,14 @@ public final class Config {
     /** Послесвечение: прошлый кадр дорисовывается через каждый третий столбец. */
     public boolean scopeAfterglow = true;
 
+    // ---аккумуляторы (Kind.BATTERY)---
+    /** КПД заряда: доля ампер-часов, которая возвращается в банк. */
+    public double batteryChargeEff = 0.95;
+    /** Саморазряд, % ёмкости в сутки (4.8 %/сут = ~1.5 %/нед, как у VRLA). */
+    public double batterySelfDischargePerDay = 4.8;
+    /** Сульфатация: % ёмкости, теряемый за час простоя глубоко разряженным. */
+    public double batterySulfationPerHour = 2.0;
+
     // --- блоки-основания ---
     public Material baseBlock = Material.SMOOTH_QUARTZ_SLAB;
     public Material pedestalBlock = Material.POLISHED_BLACKSTONE;
@@ -147,6 +155,11 @@ public final class Config {
         resourcePackUrl = c.getString("resource-pack.url", resourcePackUrl);
         resourcePackHash = c.getString("resource-pack.sha1", resourcePackHash);
         debug = c.getBoolean("debug", debug);
+        batteryChargeEff = c.getDouble("battery.charge-efficiency", batteryChargeEff);
+        batterySelfDischargePerDay = c.getDouble("battery.self-discharge-per-day",
+                batterySelfDischargePerDay);
+        batterySulfationPerHour = c.getDouble("battery.sulfation-per-hour",
+                batterySulfationPerHour);
         selftestOnEnable = c.getBoolean("selftest", selftestOnEnable);
     }
 
@@ -179,6 +192,9 @@ public final class Config {
         c.set("world.recipes", recipesEnabled);
         c.set("resource-pack.url", resourcePackUrl);
         c.set("resource-pack.sha1", resourcePackHash);
+        c.set("battery.charge-efficiency", batteryChargeEff);
+        c.set("battery.self-discharge-per-day", batterySelfDischargePerDay);
+        c.set("battery.sulfation-per-hour", batterySulfationPerHour);
         plugin.saveConfig();
     }
 

@@ -70,11 +70,12 @@
    "gearbox_3x",
    "flywheel_kinetic",
    "saw_kinetic",
-   "drill_kinetic"
+   "drill_kinetic",
+   "battery_lead_12v"
   ],
-  "state_model_count": 3246,
+  "state_model_count": 3282,
   "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
-  "component_count": 110
+  "component_count": 111
  },
  "kinds": [
   "BOARD",
@@ -356,6 +357,29 @@
    "orientable": true,
    "states": 6,
    "en": "9 V Battery"
+  },
+  {
+   "id": "battery_lead_12v",
+   "ru": "Свинцовый аккумулятор 12 В / 7 А·ч",
+   "kind": "BATTERY",
+   "shape": "accu",
+   "size": [
+    12,
+    10,
+    8
+   ],
+   "palette": [
+    "#1e2226",
+    "#c0392b",
+    "#dfe6e9"
+   ],
+   "voltage": 12.65,
+   "r_int": 0.02,
+   "capacity_ah": 7.0,
+   "peukert": 1.25,
+   "orientable": true,
+   "states": 6,
+   "en": "Lead-Acid Battery 12 V 7 Ah"
   },
   {
    "id": "power_supply",

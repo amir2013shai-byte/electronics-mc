@@ -1,5 +1,5 @@
 name: Electronics
-version: 1.5.0
+version: 1.6.0
 main: me.arena.electronics.ElectronicsPlugin
 api-version: '1.21'
 author: Arena

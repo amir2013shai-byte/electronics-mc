@@ -366,6 +366,7 @@ public final class SchematicGui implements Gui {
             maxAbs = Math.max(maxAbs, Math.abs(inst.current));
         }
         boolean noSource = list.stream().noneMatch(i -> i.def.kind == Kind.SOURCE
+                || i.def.kind == Kind.BATTERY
                 || i.def.kind == Kind.GENERATOR || i.def.kind == Kind.SOLAR);
         if (noSource) {
             hint = "нет источника питания";

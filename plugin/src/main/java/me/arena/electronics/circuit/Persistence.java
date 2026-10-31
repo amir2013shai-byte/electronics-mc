@@ -59,6 +59,12 @@ public final class Persistence {
         /** Прошивка микроконтроллера (Kind.MCU). */
         public String program = "";
         public boolean host;
+        /**
+         * Память детали (CompInstance.aux): то, что вид накопил за время работы.
+         * Пишется только когда aux ненулевой — у новой банки он пуст, поэтому
+         * лишнего в registry.json не появляется.
+         */
+        public double[] aux;
 
         public String key() {
             return world + ";" + x + ";" + y + ";" + z;
@@ -88,6 +94,7 @@ public final class Persistence {
         e.fault = c.fault == null ? "" : c.fault;
         e.lab = c.lab == null ? "" : c.lab;
         e.program = c.program == null ? "" : c.program;
+        e.aux = hasAux(c.aux) ? c.aux.clone() : null;
         dirty = true;
         writePdcBonus(c.key.block(), e);
     }
@@ -212,6 +219,9 @@ public final class Persistence {
         c.fault = e.fault == null ? "" : e.fault;
         c.lab = e.lab == null ? "" : e.lab;
         c.program = e.program == null ? "" : e.program;
+        if (e.aux != null && e.aux.length == c.aux.length) {
+            System.arraycopy(e.aux, 0, c.aux, 0, c.aux.length);
+        }
         loadedCount++;
         return c;
     }
@@ -333,6 +343,23 @@ public final class Persistence {
     }
 
     @SuppressWarnings("unchecked")
+    private static boolean hasAux(double[] a) {
+        if (a == null) {
+            return false;
+        }
+        for (double v : a) {
+            if (v != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Шесть знаков: ампер-часы и проценты заряда с такой точностью и нужны. */
+    private static double round6(double v) {
+        return Math.round(v * 1e6) / 1e6;
+    }
+
     private void parse(String json) {
         entries.clear();
         Map<String, Object> root = Json.objectOf(json);
@@ -352,6 +379,14 @@ public final class Persistence {
             e.note = Json.str(o, "m", "");
             e.program = Json.str(o, "p", "");
             e.host = Json.bool(o, "h", false);
+            List<Object> a = Json.arr(o, "a");
+            if (a.size() == 4) {
+                e.aux = new double[4];
+                for (int k = 0; k < 4; k++) {
+                    Object av = a.get(k);
+                    e.aux[k] = av instanceof Number ? ((Number) av).doubleValue() : 0;
+                }
+            }
             if (!e.world.isEmpty()) {
                 entries.put(e.key(), e);
             }
@@ -389,6 +424,12 @@ public final class Persistence {
             }
             if (e.host) {
                 sb.append(",\"h\":true");
+            }
+            if (e.aux != null) {
+                sb.append(",\"a\":[").append(round6(e.aux[0])).append(',')
+                        .append(round6(e.aux[1])).append(',')
+                        .append(round6(e.aux[2])).append(',')
+                        .append(round6(e.aux[3])).append(']');
             }
             sb.append("}");
         }

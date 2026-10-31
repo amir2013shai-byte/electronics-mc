@@ -29,6 +29,10 @@ public final class Def {
     public double rInt = 1.0;
     /** ЭДС, В. */
     public double voltage = 0.0;
+    /** Ёмкость аккумулятора при 20-часовом разряде, А·ч (Kind.BATTERY). */
+    public double capacityAh = 0.0;
+    /** Показатель Пейкерта: 1 — ёмкость не зависит от тока, 1.25 — свинец. */
+    public double peukert = 1.25;
     /** Порог светодиодов/диодов, В. */
     public double vForward = 0.0;
     /** Падение напряжения, В. */
@@ -243,6 +247,8 @@ public final class Def {
             case SOURCE, GENERATOR, SOLAR -> (acHz > 0 ? "U=" + trim(voltage) + " В, синус "
                     + trim(acHz) + " Гц" : "U=" + trim(voltage) + " В");
             case CAPACITOR -> "C=" + trim(capacitance) + " Ф";
+            case BATTERY -> "U=" + trim(voltage) + " В, ёмкость " + trim(capacityAh)
+                    + " А·ч (Пейкерт " + trim(peukert) + ")";
             case SCOPE -> "вход " + trim(internalResistance / 1e6) + " МОм, экран 40×16, "
                     + "10 делений по горизонтали";
             case MOTOR -> "U=" + trim(ratedVoltage) + " В, R обм. " + trim(winding) + " Ом"

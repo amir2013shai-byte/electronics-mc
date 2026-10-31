@@ -254,7 +254,8 @@ public final class Simulation {
                     isl.grounds.add(find(isl, ref));
                 }
             }
-            if (c.def.kind == Kind.SOURCE || c.def.kind == Kind.GENERATOR || c.def.kind == Kind.SOLAR) {
+            if (c.def.kind == Kind.SOURCE || c.def.kind == Kind.BATTERY
+                    || c.def.kind == Kind.GENERATOR || c.def.kind == Kind.SOLAR) {
                 isl.hasSource = true;
             }
         }
@@ -507,6 +508,17 @@ public final class Simulation {
                         mna.stamp(b, a, 1.0 / r, emf / r);
                     }
                 }
+                case BATTERY -> {
+                    if (b != null) {
+                        // Тот же Тевенин, что у SOURCE, но ЭДС берётся из заряда
+                        // банки, а внутреннее сопротивление — из её состояния:
+                        // севшая банка проседает под нагрузкой, и это видно по
+                        // лампочке (проверка «нагрузкой», а не вольтметром).
+                        Battery.Params bp = batteryParams(cfg, d);
+                        double r = Math.max(1e-3, Battery.resistance(bp, c.aux));
+                        mna.stamp(b, a, 1.0 / r, Battery.emf(bp, c.aux) / r);
+                    }
+                }
                 case POT -> {
                     String w = rep(isl, c.pinNet[4]);
                     double total = Math.max(1.0, d.resistance);
@@ -663,6 +675,13 @@ public final class Simulation {
                 if (d.ratedPower > 0 && Math.abs(ii[1]) * c.reading > d.ratedPower * 6) {
                     c.aux[2] = 1;             // перегрузка вторички: считаем в protect()
                 }
+            } else if (d.kind == Kind.BATTERY) {
+                // Аккумулятору знак тока жизненно необходим: по нему решается,
+                // сажать банк или заряжать. Модуль branchCurrent() считает честно,
+                // знак берём из stamp'а банки и кладём в reading (модуль — в i).
+                double ib = batterySignedCurrent(c, mna, isl, v);
+                c.reading = ib;
+                i = Math.abs(ib);
             }
             c.current = i;
             if (c.def.isInductive() && d.kind != Kind.TRANSFORMER) {
@@ -891,6 +910,14 @@ public final class Simulation {
                 c.brightness = d.ratedPower > 0 ? Math.min(1, c.power / d.ratedPower) : 0;
                 c.state = c.brightness < 0.02 ? CompStates.OFF : (c.brightness < 0.35 ? CompStates.DIM : CompStates.ON);
             }
+            case BATTERY -> {
+                Battery.Params bp = batteryParams(cfg, d);
+                Battery.step(bp, c.aux, c.voltage, c.reading, dt);
+                c.state = Battery.stateOf(bp, c.aux, c.voltage, c.reading);
+                c.fault = Battery.faultOf(bp, c.aux, c.voltage, c.reading);
+                // подсветка корпуса пропорциональна току: 20 А = полный огонь
+                c.brightness = Math.min(1.0, Math.abs(c.reading) / 20.0);
+            }
             case DIODE -> c.state = i > 0.0004 ? CompStates.ON : (c.voltage < -0.3 ? CompStates.REVERSE : CompStates.OFF);
             case CAPACITOR -> {
                 c.vcPrev = c.voltage;
@@ -1116,6 +1143,31 @@ public final class Simulation {
     private static double nodeVoltage(Island isl, Map<String, Double> v, String[] pinNet, int pin) {
         String n = rep(isl, pinNet[pin]);
         return n == null ? 0 : v.getOrDefault(n, 0.0);
+    }
+
+    /**
+     * Знаковый ток аккумулятора: сколько ампер банк отдаёт в вывод 0.
+     * Положительный — разряжается, отрицательный — его заряжают. Модуль тока
+     * решатель считает сам (branchCurrent), знак здесь — из stamp'а банки.
+     */
+    private static double batterySignedCurrent(CompInstance c, Mna mna, Island isl,
+                                               Map<String, Double> v) {
+        String a = rep(isl, c.pinNet[0]);
+        String b = rep(isl, c.pinNet[1]);
+        if (a == null || b == null) {
+            return 0;
+        }
+        Mna.Stamp s = mna.findBranch(a, b);
+        return s == null ? 0 : -Mna.branchCurrent(s, v, a);
+    }
+
+    /** Параметры банки: реестр (Def) + три настройки из config.yml. */
+    static Battery.Params batteryParams(Config cfg, Def d) {
+        return new Battery.Params(d.voltage, d.rInt,
+                d.capacityAh > 0 ? d.capacityAh : 1.0, d.peukert,
+                cfg.batteryChargeEff,
+                Math.max(0.0, cfg.batterySelfDischargePerDay) / 100.0 / 24.0,
+                Math.max(0.0, cfg.batterySulfationPerHour) / 100.0);
     }
 
     private static double branchCurrent(CompInstance c, Mna mna, Island isl, Map<String, Double> v) {

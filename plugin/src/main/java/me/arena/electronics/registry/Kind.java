@@ -90,6 +90,11 @@ public enum Kind {
      * каждый тик, её рисует Renderer, а не ресурспак.
      */
     SCOPE,
+    /**
+     * Свинцовый аккумулятор: ЭДС зависит от заряда, ёмкость тратится по Пейкерту,
+     * банка помнит состояние между тиками и рестартами (Battery).
+     */
+    BATTERY,
     EMPTY;
 
     /** Проводит ли компонент «сквозь себя» на соседние блоки (для объединения узлов). */
@@ -100,8 +105,8 @@ public enum Kind {
     public boolean twoTerminal() {
         return switch (this) {
             case RESISTOR, CAPACITOR, LED, LAMP, DIODE, SWITCH, BUTTON, TOGGLE, FUSE,
-                 VOLTMETER, AMMETER, SCOPE, WIRE, PROBE, SOURCE, GROUND, GENERATOR, SOLAR, POT,
-                 PTC, VARISTOR -> true;
+                 VOLTMETER, AMMETER, SCOPE, WIRE, PROBE, SOURCE, BATTERY, GROUND, GENERATOR,
+                 SOLAR, POT, PTC, VARISTOR -> true;
             default -> false;
         };
     }

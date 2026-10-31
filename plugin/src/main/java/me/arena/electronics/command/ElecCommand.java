@@ -812,6 +812,138 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 + "&7варистор при 9 В не течёт: I = &f" + String.format(java.util.Locale.US, "%.2e", iMov)
                 + " А&7 (порог 390 В, α=9)"));
 
+        // (12г) аккумулятор: банк обязан тратить заряд, а не «вечно держать 12 В»
+        me.arena.electronics.gui.SchematicGui gaccu =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gaccu, "battery_lead_12v", "wire_black", "resistor_10r");
+        gaccu.recalcSteps(null, 3000);              // 3000 шагов (шаг схемы 25 мс) через 10 Ом
+        CompInstance accu = gaccu.instanceAt(0, 1);
+        double iAccu = accu == null ? 0 : accu.current;
+        double socLeft = accu == null ? -1 : me.arena.electronics.circuit.Battery.soc(accu.aux);
+        double ahAccu = accu == null ? 0 : accu.aux[me.arena.electronics.circuit.Battery.AMPERE_HOURS];
+        int accuState = accu == null ? -1 : accu.state;
+        boolean accuDrain = accu != null && iAccu > 0.3 && socLeft < 0.999 && socLeft > 0.98
+                && ahAccu > 0 && accuState == me.arena.electronics.circuit.CompStates.DIM;
+        double accuVolt = accu == null ? 0 : Math.abs(accu.voltage);
+
+        s.sendMessage(Items.color((accuDrain ? "&aPASS " : "&cFAIL ")
+                + "&7аккумулятор на разряде: 3000 шагов через 10 Ом — &f" + Num.amp(iAccu)
+                + "&7, остаток &f" + (int) Math.round(socLeft * 100) + " %&7, счётчик &f+"
+                + String.format(java.util.Locale.US, "%.4f", ahAccu)
+                + " &7А·ч отдано&7, клеммы &f" + String.format(java.util.Locale.US, "%.2f", accuVolt)
+                + " В&7, состояние &f" + me.arena.electronics.circuit.CompStates.name(accuState)
+                + " &7(сульфатацию сверяет офлайн-тест TestBattery)"));
+
+        // (12е) нормальный заряд: 220 В через 100 Ом дают ~2 А в банк — это меньше
+        // 1C (7 А) и меньше напряжения газа, значит банк обязан просто принимать
+        // ток: состояние «обратно» (ток идёт в банк), отказа нет, счётчик уходит в
+        // минус, заряд упирается в 100 % и не растёт
+        me.arena.electronics.gui.SchematicGui gchg =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gchg, "supply_220v", "resistor_100r", "battery_lead_12v");
+        gchg.recalcSteps(null, 3000);
+        CompInstance chg = gchg.instanceAt(0, 3);
+        double ahIn = chg == null ? 0 : chg.aux[me.arena.electronics.circuit.Battery.AMPERE_HOURS];
+        double socChg = chg == null ? -1 : me.arena.electronics.circuit.Battery.soc(chg.aux);
+        int chgState = chg == null ? -1 : chg.state;
+        double lossChg = chg == null ? 0 : chg.aux[me.arena.electronics.circuit.Battery.DEGRADE];
+        boolean accuCharge = chg != null && ahIn < 0 && Math.abs(chg.current) > 0.5
+                && Math.abs(chg.current) < me.arena.electronics.circuit.Battery.MAX_CHARGE_C * 7.0
+                && chgState == me.arena.electronics.circuit.CompStates.REVERSE
+                && chg.fault.isEmpty() && socChg >= 0.999 && lossChg == 0.0;
+        s.sendMessage(Items.color((accuCharge ? "&aPASS " : "&cFAIL ")
+                + "&7штатная зарядка (220 В через 100 Ом): &f" + Num.amp(Math.abs(chg == null ? 0 : chg.current))
+                + "&7 в банк, счётчик &f" + String.format(java.util.Locale.US, "%.4f", ahIn)
+                + " &7А·ч (минус = принято), заряд &f" + (int) Math.round(100 * socChg)
+                + " %&7 (выше 100 % не бывает), потеря &f" + (int) Math.round(100 * lossChg)
+                + " %&7, состояние &f" + me.arena.electronics.circuit.CompStates.name(chgState)
+                + "&7, отказ: " + (chg == null ? "&cнет экземпляра" : "&f«" + chg.fault + "&f»")));
+
+        // (12ж) перезаряд: те же 220 В, но через 10 Ом — ~13 А, это 1.9C. Банк
+        // обязан загореться, нагреться и начать терять ёмкость (кипение)
+        me.arena.electronics.gui.SchematicGui gboil =
+                me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+        paintLoop(gboil, "supply_220v", "resistor_10r", "battery_lead_12v");
+        gboil.recalcSteps(null, 3000);
+        CompInstance boil = gboil.instanceAt(0, 3);
+        double boilHeat = boil == null ? 0 : boil.aux[me.arena.electronics.circuit.Battery.TEMP];
+        double boilLoss = boil == null ? 0 : boil.aux[me.arena.electronics.circuit.Battery.DEGRADE];
+        boolean accuBoil = boil != null && boil.state == me.arena.electronics.circuit.CompStates.ON
+                && boil.fault.contains("кипит") && boilHeat > 0.25 && boilLoss > 0.0002
+                && boil.aux[me.arena.electronics.circuit.Battery.AMPERE_HOURS] < 0;
+        // (шаг схемы — 25 мс, поэтому за 3000 шаков банк «кипит» 75 с: потеря
+        // ёмкости тогда ~0.06 % — порог выставлен по факту, а не по округлению)
+        s.sendMessage(Items.color((accuBoil ? "&aPASS " : "&cFAIL ")
+                + "&7перезаряд (220 В через 10 Ом): &f" + Num.amp(Math.abs(boil == null ? 0 : boil.current))
+                + "&7 в банк при пределе 7 А (1C), нагрев +&f"
+                + String.format(java.util.Locale.US, "%.1f", boilHeat) + " °C&7, потеряно &f"
+                + String.format(java.util.Locale.US, "%.2f", 100 * boilLoss)
+                + " %&7 ёмкости&7, состояние &f"
+                + me.arena.electronics.circuit.CompStates.name(boil == null ? -1 : boil.state)
+                + "&7, &c" + (boil == null ? "нет экземпляра" : boil.fault)));
+
+        // (12д) банк обязан помнить накопленное между запусками: Persistence пишет
+        // aux в registry.json и читает его обратно тем же путём, каким сервер
+        // догружает компоненты из чанков (loadChunk)
+        boolean auxSaved = false;
+        boolean auxRead = false;
+        String auxJson = "";
+        String auxNote = "нет мира/дефолта";
+        try {
+            org.bukkit.World pw = plugin.getServer().getWorlds().isEmpty()
+                    ? null : plugin.getServer().getWorlds().get(0);
+            me.arena.electronics.registry.Def bd =
+                    me.arena.electronics.registry.Components.byId("battery_lead_12v");
+            if (pw != null && bd != null && accu != null) {
+                me.arena.electronics.registry.LocationKey fk =
+                        new me.arena.electronics.registry.LocationKey(pw, 300000, 64, 300000);
+                CompInstance save = new CompInstance(fk, bd);
+                System.arraycopy(accu.aux, 0, save.aux, 0, save.aux.length);
+                save.state = accu.state;
+                me.arena.electronics.circuit.Persistence reg =
+                        me.arena.electronics.circuit.Persistence.get(plugin);
+                reg.write(save);
+                reg.save();
+                String txt = java.nio.file.Files.readString(
+                        plugin.getDataFolder().toPath().resolve("registry.json"),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                int aAt = txt.indexOf("\"a\":[");
+                int aEnd = aAt < 0 ? -1 : txt.indexOf(']', aAt);
+                if (aAt >= 0 && aEnd > aAt) {
+                    auxJson = txt.substring(aAt + 5, aEnd);
+                }
+                auxSaved = txt.contains("\"d\":\"battery_lead_12v\"")
+                        && auxJson.split(",").length == 4;
+                // читаем запись обратно тем же методом, которым её поднимает
+                // реестр (read); loadChunk не используем — он тащит рендерер
+                me.arena.electronics.circuit.Persistence.Entry back =
+                        new me.arena.electronics.circuit.Persistence.Entry();
+                back.world = pw.getName();
+                back.x = 300000;
+                back.y = 64;
+                back.z = 300000;
+                back.def = "battery_lead_12v";
+                back.aux = new double[]{0.35, 0.02, 1.5, 4.25};
+                CompInstance revived = reg.read(back);
+                auxRead = revived != null && revived.def.kind == me.arena.electronics.registry.Kind.BATTERY
+                        && Math.abs(revived.aux[0] - 0.35) < 1e-9
+                        && Math.abs(revived.aux[1] - 0.02) < 1e-9
+                        && Math.abs(revived.aux[2] - 1.5) < 1e-9
+                        && Math.abs(revived.aux[3] - 4.25) < 1e-9;
+                reg.clear(fk.block());
+                reg.save();
+                auxNote = auxSaved && auxRead ? "записан в registry.json и читается обратно"
+                        : (auxSaved ? "в файле есть, но read() его не возвращает"
+                                : "aux в реестре не найден");
+            }
+        } catch (RuntimeException | java.io.IOException ex) {
+            auxNote = "сбой: " + ex.getClass().getSimpleName() + " " + ex.getMessage();
+        }
+        s.sendMessage(Items.color(((auxSaved && auxRead) ? "&aPASS " : "&cFAIL ")
+                + "&7реестр помнит банк: &f" + auxNote + "&7, &fa=["
+                + String.format(java.util.Locale.US, "%s", auxJson) + "] &7(разряженность,"
+                + " деградация, А·ч, нагрев) — после рестарта заряд не обнуляется"));
+
         me.arena.electronics.gui.SchematicGui greg =
                 me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
         paintRegulator(greg, "battery_9", false);
@@ -1574,6 +1706,17 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                     + " I=" + String.format(java.util.Locale.ROOT, "%.2f", c.current * 1000) + " мА"
                     + " P=" + String.format(java.util.Locale.ROOT, "%.3f", c.power) + " Вт"
                     + (c.brightness > 0.01 ? " &eb=" + String.format(java.util.Locale.ROOT, "%.2f", c.brightness) : "")
+                    + (c.def.kind == me.arena.electronics.registry.Kind.BATTERY
+                            ? " &e" + (int) Math.round(100 * me.arena.electronics.circuit.Battery.soc(c.aux))
+                            + " %&7, через клеммы &f" + String.format(java.util.Locale.ROOT, "%+.3f",
+                                    c.aux[me.arena.electronics.circuit.Battery.AMPERE_HOURS])
+                            + " &7А·ч&7, потеря ёмкости &f" + (int) Math.round(100
+                                    * me.arena.electronics.circuit.Battery.degrade(c.aux)) + " %"
+                            + (c.aux[me.arena.electronics.circuit.Battery.TEMP] > 0.5
+                                    ? " &c+&f" + (int) Math.round(
+                                            c.aux[me.arena.electronics.circuit.Battery.TEMP]) + " °C"
+                                    : "")
+                            : "")
                     + (c.fault.isEmpty() ? "" : " &c" + c.fault)));
         }
         if (n == 0) {
