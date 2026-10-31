@@ -56,8 +56,11 @@ body=$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"na
 resp=$(curl -sf -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
         -H "Content-Type: application/json" -d "$body" "$API/releases" || true)
 if [ -z "$resp" ]; then
-  echo "  релиз $TAG уже есть — докладываю ассеты в существующий"
+  echo "  релиз $TAG уже есть — обновляю заметки и перекладываю ассеты"
   id=$(curl -sf -H "Authorization: Bearer $TOK" "$API/releases/tags/$TAG" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+  curl -sf -X PATCH -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
+       -H "Content-Type: application/json" -d "$body" "$API/releases/$id" >/dev/null \
+    && echo "  заметки релиза обновлены" || echo "  ВАЖНО: заметки обновить не вышло — сверь тело вручную"
   up="https://uploads.github.com/repos/$OWNER/$REPO/releases/$id/assets"
   for a in $(curl -sf -H "Authorization: Bearer $TOK" "$API/releases/$id/assets" | python3 -c 'import json,sys; [print(x["name"]) for x in json.load(sys.stdin)]'); do
     curl -sf -X DELETE -H "Authorization: Bearer $TOK" "$API/releases/assets/$(curl -sf -H "Authorization: Bearer $TOK" "$API/releases/$id/assets" | python3 -c "import json,sys;print([x['id'] for x in json.load(sys.stdin) if x['name']=='$a'][0])")" >/dev/null || true
