@@ -721,5 +721,6 @@ maven-артефакт (`<version>` в `pom.xml`), его не переимен�
 **Готовые файлы:** Releases → **v1.5.0** → Assets: `Electronics-1.0.0.jar`,
 `electronics-resourcepack.zip` (ставить в `resource-pack.url` на сервере или в
 `.minecraft/resourcepacks`), `electronics-recipes-datapack.zip`, `preview.png`
-(все 110 предметов на листах `sheet-01…09`) и `sha1sums.txt`. Тот же набор лежит в
+(все 110 предметов на листах `sheet-01…09`), `scope-screen.png` (кадр экрана
+осциллографа — собран тем же кодом, что рисует его в мире) и `sha1sums.txt`. Тот же набор лежит в
 артефактах любого рана Actions (`electronics-1.21.11`).
