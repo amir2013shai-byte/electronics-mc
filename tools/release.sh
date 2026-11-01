@@ -109,8 +109,14 @@ if [ -z "$resp" ]; then
        -H "Content-Type: application/json" -d "$body" "$API/releases/$id" >/dev/null \
     && echo "  заметки релиза обновлены" || echo "  ВАЖНО: заметки обновить не вышло — сверь тело вручную"
   up="https://uploads.github.com/repos/$OWNER/$REPO/releases/$id/assets"
-  for a in $(curl -sf -H "Authorization: Bearer $TOK" "$API/releases/$id/assets" | python3 -c 'import json,sys; [print(x["name"]) for x in json.load(sys.stdin)]'); do
-    curl -sf -X DELETE -H "Authorization: Bearer $TOK" "$API/releases/assets/$(curl -sf -H "Authorization: Bearer $TOK" "$API/releases/$id/assets" | python3 -c "import json,sys;print([x['id'] for x in json.load(sys.stdin) if x['name']=='$a'][0])")" >/dev/null || true
+  # Снимок списка ОДИН раз и удаление по id. Раньше на каждый файл делался
+  # повторный запрос и поиск по имени: шаг CI успевает то же имя удалить,
+  # python падает с IndexError, а под «set -e» скрипт обрывается посреди
+  # перекладки — релиз остаётся с половиной ассетов (так и было на v1.7.1).
+  ids=$(curl -sf -H "Authorization: Bearer $TOK" "$API/releases/$id/assets" \
+        | python3 -c 'import json,sys;[print(x["id"]) for x in json.load(sys.stdin)]' || true)
+  for aid in $ids; do
+    curl -sf -X DELETE -H "Authorization: Bearer $TOK" "$API/releases/assets/$aid" >/dev/null || true
   done
 else
   up=$(echo "$resp" | python3 -c 'import json,sys; print(json.load(sys.stdin)["upload_url"].split("{")[0])')
@@ -124,4 +130,21 @@ for f in "$JAR_FILE" release/electronics-resourcepack.zip \
        --data-binary "@$f" "$up?name=$(basename "$f")" >/dev/null
   echo "  + $(basename "$f") ($(stat -c%s "$f") B)"
 done
+# Самопроверка: то, что лежит на GitHub, против того, что лежит в release/.
+# Полovina ассетов — это «готово», которое ничего не готово.
+WANT=$( (ls release/Electronics-*.jar; ls release/electronics-resourcepack.zip \
+         release/electronics-recipes-datapack.zip release/preview.png \
+         release/scope-screen.png release/sha1sums.txt release/textures/sheet-*.png 2>/dev/null) \
+       | xargs -n1 basename | sort)
+GOT=$(curl -sf -H "Authorization: Bearer $TOK" "$API/releases/tags/$TAG" \
+      | python3 -c 'import json,sys;[print(a["name"]) for a in json.load(sys.stdin).get("assets",[])]' \
+      | sort || true)
+MISS=$(comm -23 <(echo "$WANT") <(echo "$GOT") || true)
+if [ -n "$MISS" ]; then
+  echo "  ВАЖНО: на релизе нет: $(echo $MISS | tr '\n' ' ')" >&2
+  echo "  докачать: for f in \$(echo $MISS); do curl -sf -X POST -H \"Authorization: Bearer \$TOK\" \\\n" >&2
+  echo "    -H \"Content-Type: application/octet-stream\" --data-binary @release/\$f \"$up?name=\$f\"; done" >&2
+  exit 1
+fi
+echo "ассеты проверены: $(echo "$GOT" | wc -l) шт. — все на месте"
 echo "готово: https://github.com/$OWNER/$REPO/releases/tag/$TAG"
