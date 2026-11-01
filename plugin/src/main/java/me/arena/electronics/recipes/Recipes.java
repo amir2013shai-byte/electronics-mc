@@ -96,6 +96,13 @@ public final class Recipes {
         DEFS.put("battery_3", new Shapeless(List.of(Material.COPPER_INGOT, Material.COPPER_INGOT, Material.HONEYCOMB)));
         DEFS.put("battery_9", new Shaped(new String[]{"GGG", "CRC", "GGG"},
                 map("G", Material.GOLD_NUGGET, "C", Material.COPPER_INGOT, "R", Material.REDSTONE)));
+        DEFS.put("crank_hand", new Shaped(new String[]{"II", " I", " S"},
+                map("I", Material.IRON_INGOT, "S", Material.STICK)));
+        DEFS.put("wheel_water", new Shaped(new String[]{"P P", "PWP", "P P"},
+                map("P", Material.SPRUCE_PLANKS, "W", Material.IRON_BARS)));
+        DEFS.put("dynamo_12v", new Shaped(new String[]{"ICI", "CWC", " R "},
+                map("I", Material.IRON_INGOT, "C", Material.COPPER_INGOT,
+                        "W", Material.GOLD_BLOCK, "R", Material.REDSTONE)));
         DEFS.put("battery_lead_12v", new Shaped(new String[]{"I I", "PRP", "CWC"},
                 map("I", Material.IRON_INGOT, "P", Material.BLACK_CONCRETE, "R", Material.REDSTONE,
                         "C", Material.COPPER_INGOT, "W", Material.GLASS_BOTTLE)));

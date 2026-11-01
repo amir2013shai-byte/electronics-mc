@@ -151,8 +151,12 @@ public final class Renderer {
         Ent ent = entities.computeIfAbsent(c.key, k -> new Ent());
         Location loc = base.getLocation().add(0.5, 0.5 + plugin.config().offsetY, 0.5);
         float yaw = yawOf(c);
-        if (c.def.kind == me.arena.electronics.registry.Kind.KINETIC) {
-            // деталь привода крутится: угол модели — это и есть «движение» без клиентского мода
+        if (c.def.kind == me.arena.electronics.registry.Kind.KINETIC
+                || c.def.kind == me.arena.electronics.registry.Kind.MOVER
+                || c.def.kind == me.arena.electronics.registry.Kind.DYNAMO) {
+            // деталь привода крутится: угол модели — это и есть «движение» без клиентского мода.
+            // Сюда же вошли рукоять с колесом (иначе они выглядели мёртвыми при полном ходе)
+            // и якорь машинного генератора.
             yaw = (yaw + c.spin) % 360.0f;
         }
         String modelKey = c.def.id + "|" + c.state + "|" + c.orientation.name();
@@ -165,7 +169,9 @@ public final class Renderer {
             ent.item.setTransformation(transformation(yaw));
             ent.modelKey = modelKey;
             ent.spin = c.spin;
-        } else if (c.def.kind == me.arena.electronics.registry.Kind.KINETIC
+        } else if ((c.def.kind == me.arena.electronics.registry.Kind.KINETIC
+                || c.def.kind == me.arena.electronics.registry.Kind.MOVER
+                || c.def.kind == me.arena.electronics.registry.Kind.DYNAMO)
                 && Math.abs(ent.spin - c.spin) > 2.0f) {
             // тот же предмет, другой угол: только трансформация, без пересоздания сущности
             ent.item.setTransformation(transformation(yaw));

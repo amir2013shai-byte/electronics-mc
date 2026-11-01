@@ -71,11 +71,12 @@
    "flywheel_kinetic",
    "saw_kinetic",
    "drill_kinetic",
-   "battery_lead_12v"
+   "battery_lead_12v",
+   "dynamo_12v"
   ],
-  "state_model_count": 3282,
+  "state_model_count": 3390,
   "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
-  "component_count": 111
+  "component_count": 114
  },
  "kinds": [
   "BOARD",
@@ -2586,6 +2587,81 @@
    "inertia": 0.03,
    "mass": 14.0,
    "radius": 0.1,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "crank_hand",
+   "ru": "Ручная рукоять (мускульный привод)",
+   "en": "Hand Crank",
+   "kind": "MOVER",
+   "shape": "crank",
+   "size": [
+    10,
+    12,
+    10
+   ],
+   "palette": [
+    "#6d4c41",
+    "#95a5a6",
+    "#ecf0f1"
+   ],
+   "rpm": 90.0,
+   "rated_power": 90.0,
+   "inertia": 0.002,
+   "mass": 3.0,
+   "radius": 0.2,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "wheel_water",
+   "ru": "Водяное колесо",
+   "en": "Water Wheel",
+   "kind": "MOVER",
+   "shape": "waterwheel",
+   "size": [
+    15,
+    15,
+    6
+   ],
+   "palette": [
+    "#5d4037",
+    "#8d6e63",
+    "#2e86c1"
+   ],
+   "rpm": 26.0,
+   "rated_power": 150.0,
+   "inertia": 0.6,
+   "mass": 25.0,
+   "radius": 0.5,
+   "orientable": true,
+   "states": 6
+  },
+  {
+   "id": "dynamo_12v",
+   "ru": "Машинный генератор 12 В",
+   "en": "Dynamo 12 V",
+   "kind": "DYNAMO",
+   "shape": "dynamo",
+   "size": [
+    12,
+    10,
+    14
+   ],
+   "palette": [
+    "#b87333",
+    "#7f8c8d",
+    "#f1c40f"
+   ],
+   "rated_voltage": 12.0,
+   "rpm": 1500.0,
+   "winding": 0.8,
+   "max_current": 5.0,
+   "back_emf_per_volt": 1.0,
+   "inertia": 0.02,
+   "mass": 8.0,
+   "polar": true,
    "orientable": true,
    "states": 6
   }

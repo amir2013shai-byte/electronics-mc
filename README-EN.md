@@ -16,9 +16,9 @@ brightness, burnt parts. No client mod.
 | Resource pack format | **75** (75.0–75.1) |
 | Data pack format (recipes) | **94** |
 | Client mod | not required |
-| Components | 111 ids (68 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts + lead-acid battery), RU + EN names |
-| Built pack | 2426 files: 1641 item textures, 666 models (111 × 6), 111 `items/*.json` |
-| Resource-pack model states | **3282** = 547 visual states × 6 orientations |
+| Components | 114 ids (69 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts + hand crank & water wheel + dynamo + lead-acid battery), RU + EN names |
+| Built pack | 2501 files: 1695 item textures, 684 models (114 × 6), 114 `items/*.json` |
+| Resource-pack model states | **3390** = 565 visual states × 6 orientations |
 
 ## Why the "modify the player" trick became a state-model registry
 
@@ -28,12 +28,12 @@ Spigot's `Player` exposes no write channel to entity NBT/state (only NMS
 `Player#sendActionBar(String)` does not exist in this API. So the "800+
 mutable states" are implemented where the vanilla client actually reads them:
 
-1. **3282 resource-pack `items` definitions** — one per
+1. **3390 resource-pack `items` definitions** — one per
    (component, visual state, orientation), selected by the server through the
    `minecraft:item_model` item component; `custom_model_data[0]` carries the
    state index for `range_dispatch` on lamp-like parts.
 2. **Orientation + state** live server-side in the plugin registry and are
-   pushed on every render: 6 orientations × 547 states = 3282 addresses ≥ 800.
+   pushed on every render: 6 orientations × 565 states = 3390 addresses ≥ 800.
 3. **World visuals** via `ItemDisplay`/`TextDisplay` entities (vanilla, no
    client changes): the model floats above the board, meters show their reading.
 4. `render.mode: none` drops displays entirely — item models + the retextured
@@ -44,7 +44,7 @@ mutable states" are implemented where the vanilla client actually reads them:
 ```
 plugins/Electronics-1.7.0.jar                         # or: cd plugin && mvn -DskipTests package
 release/electronics-resourcepack.zip                   # resource pack (set resource-pack.url or apply manually)
-release/electronics-recipes-datapack.zip               # optional: 36 recipes — 67 parts are soldered instead
+release/electronics-recipes-datapack.zip               # optional: 38 recipes — 69 parts are soldered instead
 ```
 
 `release/` is what the repo and the GitHub Release carry; `build/*.zip` are the
@@ -111,7 +111,7 @@ derives `dim`/`on`/`burnt`/`rev`/`closed`, the sides and the bottom — you do n
 have to draw six states. User files skip `mc_texture()` (otherwise you would get
 something else than you drew); only the per-state pixel operations are applied.
 `host_top|side|bottom.png` retextures the host block itself. The full tag list —
-**1641** slots — with RU/EN block names, palettes and vanilla anchors lives in
+**1695** slots — with RU/EN block names, palettes and vanilla anchors lives in
 `users_textures/README.md`, generated from the packer's own code
 (`python3 tools/user_tags.py doc`), so it cannot drift. With `users_textures/`
 empty the pack is byte-identical to the release.
@@ -214,13 +214,13 @@ and zeroes accumulated I²t, case temperature and MOV degradation.
 
 ## Soldering is the crafting gate
 
-68 of the 111 ids (everything with leads — resistors, capacitors, LEDs, diodes,
+69 of the 114 ids (everything with leads — resistors, capacitors, LEDs, diodes,
 transistors, gates, relay, reed, coils, motor, buzzer, meters, switches, solar
 cell, fuses, PTC, MOV, bridge, electrolytics, regulators, transformers) cannot
 be crafted in a crafting table at all: `Recipes.register()` skips
 them and the data pack ships only the remaining 36 recipes, while the startup
-log states `зарегистрировано рецептов: 39 (пайка: 67 витрин для JEI, пропущено 7,
-плавка 3)` — 39 crafting recipes, 67 solder displays, 7 parts only machines make.
+log states `зарегистрировано рецептов: 41 (пайка: 69 витрин для JEI, пропущено 7,
+плавка 3)` — 41 crafting recipes, 69 solder displays, 7 parts only machines make.
 The list itself lives in
 `shared/components.json` → `meta.soldered`, so plugin and pack generator share it.
 
@@ -244,8 +244,8 @@ function, so GUI and tests cannot drift apart.
 ### JEI / REI / EMI without a client mod
 
 JEI reads the recipe list the server already syncs to every client
-(`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 111 ids** into it:
-39 real crafting recipes plus 67 *display* recipes (`recipe_solder_<id>`) for
+(`ClientboundUpdateRecipesPacket`), so the plugin pushes **all 114 ids** into it:
+41 real crafting recipes plus 69 *display* recipes (`recipe_solder_<id>`) for
 the soldered parts. A display recipe is a `ShapedRecipe` with the same blank
 grid the station demands, and the **soldering station sits in the free cell** —
 so in JEI it reads as the machine of the recipe (and pressing `R` on the
@@ -262,7 +262,7 @@ work the same way; `world.recipes: false` hides both crafts and displays; and a
 true custom JEI *category* (progress bar, temperature gauge) would require a
 client addon, which the task forbids. `/elec selftest` proves the visible part:
 `PASS JEI: витрин 66/(нужно 66), … стол в сетке рецептов: 66/66, в менеджере
-рецептов клиента: 107 (39 крафта + 68 витрин)` — all 111 ids reach the client.`
+рецептов клиента: 110 (41 крафта + 69 витрин)` — all 114 ids reach the client.`
 
 ### Can our `custom_model_data` leak onto other items (a disc in a jukebox)?
 
@@ -271,10 +271,10 @@ No, and the pack build proves it rather than promises it:
 * state selection happens through the **`item_model` component on the stack**
   (`electronics:<id>_<state>`); the `custom_model_data` branch in `Items.applyModel`
   is only a fallback for pre-1.21.4 cores, and `/elec selftest` fails if it ever
-  engages: `PASS item_model is set on 111/111 items,
+  engages: `PASS item_model is set on 114/114 items,
   custom_model_data не ставится ни на одном`;
 * `custom_model_data` is read inside the definition of *that* item. All our
-  definitions live in `assets/electronics/items/` (111 files, with a CMD
+  definitions live in `assets/electronics/items/` (114 files, with a CMD
   dispatch); `assets/minecraft/items/` holds **zero** files, so `music_disc_13`,
   `jukebox`, potions and spawn eggs keep vanilla behaviour;
 * `tools/check_pack_refs.py` aborts if the pack ever ships another
@@ -482,6 +482,61 @@ initialization. `Persistence` writes non-zero aux into `registry.json`
 (`"a":[…]`), so charge, boiling and sulfation survive a restart. Tunables:
 `battery:` in `config.yml`.
 
+## Hand crank, water wheel and the dynamo (v1.7.0)
+
+Until this version mechanics could only eat electricity: `motor_220v` turned the
+shaft, everything else was a load. Three parts now have the opposite role —
+**mechanics becomes the source** — and a fourth one turns rotation into current.
+
+| Part | `kind` | Rating | Behaviour |
+| --- | --- | --- | --- |
+| `crank_hand` (hand crank, muscle drive) | `MOVER` | 90 W, 90 rpm | turns the shaft while the player right-clicks it; one click buys 0.55 s of momentum, then the arm has to come back — the model refuses "crank forever, press once" |
+| `wheel_water` (water wheel) | `MOVER` | 150 W, 26 rpm, 55 N·m per wet face | pulls torque from water: four side faces are counted (220 N·m ceiling) plus head above the wheel, +25 % per extra water block |
+| `dynamo_12v` (dynamo, 12 V) | `DYNAMO` | 12 V at 1500 rpm, 0.8 Ω armature, 5 A continuous | feeds the circuit **from shaft speed**: not turning — it is just a winding; turning — it is a source, and the same current brakes the shaft |
+
+Physics, defended by `tools/TestMovers.java` (21 checks) and
+`tools/TestDynamo.java` (32 checks):
+
+* mover curve `τ(ω) = τ₀·(1 − ω/ω₀)`, `τ₀ = 4P/ω₀` — the arm gives 38.2 N·m at
+  stall (~95 N on a 0.4 m handle) and never more than 90.0 W (peak at 45 rpm);
+* shaft friction is its own constant (`Spec.dragNm`: 1.0 / 1.5 N·m), not a
+  fraction of delivered torque — so a rig nobody drives actually stops (live
+  test: 89 rpm under the hand, 0 rpm 20 s after "hands off"), while the old
+  6 %-of-torque term left a free shaft spinning forever;
+* `E = U₀·min(ω/ω₀, 1.5)`: 750 rpm → 6.00 V, rated 1500 → 12.00 V, runaway is
+  capped at 1.5× (18 V, not 36 V — the brushes are already flying);
+* brushes cost 0.6 V, so at hand speed nothing reaches the circuit: the teaching
+  build uses two ×3 gearboxes (90 → 810 rpm → 6.5 V) and the lamp lights. A short
+  circuit at 12 V is 14.25 A — "this is why you need a fuse";
+* energy identity `τ·ω = U·I + I²r + I·U_brush` holds to 1e-9 offline
+  (21.000 W from the shaft = 17.500 W into the circuit + 3.500 W of heat), and
+  brake torque is reflected to the drive side by the gear ratio — otherwise a
+  dynamo behind three gearboxes would hand the player 273 W from a 90 W arm;
+* heat: 260 J/°C, cooling 0.8 W/°C (τ ≈ 325 s, analytic step, not Euler) —
+  +4.4 °C at 3.5 W of losses; a half-hour short reaches +214 °C and 100 %
+  insulation damage, and a burnt armature does not heal when it cools;
+* counters live in `aux[0..3]` (°C, Ah, Wh, damage): an hour at 2 A is 2.00 A·h
+  and 22.34 W·h (not 24 — half a watt went into the brushes).
+
+Live run in a world (`/elec rig place` now also builds: crank → flywheel → 2×
+gearbox → dynamo → wire → lamp → ground, with a water wheel next to it):
+
+```
+PASS рукоять крутит генератор: вал под рукой 89 об/мин (пик разгона 292), после
+«руки убраны» 0, колесо в воде 25, без воды 0; генератор: 367 мА, 6.20 В,
++0.0020 А·ч / 0.02 Вт·ч, нагрев +0.0 °C; снято с вала 2.39 Вт; лампа: горит 0.76
+PASS водяное колесо: крутится, стоя в воде, и встаёт без неё
+```
+
+**What the model honestly does not know.** Water does not flow — only the count of
+wet faces and the height of the column matter, so a fast river and a puddle are
+the same wheel. Current sign comes from circuit nodes, not from "winding
+direction", so back-driving a dynamo into motor mode is possible and the player
+has to notice it, exactly like with a real battery. And how the three new textures
+look in-game cannot be checked from this sandbox: what is verifiable here is the
+generator output, 1695 resolved references and 0 broken links in
+`tools/check_pack_refs.py`.
+
 ## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), kinetics
@@ -489,12 +544,12 @@ initialization. `Persistence` writes non-zero aux into `registry.json`
   topology and
   circuit solve `OK=25 FAIL=0` (9 V / 220 Ω / LED loop: 28.46 mA against the
   hand-computed 28.9 mA), and the pack checker
-  `OK: все 111×6 ссылок на модели и текстуры разрешаются` (also standalone:
+  `OK: все 114×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
 * `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.0.jar`.
-* Live run on Paper 1.21.11 build 132: plugin enables — 111 components, 3282
-  model states, 107 recipes (39 crafting + 68 JEI showcases), 3 worksheets;
-  `selftest: true` → 28 PASS / 0 FAIL, including the in-world sawmill, two scope
+* Live run on Paper 1.21.11 build 132: plugin enables — 114 components, 3390
+  model states, 110 recipes (41 crafting + 69 JEI showcases), 3 worksheets;
+  `selftest: true` → 30 PASS / 0 FAIL, including the in-world sawmill, two scope
   checks — `PASS осциллограф: кадр 83 пикс., строки 4×20 | Upp 12.0 В | f 1.000 Гц`
   and the in-world one, `PASS живой экран осциллографа: TextDisplay над блоком
   появился: true, после удаления детали исчез: true` — plus four battery

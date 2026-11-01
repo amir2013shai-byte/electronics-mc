@@ -213,6 +213,12 @@ public final class KineticEngine {
             for (CompInstance g : r.dynamos) {
                 brake += Dynamo.torque(Dynamo.of(g.def), g.current);
             }
+            // Момент тормоза живёт на быстроходной стороне вала, а Kinetics.step
+            // считает баланс на стороне привода — значит на приводе это
+            // T_нагрузки × передаточное число. Без пересчёта генератор за тремя
+            // редукторами (×27) отдавал бы 273 Вт при руке, способной на 90 Вт:
+            // нарушался бы закон сохранения энергии, и это была бы вечная игрушка.
+            brake *= Math.max(1.0, r.spec.gearProduct);
 
             motor = new Motor(rpm > 0 ? rpm : 1800.0, torque, false);
 
@@ -243,6 +249,7 @@ public final class KineticEngine {
                     c.state = vis;
                     plugin.renderer().requestUpdate(c);
                 }
+                c.kinOmega = r.state.omega * share;
                 c.spin = (c.spin + (float) (r.state.omega * 57.29578 * dt / Math.max(1.0, share))) % 360f;
             }
 
@@ -416,6 +423,7 @@ public final class KineticEngine {
     private void buildSpec(Rig r, Config cfg) {
         Spec spec = new Spec();
         Orientation fwd = null;
+        int movers = 0;
         for (CompInstance c : r.parts) {
             Role role = c.def.kineticRole();
             if (role == null) {
@@ -442,6 +450,13 @@ public final class KineticEngine {
             if (fwd == null && (role.isTool() || role == Role.WHEEL)) {
                 fwd = o;
             }
+            if (role == Role.MOVER) {
+                // Трение несёт сам движитель: у рукояти оно маленькое (одна пара
+                // втулок), у колеса — такое, чтобы насухо вставать, а не молоть.
+                spec.dragNm += c.def.isHandCrank() ? Movers.CRANK_DRAG_NM
+                        : Movers.WATER_IDLE_DRAG_NM;
+                movers++;
+            }
             spec.add(p);
         }
         r.spec = spec;
@@ -450,7 +465,7 @@ public final class KineticEngine {
         for (CompInstance m : r.motors) {
             rpmSum = Math.max(rpmSum, m.def.rpm);
         }
-        if (r.motors.isEmpty()) {
+        if (r.motors.isEmpty() && movers == 0) {
             r.state.note = "нет мотора рядом: ставь мотор привода вплотную к валу";
         }
     }
@@ -758,6 +773,68 @@ public final class KineticEngine {
         cell(w, x, y, z - 1, "ground_bus", Orientation.EAST, missed);
         return "механизм собран у " + x + "," + y + "," + z
                 + (missed.isEmpty() ? "" : "; не хватает id: " + String.join(",", missed));
+    }
+
+    /**
+     * Вторая учебная сборка — «свет от собственных рук»: рукоять, маховик,
+     * машинный генератор и лампа на одном валу, а рядом водяное колесо, которое
+     * крутится только стоя в воде. Нужна она для того, чтобы ученик (и самотест)
+     * видел всю цепочку «усилие → вращение → ЭДС → ток → свет» целиком.
+     *
+     * @return что получилось (для {@code /elec rig place})
+     */
+    public String demoMovers(World w, int x, int y, int z) {
+        if (w == null) {
+            return "нет такого мира";
+        }
+        List<String> missed = new ArrayList<>();
+        for (int i = 0; i <= 11; i++) {
+            for (int dz = 0; dz <= 1; dz++) {
+                Block below = w.getBlockAt(x + i, y - 1, z - dz);
+                if (below != null && below.getType().isAir()) {
+                    note(below);
+                    below.setType(Material.STONE);
+                }
+            }
+        }
+        // вал: рукоять и маховик (без него рывки руки гоняли бы обороты туда-сюда),
+        // рядом редуктор — он в том же механизме, но стоит сбоку, чтобы освободить
+        // генератору вторую клемму под провод, а не под деталь вала.
+        cell(w, x, y, z, "crank_hand", Orientation.EAST, missed);
+        cell(w, x + 1, y, z, "flywheel_kinetic", Orientation.EAST, missed);
+        // Редукторы обязательны: рука даёт 90 об/мин, а машине нужно 1500. Без ×9
+        // ЭДС (0,72 В на одном редукторе — 2,16 В) не переживает падение на щётках
+        // (0,6 В), и светодиода не хватает. Это тоже урок: генератор всегда считают
+        // на обороты, а не на «силу тока в руках».
+        cell(w, x + 2, y, z, "gearbox_3x", Orientation.EAST, missed);
+        cell(w, x + 3, y, z, "gearbox_3x", Orientation.EAST, missed);
+        // электрика генератора: «−» на землю, «+» через провод на лампу, и лампа
+        // вторым выводом снова на землю (шина земли в модели глобальная). Рядом с западным выводом машины стоит именно земля, а не
+        // деталь вала: иначе цепь была бы разомкнута, и генератор показывал бы
+        // ЭДС без тока (ровно это и ловил самотест на первой версии сборки).
+        cell(w, x + 1, y, z - 1, "ground_bus", Orientation.EAST, missed);
+        cell(w, x + 2, y, z - 1, "dynamo_12v", Orientation.EAST, missed);
+        cell(w, x + 3, y, z - 1, "wire_red", Orientation.EAST, missed);
+        cell(w, x + 4, y, z - 1, "lamp", Orientation.EAST, missed);
+        cell(w, x + 5, y, z - 1, "ground_bus", Orientation.EAST, missed);
+        // водяное колесо: две мокрые грани и напор в одну единицу
+        cell(w, x + 9, y, z, "wheel_water", Orientation.EAST, missed);
+        for (int dx = 0; dx <= 1; dx++) {
+            for (int dy = 0; dy <= 1; dy++) {
+                Block wet = w.getBlockAt(x + 9 + (dx == 0 ? 1 : -1), y + dy, z);
+                if (wet != null && wet.getType().isAir()) {
+                    note(wet);
+                    wet.setType(Material.WATER);
+                }
+            }
+        }
+        return "рукоять и колесо собраны у " + x + "," + y + "," + z
+                + (missed.isEmpty() ? "" : "; не хватает id: " + String.join(",", missed));
+    }
+
+    /** Убрать сборку movers — тот же список затронутых блоков, что и у {@link #demo(World, int, int, int)}. */
+    public void undoMovers() {
+        undoDemo();
     }
 
     private void note(Block b) {

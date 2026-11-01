@@ -467,6 +467,13 @@ public final class Kinetics {
     public static final class Spec {
         public final List<Part> parts = new ArrayList<>();
         public double inertiaTotal = 2e-4;
+        /**
+         * Собственное трение вала, Н·м: подшипники движителей и щётки машины.
+         * В отличие от {@link #FRICTION_FRACTION} оно НЕ пропорционально подводимому
+         * моменту — иначе вал без привода крутился бы вечно. 0 у всего, что было
+         * до мускульного привода, поэтому прежние числа не меняются.
+         */
+        public double dragNm;
         public double massTotal = 1.0;
         /** Передаточное отношение до инструмента. */
         public double gearProduct = 1.0;
@@ -592,7 +599,10 @@ public final class Kinetics {
         double j = Math.max(1e-4, spec.inertiaTotal);
 
         // ---------- нагрузка
-        double torqueLoad = FRICTION_FRACTION * torqueStall;   // подшипники, щётки
+        // Подшипники — доля от подводимого момента (у мотора она есть всегда),
+        // а трение самого вала — отдельная постоянная: только она и может остановить
+        // механизм, который больше никто не крутит.
+        double torqueLoad = FRICTION_FRACTION * torqueStall + Math.max(0.0, spec.dragNm);
         double powerLoad = 0.0;
         List<Part> working = new ArrayList<>();
         boolean blocked = false;
@@ -626,7 +636,8 @@ public final class Kinetics {
 
         // «встанает» только тот, кому есть что пилить: у пустого лезвия момент
         // нехватки не просит, и честный ответ — холостой ход, а не «не берёт»
-        boolean stalled = ((!working.isEmpty() || brake > 0.0) && torqueLoad > torqueStall) || blocked;
+        boolean stalled = ((!working.isEmpty() || brake > 0.0 || spec.dragNm > 0.0)
+                && torqueLoad > torqueStall) || blocked;
         double torqueAvail = motor.linear ? torqueStall * (1.0 - state.omega / w0) : torqueStall;
         if (torqueAvail < 0.0) {
             torqueAvail = 0.0;

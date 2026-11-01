@@ -1189,7 +1189,16 @@ public final class Simulation {
             return 0;
         }
         Mna.Stamp s = mna.findBranch(a, b);
-        return s == null ? 0 : -Mna.branchCurrent(s, v, a);
+        if (s == null) {
+            return 0;
+        }
+        // Знак «отдаёт в цепь» — положительно. Для банка и источника это минус от
+        // тока ветки, а для машинного генератора — плюс: его stamp развёрнут наизнанку
+        // (ЭДС смотрит в «b», потому что машина — нагрузка по механике и источник по
+        // электрике). Без этой разницы отдача читалась бы как заряд, счётчик А·ч уходил
+        // в минус, а состояние — в «это уже мотор».
+        double ib = Mna.branchCurrent(s, v, a);
+        return c.def != null && c.def.kind == Kind.DYNAMO ? ib : -ib;
     }
 
     /** Параметры банки: реестр (Def) + три настройки из config.yml. */

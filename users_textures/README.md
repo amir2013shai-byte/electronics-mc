@@ -6,10 +6,10 @@
 (`gen_pack.user_candidates()`), и документ читает их оттуда же, поэтому
 расхождение «в доке одно, в сборке другое» невозможно по построению.
 
-Сейчас в реестре **111** компонентов, у них в сумме
-**547** визуальных состояний и
-**1641** текстурных тегов (состояние × грань) — ровно столько же
-файлов кладёт генератор: 1641 PNG в `textures/item/`.
+Сейчас в реестре **114** компонентов, у них в сумме
+**565** визуальных состояний и
+**1695** текстурных тегов (состояние × грань) — ровно столько же
+файлов кладёт генератор: 1695 PNG в `textures/item/`.
 
 ## Как положить свою текстуру
 
@@ -96,7 +96,7 @@
   клиентских ассетов Minecraft. Сверяйте по `versions/<версия>/<версия>.jar`
   или в игре F3+A.
 
-Через паяльный стол идут **68** id — у них в датапаке рецепта нет,
+Через паяльный стол идут **69** id — у них в датапаке рецепта нет,
 а список ингредиентов ниже генератор берёт из `RECIPES` — он обязан
 совпадать с `Recipes.DEFS` на стороне плагина, и `selftest` это проверяет.
 
@@ -104,8 +104,8 @@
 
 Порядок — как в `shared/components.json`; `индекс` — с какого номера
 состояния модели начинается этот компонент (`/elec model <id> <сост> <ориент>`);
-всего индексов в реестре — **3282** =
-547 × 6 ориентаций.
+всего индексов в реестре — **3390** =
+565 × 6 ориентаций.
 
 ### `bench` — Рабочий стол
 
@@ -2926,4 +2926,88 @@
 | `drill_kinetic_closed_top.png` / `drill_kinetic_closed.png` | closed·top | `closed` | `top` | `textures/item/drill_kinetic_closed_top.png` |
 | `drill_kinetic_closed_side.png` / `drill_kinetic_side.png` | closed·side | `closed` | `side` | `textures/item/drill_kinetic_closed_side.png` |
 | `drill_kinetic_closed_bottom.png` / `drill_kinetic_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/drill_kinetic_closed_bottom.png` |
+
+### `crank_hand` — Ручная рукоять (мускульный привод)
+
+* по-английски: Hand Crank
+* kind `MOVER`, shape `crank`, размер [10, 12, 10], состояний 6, индексы моделей 3282…3317
+* палитра процедурной отрисовки: `#6d4c41`, `#95a5a6`, `#ecf0f1`
+* рецепт: `iron_ingot`×3, `stick`×1
+
+| положить (теги) | вместо | состояние | грань | файл в паке |
+|---|---|---|---|---|
+| `crank_hand_off_top.png` / `crank_hand_off.png` / `crank_hand_top.png` / `crank_hand.png` | off·top | `off` | `top` | `textures/item/crank_hand_top.png` |
+| `crank_hand_off_side.png` / `crank_hand_side.png` | off·side | `off` | `side` | `textures/item/crank_hand_side.png` |
+| `crank_hand_off_bottom.png` / `crank_hand_bottom.png` | off·bottom | `off` | `bottom` | `textures/item/crank_hand_bottom.png` |
+| `crank_hand_dim_top.png` / `crank_hand_dim.png` | dim·top | `dim` | `top` | `textures/item/crank_hand_dim_top.png` |
+| `crank_hand_dim_side.png` / `crank_hand_side.png` | dim·side | `dim` | `side` | `textures/item/crank_hand_dim_side.png` |
+| `crank_hand_dim_bottom.png` / `crank_hand_bottom.png` | dim·bottom | `dim` | `bottom` | `textures/item/crank_hand_dim_bottom.png` |
+| `crank_hand_on_top.png` / `crank_hand_on.png` | on·top | `on` | `top` | `textures/item/crank_hand_on_top.png` |
+| `crank_hand_on_side.png` / `crank_hand_side.png` | on·side | `on` | `side` | `textures/item/crank_hand_on_side.png` |
+| `crank_hand_on_bottom.png` / `crank_hand_bottom.png` | on·bottom | `on` | `bottom` | `textures/item/crank_hand_on_bottom.png` |
+| `crank_hand_burnt_top.png` / `crank_hand_burnt.png` | burnt·top | `burnt` | `top` | `textures/item/crank_hand_burnt_top.png` |
+| `crank_hand_burnt_side.png` / `crank_hand_side.png` | burnt·side | `burnt` | `side` | `textures/item/crank_hand_burnt_side.png` |
+| `crank_hand_burnt_bottom.png` / `crank_hand_bottom.png` | burnt·bottom | `burnt` | `bottom` | `textures/item/crank_hand_burnt_bottom.png` |
+| `crank_hand_rev_top.png` / `crank_hand_rev.png` | rev·top | `rev` | `top` | `textures/item/crank_hand_rev_top.png` |
+| `crank_hand_rev_side.png` / `crank_hand_side.png` | rev·side | `rev` | `side` | `textures/item/crank_hand_rev_side.png` |
+| `crank_hand_rev_bottom.png` / `crank_hand_bottom.png` | rev·bottom | `rev` | `bottom` | `textures/item/crank_hand_rev_bottom.png` |
+| `crank_hand_closed_top.png` / `crank_hand_closed.png` | closed·top | `closed` | `top` | `textures/item/crank_hand_closed_top.png` |
+| `crank_hand_closed_side.png` / `crank_hand_side.png` | closed·side | `closed` | `side` | `textures/item/crank_hand_closed_side.png` |
+| `crank_hand_closed_bottom.png` / `crank_hand_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/crank_hand_closed_bottom.png` |
+
+### `wheel_water` — Водяное колесо
+
+* по-английски: Water Wheel
+* kind `MOVER`, shape `waterwheel`, размер [15, 15, 6], состояний 6, индексы моделей 3318…3353
+* палитра процедурной отрисовки: `#5d4037`, `#8d6e63`, `#2e86c1`
+* рецепт: `iron_bars`×1, `spruce_planks`×6
+
+| положить (теги) | вместо | состояние | грань | файл в паке |
+|---|---|---|---|---|
+| `wheel_water_off_top.png` / `wheel_water_off.png` / `wheel_water_top.png` / `wheel_water.png` | off·top | `off` | `top` | `textures/item/wheel_water_top.png` |
+| `wheel_water_off_side.png` / `wheel_water_side.png` | off·side | `off` | `side` | `textures/item/wheel_water_side.png` |
+| `wheel_water_off_bottom.png` / `wheel_water_bottom.png` | off·bottom | `off` | `bottom` | `textures/item/wheel_water_bottom.png` |
+| `wheel_water_dim_top.png` / `wheel_water_dim.png` | dim·top | `dim` | `top` | `textures/item/wheel_water_dim_top.png` |
+| `wheel_water_dim_side.png` / `wheel_water_side.png` | dim·side | `dim` | `side` | `textures/item/wheel_water_dim_side.png` |
+| `wheel_water_dim_bottom.png` / `wheel_water_bottom.png` | dim·bottom | `dim` | `bottom` | `textures/item/wheel_water_dim_bottom.png` |
+| `wheel_water_on_top.png` / `wheel_water_on.png` | on·top | `on` | `top` | `textures/item/wheel_water_on_top.png` |
+| `wheel_water_on_side.png` / `wheel_water_side.png` | on·side | `on` | `side` | `textures/item/wheel_water_on_side.png` |
+| `wheel_water_on_bottom.png` / `wheel_water_bottom.png` | on·bottom | `on` | `bottom` | `textures/item/wheel_water_on_bottom.png` |
+| `wheel_water_burnt_top.png` / `wheel_water_burnt.png` | burnt·top | `burnt` | `top` | `textures/item/wheel_water_burnt_top.png` |
+| `wheel_water_burnt_side.png` / `wheel_water_side.png` | burnt·side | `burnt` | `side` | `textures/item/wheel_water_burnt_side.png` |
+| `wheel_water_burnt_bottom.png` / `wheel_water_bottom.png` | burnt·bottom | `burnt` | `bottom` | `textures/item/wheel_water_burnt_bottom.png` |
+| `wheel_water_rev_top.png` / `wheel_water_rev.png` | rev·top | `rev` | `top` | `textures/item/wheel_water_rev_top.png` |
+| `wheel_water_rev_side.png` / `wheel_water_side.png` | rev·side | `rev` | `side` | `textures/item/wheel_water_rev_side.png` |
+| `wheel_water_rev_bottom.png` / `wheel_water_bottom.png` | rev·bottom | `rev` | `bottom` | `textures/item/wheel_water_rev_bottom.png` |
+| `wheel_water_closed_top.png` / `wheel_water_closed.png` | closed·top | `closed` | `top` | `textures/item/wheel_water_closed_top.png` |
+| `wheel_water_closed_side.png` / `wheel_water_side.png` | closed·side | `closed` | `side` | `textures/item/wheel_water_closed_side.png` |
+| `wheel_water_closed_bottom.png` / `wheel_water_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/wheel_water_closed_bottom.png` |
+
+### `dynamo_12v` — Машинный генератор 12 В
+
+* по-английски: Dynamo 12 V
+* kind `DYNAMO`, shape `dynamo`, размер [12, 10, 14], состояний 6, индексы моделей 3354…3389, *паяется*
+* палитра процедурной отрисовки: `#b87333`, `#7f8c8d`, `#f1c40f`
+* рецепт: `copper_ingot`×3, `gold_block`×1, `iron_ingot`×2, `redstone`×1
+
+| положить (теги) | вместо | состояние | грань | файл в паке |
+|---|---|---|---|---|
+| `dynamo_12v_off_top.png` / `dynamo_12v_off.png` / `dynamo_12v_top.png` / `dynamo_12v.png` | off·top | `off` | `top` | `textures/item/dynamo_12v_top.png` |
+| `dynamo_12v_off_side.png` / `dynamo_12v_side.png` | off·side | `off` | `side` | `textures/item/dynamo_12v_side.png` |
+| `dynamo_12v_off_bottom.png` / `dynamo_12v_bottom.png` | off·bottom | `off` | `bottom` | `textures/item/dynamo_12v_bottom.png` |
+| `dynamo_12v_dim_top.png` / `dynamo_12v_dim.png` | dim·top | `dim` | `top` | `textures/item/dynamo_12v_dim_top.png` |
+| `dynamo_12v_dim_side.png` / `dynamo_12v_side.png` | dim·side | `dim` | `side` | `textures/item/dynamo_12v_dim_side.png` |
+| `dynamo_12v_dim_bottom.png` / `dynamo_12v_bottom.png` | dim·bottom | `dim` | `bottom` | `textures/item/dynamo_12v_dim_bottom.png` |
+| `dynamo_12v_on_top.png` / `dynamo_12v_on.png` | on·top | `on` | `top` | `textures/item/dynamo_12v_on_top.png` |
+| `dynamo_12v_on_side.png` / `dynamo_12v_side.png` | on·side | `on` | `side` | `textures/item/dynamo_12v_on_side.png` |
+| `dynamo_12v_on_bottom.png` / `dynamo_12v_bottom.png` | on·bottom | `on` | `bottom` | `textures/item/dynamo_12v_on_bottom.png` |
+| `dynamo_12v_burnt_top.png` / `dynamo_12v_burnt.png` | burnt·top | `burnt` | `top` | `textures/item/dynamo_12v_burnt_top.png` |
+| `dynamo_12v_burnt_side.png` / `dynamo_12v_side.png` | burnt·side | `burnt` | `side` | `textures/item/dynamo_12v_burnt_side.png` |
+| `dynamo_12v_burnt_bottom.png` / `dynamo_12v_bottom.png` | burnt·bottom | `burnt` | `bottom` | `textures/item/dynamo_12v_burnt_bottom.png` |
+| `dynamo_12v_rev_top.png` / `dynamo_12v_rev.png` | rev·top | `rev` | `top` | `textures/item/dynamo_12v_rev_top.png` |
+| `dynamo_12v_rev_side.png` / `dynamo_12v_side.png` | rev·side | `rev` | `side` | `textures/item/dynamo_12v_rev_side.png` |
+| `dynamo_12v_rev_bottom.png` / `dynamo_12v_bottom.png` | rev·bottom | `rev` | `bottom` | `textures/item/dynamo_12v_rev_bottom.png` |
+| `dynamo_12v_closed_top.png` / `dynamo_12v_closed.png` | closed·top | `closed` | `top` | `textures/item/dynamo_12v_closed_top.png` |
+| `dynamo_12v_closed_side.png` / `dynamo_12v_side.png` | closed·side | `closed` | `side` | `textures/item/dynamo_12v_closed_side.png` |
+| `dynamo_12v_closed_bottom.png` / `dynamo_12v_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/dynamo_12v_closed_bottom.png` |
 

@@ -216,6 +216,39 @@ def base_canvas(comp):
         rect(2, 11, 13, 12, shade(accent, 0.7))        # этикетка ёмкости
         for i in range(3):
             rect(2 + i * 4, 13, 3 + i * 4, 13, shade(body, 0.6))
+    elif shape == "crank":
+        # Ручная рукоять (мускульный привод): фланец, ступица с квадратом вала,
+        # плечо, отгиб и деревянная ручка. То, что игрок крутит рукой.
+        rect(1, 1, 6, 6, shade(body, 0.9))
+        d.ellipse([8, 8, 24, 24], fill=shade(body, 1.1), outline=shade(body, 0.6))
+        d.rectangle([14, 14, 18, 18], fill=shade(detail, 0.85))
+        d.line([16, 16, 27, 9], fill=shade(detail, 1.15), width=3)
+        d.line([27, 9, 27, 20], fill=shade(detail, 0.9), width=2)
+        d.rectangle([24, 18, 30, 25], fill=shade(accent, 1.3), outline=shade(accent, 0.7))
+    elif shape == "waterwheel":
+        # Водяное колесо: обод, восемь спиц, ковши (мокрые — светлее), ступица.
+        d.ellipse([1, 1, 31, 31], fill=shade(body, 0.85), outline=shade(body, 0.5))
+        d.ellipse([5, 5, 27, 27], fill=(0, 0, 0, 0))
+        for k in range(8):
+            a = math.radians(k * 45)
+            d.line([16 + 5 * math.cos(a), 16 + 5 * math.sin(a),
+                    16 + 13 * math.cos(a), 16 + 13 * math.sin(a)],
+                   fill=shade(body, 1.25), width=2)
+            bx, by = 16 + 14.5 * math.cos(a), 16 + 14.5 * math.sin(a)
+            d.rectangle([bx - 2.5, by - 2.5, bx + 2.5, by + 2.5],
+                        fill=shade(accent, 1.3 if k in (0, 1, 7) else 1.0))
+        d.ellipse([11, 11, 21, 21], fill=shade(detail, 1.0), outline=shade(detail, 0.6))
+        d.ellipse([15, 15, 17, 17], fill=(35, 35, 40, 255))
+    elif shape == "dynamo":
+        # Машинный генератор: барабан, коллектор с ламелями, вал и две клеммы.
+        rect(2, 5, 14, 14, body)
+        d.rectangle([4, 10, 26, 26], fill=shade(body, 1.25), outline=shade(body, 0.65))
+        rect(0, 8, 2, 11, shade(detail, 1.1))
+        for k in range(4):
+            rect(13, 6 + k * 3, 14, 7 + k * 3, shade(accent, 1.35))
+        rect(4, 3, 7, 4, accent)
+        rect(9, 3, 12, 4, detail)
+        d.ellipse([23, 4, 30, 11], fill=shade(detail, 1.1), outline=shade(detail, 0.7))
     elif shape == "battery9":
         rect(1, 2, 14, 13, body)
         rect(2, 3, 13, 12, shade(body, 1.2))
@@ -822,6 +855,10 @@ RECIPES = {
     "battery_aa": {"shape": ["I", "R", "G"], "key": {"I": "iron_nugget", "R": "redstone", "G": "gold_nugget"}},
     "battery_3": {"type": "shapeless", "ing": {"copper_ingot": 2, "honeycomb": 1}},
     "battery_9": {"shape": ["GGG", "CRC", "GGG"], "key": {"G": "gold_nugget", "C": "copper_ingot", "R": "redstone"}},
+    "crank_hand": {"shape": ["II", " I", " S"], "key": {"I": "iron_ingot", "S": "stick"}},
+    "wheel_water": {"shape": ["P P", "PWP", "P P"], "key": {"P": "spruce_planks", "W": "iron_bars"}},
+    "dynamo_12v": {"shape": ["ICI", "CWC", " R "], "key": {"I": "iron_ingot", "C": "copper_ingot",
+                  "W": "gold_block", "R": "redstone"}},
     "battery_lead_12v": {"shape": ["I I", "PRP", "CWC"], "key": {"I": "iron_ingot", "P": "black_concrete", "R": "redstone", "C": "copper_ingot", "W": "glass_bottle"}},
     "power_supply": {"shape": ["CGC", "RBR", "IRI"], "key": {"C": "copper_ingot", "G": "glass", "B": "copper_bulb",
                                                              "R": "repeater", "I": "iron_ingot"}},

@@ -1388,6 +1388,138 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                     + (plugin.kinetics().rigCount() > 0 ? " &8(" + plugin.kinetics().lastNote() + ")" : "")));
         }
 
+        // (14б) мускульный привод и машинный генератор: «свет от собственных рук».
+        // Прогон в мире, тем же путём, что и живая пила: детали ставятся настоящей
+        // сборкой, движок крутится вручную, измеряется то, что реально видно игроку.
+        {
+            org.bukkit.World mw = org.bukkit.Bukkit.getWorlds().isEmpty() ? null
+                    : org.bukkit.Bukkit.getWorlds().get(0);
+            boolean crankOk = false;
+            boolean coastOk = false;
+            boolean wetOk = false;
+            boolean dryOk = false;
+            String mnote = "";
+            if (mw != null) {
+                org.bukkit.Location ms = mw.getSpawnLocation();
+                int mx = ms.getBlockX() + 60;
+                int my = ms.getBlockY() + 1;
+                int mz = ms.getBlockZ() + 60;
+                mnote = plugin.kinetics().demoMovers(mw, mx, my, mz);
+                me.arena.electronics.registry.LocationKey crankKey =
+                        new me.arena.electronics.registry.LocationKey(mw, mx, my, mz);
+                me.arena.electronics.registry.LocationKey dynKey =
+                        new me.arena.electronics.registry.LocationKey(mw, mx + 2, my, mz - 1);
+                me.arena.electronics.registry.LocationKey lampKey =
+                        new me.arena.electronics.registry.LocationKey(mw, mx + 4, my, mz - 1);
+                me.arena.electronics.registry.LocationKey wheelKey =
+                        new me.arena.electronics.registry.LocationKey(mw, mx + 9, my, mz);
+                double rpmPeak = 0.0;
+                double rpmWetPeak = 0.0;
+                double rpmCrank = 0.0;
+                double rpmWater = 0.0;
+                double shaftW = 0.0;
+                for (int mi = 0; mi < 400; mi++) {
+                    CompInstance ck = plugin.circuit().get(crankKey);
+                    if (ck != null) {
+                        // игрок жмёт рукоять в такт: один щелчок — 0,55 с запаса хода,
+                        // поэтому «крутят непрерывно» в тесте и есть эти щелчки
+                        ck.crankUntilMs = System.currentTimeMillis()
+                                + (long) me.arena.electronics.kinetics.Movers.crankBurstMs();
+                    }
+                    plugin.circuit().engineTick();
+                    rpmPeak = Math.max(rpmPeak, rigRpmAt(crankKey));
+                    rpmWetPeak = Math.max(rpmWetPeak, rigRpmAt(wheelKey));
+                    // последние 40 тактов — уже установившийся ход: пик здесь это
+                    // разгонный перелёт явного интегрирования, а не рабочий режим
+                    if (mi >= 360) {
+                        rpmCrank = rigRpmAt(crankKey);
+                        rpmWater = rigRpmAt(wheelKey);
+                        me.arena.electronics.kinetics.KineticEngine.Rig cr = rigAt(crankKey);
+                        // с вала снимаем ровно то, что забирает нагрузка (генератор):
+                        // powerW у механизма без работы обнуляется намеренно, а brakeW
+                        // — это честные ватты, отнятые у руки
+                        shaftW = cr == null ? 0.0 : cr.last.brakeW;
+                    }
+                }
+                CompInstance dyn = plugin.circuit().get(dynKey);
+                CompInstance lampM = plugin.circuit().get(lampKey);
+                // снимок, а не ссылка: дальше вал останавливают, и к моменту печати
+                // у лампы был бы законный ноль — «проверка» readings после «руки
+                // убраны» ловила бы не физику, а порядок строк
+                double lampAmps = lampM == null ? 0 : Math.abs(lampM.current);
+                double lampBright = lampM == null ? 0 : lampM.brightness;
+                int lampState = lampM == null ? -1 : lampM.state;
+                double mamps = dyn == null ? 0 : Math.abs(dyn.current);
+                double mvolts = dyn == null ? 0 : Math.abs(dyn.voltage);
+                double mah = dyn == null ? 0 : me.arena.electronics.circuit.Dynamo.ahOut(dyn.aux);
+                double mwh = dyn == null ? 0 : me.arena.electronics.circuit.Dynamo.whOut(dyn.aux);
+                double mheat = dyn == null ? 0 : me.arena.electronics.circuit.Dynamo.temp(dyn.aux);
+                CompInstance ck0 = plugin.circuit().get(crankKey);
+                if (ck0 != null) {
+                    ck0.crankUntilMs = 0L;      // «руки убраны» — сняли и запас хода щелчка
+                }
+                for (int mi = 0; mi < 400; mi++) {
+                    plugin.circuit().engineTick();          // руки убраны
+                }
+                double rpmEnd = rigRpmAt(crankKey);
+                for (int dx = 0; dx <= 1; dx++) {
+                    for (int dy = 0; dy <= 1; dy++) {
+                        org.bukkit.block.Block dry = mw.getBlockAt(mx + 9 + (dx == 0 ? 1 : -1), my + dy, mz);
+                        if (dry != null) {
+                            dry.setType(org.bukkit.Material.WATER == dry.getType()
+                                    ? org.bukkit.Material.AIR : dry.getType());
+                        }
+                    }
+                }
+                for (int mi = 0; mi < 400; mi++) {
+                    plugin.circuit().engineTick();          // колесо без воды
+                }
+                double rpmDry = rigRpmAt(wheelKey);
+                // рука не должна выдавать больше паспортных 90 Вт — это проверка на
+                // «вечный двигатель»: сколько бы редукторов ни стояло, момент тормоза
+                // пересчитывается на сторону привода
+                crankOk = rpmCrank > 40.0 && mamps > 0.05 && mah > 1e-9
+                        && shaftW <= me.arena.electronics.kinetics.Movers.HUMAN_POWER_W * 1.25
+                        && lampAmps > 0.05;
+                coastOk = rpmEnd < 0.25 * Math.max(1.0, rpmPeak);
+                wetOk = rpmWetPeak > 5.0;
+                dryOk = rpmDry < 0.3 * Math.max(1.0, rpmWetPeak);
+                mnote = mnote + " | вал под рукой &f" + (int) Math.round(rpmCrank)
+                        + "&7 об/мин (пик разгона " + (int) Math.round(rpmPeak)
+                        + "&7), после «руки убраны» &f" + (int) Math.round(rpmEnd)
+                        + "&7, колесо в воде &f" + (int) Math.round(rpmWater)
+                        + "&7, без воды &f" + (int) Math.round(rpmDry)
+                        + "&8; генератор: &f" + Num.amp(mamps) + "&8, &f" + Num.volt(mvolts)
+                        + "&8, +&f" + String.format(java.util.Locale.US, "%.4f", mah)
+                        + " &8А·ч / &f" + String.format(java.util.Locale.US, "%.2f", mwh)
+                        + " &8Вт·ч, нагрев +&f" + String.format(java.util.Locale.US, "%.1f", mheat)
+                        + " &8°C&8; снято с вала &f" + Num.watt(shaftW) + "&8; лампа: &f"
+                        + (lampM == null ? "нет" : me.arena.electronics.circuit.CompStates.name(lampState)
+                                + " " + String.format(java.util.Locale.US, "%.2f", lampBright)
+                                + "&8, ток в цепи &f" + Num.amp(lampAmps));
+                if (!crankOk) {
+                    StringBuilder dbg2 = new StringBuilder();
+                    for (CompInstance c2 : plugin.circuit().all()) {
+                        if (mw.getName().equals(c2.key.worldName()) && Math.abs(c2.key.x - mx) <= 9
+                                && (c2.key.z == mz || c2.key.z == mz - 1)) {
+                            dbg2.append("&8; ").append(c2.def.id).append('@').append(c2.key.x)
+                                    .append(',').append(c2.key.y).append(',').append(c2.key.z)
+                                    .append(" I=").append(Num.amp(Math.abs(c2.current)))
+                                    .append(" U=").append(Num.volt(c2.voltage));
+                        }
+                    }
+                    s.sendMessage(Items.color("&8раскладка: " + dbg2 + "&8, islands="
+                            + plugin.circuit().lastIslands() + " err=" + plugin.circuit().lastError()));
+                }
+                plugin.kinetics().undoDemo();
+            }
+            s.sendMessage(Items.color(((crankOk && coastOk) ? "&aPASS " : "&cFAIL ")
+                    + "&7рукоять крутит генератор: " + mnote));
+            s.sendMessage(Items.color(((wetOk && dryOk) ? "&aPASS " : "&cFAIL ")
+                    + "&7водяное колесо: крутится, стоя в воде, и встаёт без неё"
+                    + " &8(порог: более 5 об/мин в воде и менее 30 % от пика на воздухе)"));
+        }
+
         // Осциллограф: экран собирается чистым кодом, без мира — ровно тот путь,
         // который проходит Renderer.updateScreen (трасса -> измерение -> масштаб
         // -> растер -> брайль). Если тут FAIL, в игре будет пустое стекло.
@@ -1496,6 +1628,29 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
      * (нога 2 прошивки) идёт в нагрузку. Нагрузку подставляет вызывающий: светодиод
      * для нормального режима или провод для коротыша.
      */
+    /**
+     * Обороты установки, в которую входит деталь в этой клетке (0, если установки
+     * нет). Нужно самотесту movers: у движителя нет «своего» тока, его результат —
+     * именно скорость вала.
+     */
+    private double rigRpmAt(me.arena.electronics.registry.LocationKey key) {
+        me.arena.electronics.kinetics.KineticEngine.Rig r = rigAt(key);
+        return r == null ? 0.0 : r.rpm();
+    }
+
+    /** Установка, в которую входит деталь из этой клетки (null, если установки нет). */
+    private me.arena.electronics.kinetics.KineticEngine.Rig rigAt(
+            me.arena.electronics.registry.LocationKey key) {
+        for (me.arena.electronics.kinetics.KineticEngine.Rig r : plugin.kinetics().rigs()) {
+            for (CompInstance c : r.parts) {
+                if (key.equals(c.key)) {
+                    return r;
+                }
+            }
+        }
+        return null;
+    }
+
     private static void paintMcu(me.arena.electronics.gui.SchematicGui g, String loadId) {
         g.put(1, 3, "mcu_atmega328", 0);
         g.put(0, 3, "wire_red", 0);
@@ -1716,6 +1871,28 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                                     ? " &c+&f" + (int) Math.round(
                                             c.aux[me.arena.electronics.circuit.Battery.TEMP]) + " °C"
                                     : "")
+                            : "")
+                    + (c.def.kind == me.arena.electronics.registry.Kind.DYNAMO
+                            ? " &e" + (int) Math.round(me.arena.electronics.kinetics.Kinetics
+                                    .toRpm(c.kinOmega)) + " об/мин"
+                            + "&7, нагрев &f" + (int) Math.round(
+                                    me.arena.electronics.circuit.Dynamo.temp(c.aux)) + " °C"
+                            + "&7, отдано &f" + String.format(java.util.Locale.ROOT, "%.2f",
+                                    me.arena.electronics.circuit.Dynamo.ahOut(c.aux)) + " А·ч&7/&f"
+                            + String.format(java.util.Locale.ROOT, "%.1f",
+                                    me.arena.electronics.circuit.Dynamo.whOut(c.aux)) + " Вт·ч"
+                            + (me.arena.electronics.circuit.Dynamo.damage(c.aux) > 0.0005
+                                    ? " &cповреждение " + (int) Math.round(100.0
+                                            * me.arena.electronics.circuit.Dynamo.damage(c.aux))
+                                            + " %"
+                                    : "")
+                            : "")
+                    + (c.def.kind == me.arena.electronics.registry.Kind.MOVER
+                            ? " &e" + (int) Math.round(me.arena.electronics.kinetics.Kinetics
+                                    .toRpm(c.kinOmega)) + " об/мин"
+                            + (c.brightness > 0.01 ? " &7тяга " + (int) Math.round(100 * c.brightness)
+                                    + " %" : "")
+                            + (c.crankUntilMs > System.currentTimeMillis() ? " &aкрутят" : "")
                             : "")
                     + (c.fault.isEmpty() ? "" : " &c" + c.fault)));
         }
