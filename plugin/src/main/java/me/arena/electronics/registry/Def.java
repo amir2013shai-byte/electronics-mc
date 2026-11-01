@@ -168,7 +168,22 @@ public final class Def {
 
     /** Роль детали в кинематической цепочке — берётся из «shape». */
     public me.arena.electronics.kinetics.Kinetics.Role kineticRole() {
+        if (kind == Kind.MOVER) {
+            // Движитель — деталь вала, но не «вал»: у него своя роль и свой
+            // вклад в момент, и редуктор он не множит.
+            return me.arena.electronics.kinetics.Kinetics.Role.MOVER;
+        }
         return kind == Kind.KINETIC ? me.arena.electronics.kinetics.Kinetics.Role.of(shape) : null;
+    }
+
+    /** Машина, которую крутят, чтобы она давала ток (в отличие от мотора). */
+    public boolean isDynamo() {
+        return kind == Kind.DYNAMO;
+    }
+
+    /** Ручную рукоять надо крутить; колесо работает само, пока мокро. */
+    public boolean isHandCrank() {
+        return kind == Kind.MOVER && "crank".equals(shape);
     }
 
     /** Мотор с обмоткой: k = U₀/ω₀ — по этой константе решатель и «крутит» вал. */
@@ -249,6 +264,10 @@ public final class Def {
             case CAPACITOR -> "C=" + trim(capacitance) + " Ф";
             case BATTERY -> "U=" + trim(voltage) + " В, ёмкость " + trim(capacityAh)
                     + " А·ч (Пейкерт " + trim(peukert) + ")";
+            case DYNAMO -> "U=" + trim(ratedVoltage) + " В на " + trim(rpm) + " об/мин, обмотка "
+                    + trim(winding) + " Ом, долгий ток " + trim(maxCurrent) + " А";
+            case MOVER -> "до " + trim(rpm) + " об/мин, " + trim(ratedPower) + " Вт, момент "
+                    + trim(me.arena.electronics.kinetics.Movers.stallTorque(ratedPower, rpm)) + " Н·м на стопе";
             case SCOPE -> "вход " + trim(internalResistance / 1e6) + " МОм, экран 40×16, "
                     + "10 делений по горизонтали";
             case MOTOR -> "U=" + trim(ratedVoltage) + " В, R обм. " + trim(winding) + " Ом"

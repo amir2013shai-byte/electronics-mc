@@ -4,6 +4,7 @@ import me.arena.electronics.ElectronicsPlugin;
 import me.arena.electronics.circuit.Battery;
 import me.arena.electronics.circuit.CompInstance;
 import me.arena.electronics.circuit.CompStates;
+import me.arena.electronics.circuit.Dynamo;
 import me.arena.electronics.circuit.ScopeScreen;
 import me.arena.electronics.circuit.ScopeTrace;
 import me.arena.electronics.registry.LocationKey;
@@ -360,6 +361,8 @@ public final class Renderer {
             case SCOPE -> scopeLabel(c);
             // аккумулятор: подпись — не «U=», а чем он занят (заряд/разряд/А)
             case BATTERY -> Battery.label(c.aux, c.voltage, c.reading);
+            case DYNAMO -> Dynamo.label(Dynamo.of(c.def), c.aux,
+                    me.arena.electronics.kinetics.Kinetics.toRpm(c.kinOmega), c.reading);
             case MOTOR -> c.speedPrev > 0.02 ? "n=" + Num.pct(c.speedPrev) + "%" : "";
             case GENERATOR -> "ген " + Num.volt(c.tunedVoltage());
             default -> "";

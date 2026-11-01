@@ -255,7 +255,11 @@ public final class Simulation {
                 }
             }
             if (c.def.kind == Kind.SOURCE || c.def.kind == Kind.BATTERY
+                    || c.def.kind == Kind.DYNAMO
                     || c.def.kind == Kind.GENERATOR || c.def.kind == Kind.SOLAR) {
+                // Динамо считается источником, даже когда стоит: иначе островок «без
+                // питания» не решается вовсе, а разогнать генератор руками — ровно
+                // тот случай, когда ЭДС ещё ноль, но через такт она появится.
                 isl.hasSource = true;
             }
         }
@@ -519,6 +523,18 @@ public final class Simulation {
                         mna.stamp(b, a, 1.0 / r, Battery.emf(bp, c.aux) / r);
                     }
                 }
+                case DYNAMO -> {
+                    if (b != null) {
+                        // Тевенин как у SOURCE, но ЭДС берётся из оборотов вала,
+                        // которые отдал KineticEngine. Не крутят — E = 0, и машина
+                        // становится просто обмоткой: цепь через неё есть, тока нет.
+                        Dynamo.Params dp = Dynamo.of(d);
+                        double e = Dynamo.emf(dp, me.arena.electronics.kinetics.Kinetics
+                                .toRpm(c.kinOmega));
+                        double r = Math.max(0.05, d.winding);
+                        mna.stamp(b, a, 1.0 / r, e / r);
+                    }
+                }
                 case POT -> {
                     String w = rep(isl, c.pinNet[4]);
                     double total = Math.max(1.0, d.resistance);
@@ -675,11 +691,12 @@ public final class Simulation {
                 if (d.ratedPower > 0 && Math.abs(ii[1]) * c.reading > d.ratedPower * 6) {
                     c.aux[2] = 1;             // перегрузка вторички: считаем в protect()
                 }
-            } else if (d.kind == Kind.BATTERY) {
-                // Аккумулятору знак тока жизненно необходим: по нему решается,
-                // сажать банк или заряжать. Модуль branchCurrent() считает честно,
-                // знак берём из stamp'а банки и кладём в reading (модуль — в i).
-                double ib = batterySignedCurrent(c, mna, isl, v);
+            } else if (d.kind == Kind.BATTERY || d.kind == Kind.DYNAMO) {
+                // Банку и генератору знак тока жизненно необходим: по нему решается,
+                // сажать банк или заряжать, отдаёт машина или её тормозят. Модуль
+                // branchCurrent() считает честно, знак берём из stamp'а и кладём в
+                // reading (модуль — в i).
+                double ib = sourceSignedCurrent(c, mna, isl, v);
                 c.reading = ib;
                 i = Math.abs(ib);
             }
@@ -918,6 +935,16 @@ public final class Simulation {
                 // подсветка корпуса пропорциональна току: 20 А = полный огонь
                 c.brightness = Math.min(1.0, Math.abs(c.reading) / 20.0);
             }
+            case DYNAMO -> {
+                Dynamo.Params dp = Dynamo.of(d);
+                double rpmNow = Kinetics.toRpm(c.kinOmega);
+                Dynamo.step(dp, c.aux, rpmNow, c.reading, dt);
+                c.state = Dynamo.stateOf(dp, c.aux, rpmNow, c.reading);
+                c.fault = Dynamo.faultOf(dp, c.aux, rpmNow, c.reading);
+                // яркость = доля долгого тока: 5 А = полный огонь, как у банки 20 А
+                c.brightness = (float) Math.min(1.0, Math.abs(c.reading)
+                        / Math.max(0.5, dp.ratedA));
+            }
             case DIODE -> c.state = i > 0.0004 ? CompStates.ON : (c.voltage < -0.3 ? CompStates.REVERSE : CompStates.OFF);
             case CAPACITOR -> {
                 c.vcPrev = c.voltage;
@@ -1150,8 +1177,12 @@ public final class Simulation {
      * Положительный — разряжается, отрицательный — его заряжают. Модуль тока
      * решатель считает сам (branchCurrent), знак здесь — из stamp'а банки.
      */
-    private static double batterySignedCurrent(CompInstance c, Mna mna, Island isl,
-                                               Map<String, Double> v) {
+    /**
+     * Знак тока через Тевенин-ветвь (банк, генератор): «+» — деталь отдаёт в
+     * вывод 0. Модуль branchCurrent() считает честно, а знак берём из stamp'а.
+     */
+    private static double sourceSignedCurrent(CompInstance c, Mna mna, Island isl,
+                                              Map<String, Double> v) {
         String a = rep(isl, c.pinNet[0]);
         String b = rep(isl, c.pinNet[1]);
         if (a == null || b == null) {

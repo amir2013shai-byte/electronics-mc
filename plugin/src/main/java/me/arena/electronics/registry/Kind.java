@@ -95,6 +95,17 @@ public enum Kind {
      * банка помнит состояние между тиками и рестартами (Battery).
      */
     BATTERY,
+    /**
+     * Машинный генератор: ЭДС из оборотов вала, тормозной момент из тока
+     * (Dynamo). Не путать с GENERATOR — тот «часовой», он меандр, а не машина.
+     */
+    DYNAMO,
+    /**
+     * Механический движитель: рука на рукояти, вода на лопатках (Movers).
+     *крутит вал и не потребляет ни вольта — единственный вид, у которого
+     * паспорт в ваттах, а не в омах.
+     */
+    MOVER,
     EMPTY;
 
     /** Проводит ли компонент «сквозь себя» на соседние блоки (для объединения узлов). */
@@ -105,7 +116,7 @@ public enum Kind {
     public boolean twoTerminal() {
         return switch (this) {
             case RESISTOR, CAPACITOR, LED, LAMP, DIODE, SWITCH, BUTTON, TOGGLE, FUSE,
-                 VOLTMETER, AMMETER, SCOPE, WIRE, PROBE, SOURCE, BATTERY, GROUND, GENERATOR,
+                 VOLTMETER, AMMETER, SCOPE, WIRE, PROBE, SOURCE, BATTERY, DYNAMO, GROUND, GENERATOR,
                  SOLAR, POT, PTC, VARISTOR -> true;
             default -> false;
         };

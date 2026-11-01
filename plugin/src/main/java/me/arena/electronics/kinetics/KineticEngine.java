@@ -3,6 +3,7 @@ package me.arena.electronics.kinetics;
 import me.arena.electronics.Config;
 import me.arena.electronics.ElectronicsPlugin;
 import me.arena.electronics.circuit.CompInstance;
+import me.arena.electronics.circuit.Dynamo;
 import me.arena.electronics.circuit.CompStates;
 import me.arena.electronics.kinetics.Kinetics.Action;
 import me.arena.electronics.kinetics.Kinetics.Element;
@@ -65,6 +66,8 @@ public final class KineticEngine {
     public static final class Rig {
         public final List<CompInstance> parts = new ArrayList<>();
         public final List<CompInstance> motors = new ArrayList<>();
+        /** Генераторы на этом же валу: они не крутят, а тормозят. */
+        public final List<CompInstance> dynamos = new ArrayList<>();
         public final State state = new State();
         public final Result last = new Result();
         public Spec spec = new Spec();
@@ -173,10 +176,48 @@ public final class KineticEngine {
                 rpm = Math.max(rpm, m.def.rpm);
                 aliveMotors.add(sk(m.key));
             }
+            // 1б) движители: рука на рукояти и вода на лопатках. Им не нужен
+            // решатель — они отдают момент прямо в вал, и у каждого есть паспорт
+            // в ваттах (rated_power) и холостые обороты (rpm), из которых честный
+            // момент на стопе = 4P/ω₀.
+            double moverTorque = 0.0;
+            long nowMs = System.currentTimeMillis();
+            for (CompInstance c : r.parts) {
+                if (c.def.kineticRole() != Role.MOVER) {
+                    continue;
+                }
+                double idle = Math.max(1.0, c.def.rpm);
+                double t0 = Movers.stallTorque(c.def.ratedPower, idle);
+                if (t0 <= 0.0) {
+                    continue;
+                }
+                double share;
+                if (c.def.isHandCrank()) {
+                    share = nowMs < c.crankUntilMs ? 1.0 : 0.0;
+                } else {
+                    int[] wet = waterContact(c);
+                    share = Math.min(1.0, wet[0] / (double) Movers.WATER_MAX_BLOCKS)
+                            * (1.0 + Movers.WATER_HEAD_BONUS * Math.max(0, wet[1] - 1));
+                }
+                if (share > 0.0) {
+                    moverTorque += Movers.torqueAt(r.state.omega, t0 * share, idle);
+                    rpm = Math.max(rpm, idle);
+                    c.brightness = (float) Math.min(1.0, share);
+                }
+            }
+            torque += moverTorque;
+
+            // 1в) тормоз: генератор отбирает момент ровно на k·I, и это единственная
+            // «нагрузка», которая появляется из электрики сама, без инструмента.
+            double brake = 0.0;
+            for (CompInstance g : r.dynamos) {
+                brake += Dynamo.torque(Dynamo.of(g.def), g.current);
+            }
+
             motor = new Motor(rpm > 0 ? rpm : 1800.0, torque, false);
 
             // 2) механика
-            Kinetics.step(motor, r.spec, r.state, Double.MAX_VALUE, dt, r.last);
+            Kinetics.step(motor, r.spec, r.state, Double.MAX_VALUE, dt, r.last, brake);
 
             // 3) обратно в электрику: обороты задаёт механика, а не «напряжение на клеммах»
             double w0 = Kinetics.toOmega(Math.max(1.0, rpm > 0 ? rpm : 1800.0));
@@ -186,6 +227,12 @@ public final class KineticEngine {
                 m.kinOmega = r.state.omega * share;
                 m.kinLoad = r.state.loadFraction;
                 m.speedPrev = Math.max(0.0, Math.min(1.15, m.kinOmega / Math.max(0.1, w0)));
+            }
+            // Генератору обороты нужнее, чем «хозяйство»: по ним решатель считает ЭДС.
+            for (CompInstance g : r.dynamos) {
+                g.kinOmega = r.state.omega * share;
+                g.kinLoad = r.state.loadFraction;
+                g.speedPrev = Math.max(0.0, Math.min(1.5, g.kinOmega / Math.max(0.1, w0)));
             }
 
             // 4) вид деталей: 0 — стоит, 2 — крутится, 3 — заклинило
@@ -215,6 +262,41 @@ public final class KineticEngine {
         ownerByKey.clear();
         ownerByKey.putAll(nextOwner);
         releaseOwnedExcept(aliveMotors);
+    }
+
+    /**
+     * Сколько воды касается колеса (боковые грани) и какой над ним напор (столб
+     * воды сверху). Проточная или стоячая — считаем мокрым любой сосед-вода: в
+     * Minecraft источник рядом с колесом всё равно стекает вниз, а ученику
+     * важно другое — четырёх мокрых граней больше, чем есть, и напора «в ноль»
+     * не бывает.
+     */
+    private static int[] waterContact(CompInstance c) {
+        Block here = c.key.block();
+        if (here == null || here.getWorld() == null) {
+            return new int[]{0, 0};
+        }
+        int wet = 0;
+        for (BlockFace f : new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH,
+                BlockFace.EAST, BlockFace.WEST}) {
+            if (isWater(here.getRelative(f))) {
+                wet++;
+            }
+        }
+        int head = 0;
+        Block up = here.getRelative(BlockFace.UP);
+        while (isWater(up) && head < 4) {
+            head++;
+            up = up.getRelative(BlockFace.UP);
+        }
+        if (head > 0 && wet == 0) {
+            wet = 1;                    // водопад сверху — тоже один рабочий поток
+        }
+        return new int[]{wet, head};
+    }
+
+    private static boolean isWater(Block b) {
+        return b != null && b.getType() == Material.WATER;
     }
 
     /** Моторы, которые больше никто не крутит, возвращаем электрике. */
@@ -296,6 +378,9 @@ public final class KineticEngine {
                     CompInstance other = plugin.circuit().get(n);
                     if (other != null && other.def.drivesShaft() && !r.motors.contains(other)) {
                         r.motors.add(other);
+                    }
+                    if (other != null && other.def.isDynamo() && !r.dynamos.contains(other)) {
+                        r.dynamos.add(other);
                     }
                 }
             }

@@ -110,7 +110,25 @@ public final class Events implements Listener {
             }
             return;
         }
+        // (00·бис) рукоять: ПКМ пустой рукой (или Shift+ПКМ с чем угодно) —
+        // крутим генератор руками. Пока предмет в руке и игрок не крадётся,
+        // клик отдаётся установке детали: ломать привычку «ставлю в колесо» нельзя.
         CompInstance existing = plugin.circuit().get(b);
+        if (existing != null && existing.def != null && existing.def.isHandCrank()
+                && (held == null || p.isSneaking())) {
+            e.setCancelled(true);
+            long nowMs = System.currentTimeMillis();
+            boolean wasIdle = nowMs >= existing.crankUntilMs;
+            existing.crankUntilMs = nowMs + (long) me.arena.electronics.kinetics.Movers.crankBurstMs();
+            plugin.sounds().click(existing.key, true);
+            if (wasIdle) {
+                Items.message(p, "&7Крутим рукоять: &f" + String.format(java.util.Locale.ROOT,
+                        "%.0f Вт доступно&7, клик держится &f%.1f с&7 (частые клики = непрерывный ход)",
+                        me.arena.electronics.kinetics.Movers.HUMAN_POWER_W,
+                        me.arena.electronics.kinetics.Movers.CRANK_MEMORY_S));
+            }
+            return;
+        }
 
         // (1) устанавливаем компонент из руки на подставку/плату
         if (held != null && existing == null) {

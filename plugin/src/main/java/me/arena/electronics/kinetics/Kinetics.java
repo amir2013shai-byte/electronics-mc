@@ -392,7 +392,9 @@ public final class Kinetics {
 
     /** Роль детали в цепочке — берётся из «shape» компонента. */
     public enum Role {
-        SHAFT, GEAR, FLYWHEEL, WHEEL, SAW, DRILL;
+        SHAFT, GEAR, FLYWHEEL, WHEEL, SAW, DRILL,
+        /** Движитель: рука или вода. Момент отдаёт, не берёт. */
+        MOVER;
 
         public static Role of(String shape) {
             if (shape == null) {
@@ -404,6 +406,7 @@ public final class Kinetics {
                 case "wheel" -> WHEEL;
                 case "saw" -> SAW;
                 case "drill" -> DRILL;
+                case "crank", "waterwheel" -> MOVER;
                 default -> SHAFT;
             };
         }
@@ -419,6 +422,7 @@ public final class Kinetics {
                 case WHEEL -> "колесо";
                 case SAW -> "пила";
                 case DRILL -> "бур";
+                case MOVER -> "движитель";
                 default -> "вал";
             };
         }
@@ -553,6 +557,9 @@ public final class Kinetics {
         public double torqueAvail;
         public double torqueLoad;
         public double speedMps;
+        /** Тормозной момент генератора, Н·м, и его мощность, Вт — для подсказки. */
+        public double brakeNm;
+        public double brakeW;
     }
 
     /**
@@ -566,6 +573,15 @@ public final class Kinetics {
      */
     public static Result step(Motor motor, Spec spec, State state, double powerW,
                               double dt, Result out) {
+        return step(motor, spec, state, powerW, dt, out, 0.0);
+    }
+
+    /**
+     * Тот же шаг, но с внешним тормозом: генератор под нагрузкой — это нагрузка
+     * на вал (τ = k·I), а не «ещё один мотор наоборот».
+     */
+    public static Result step(Motor motor, Spec spec, State state, double powerW,
+                              double dt, Result out, double brakeNm) {
         Result r = out == null ? new Result() : out;
         state.actions.clear();
         double d = Math.max(0.005, Math.min(0.5, dt));
@@ -598,10 +614,19 @@ public final class Kinetics {
         if (spec.hasWheels) {
             torqueLoad += spec.mu * spec.massTotal * G * spec.wheelRadius / Math.max(1.0, spec.wheelReduce);
         }
+        double brake = Math.max(0.0, brakeNm);
+        if (brake > 0.0) {
+            // Генератор — нагрузка без «кусаемого» блока: он тормозит всегда,
+            // поэтому «не хватает момента» считаем и по нему тоже.
+            torqueLoad += brake;
+            powerLoad += brake * Math.max(0.0, state.omega);
+        }
+        r.brakeNm = brake;
+        r.brakeW = brake * Math.max(0.0, state.omega);
 
         // «встанает» только тот, кому есть что пилить: у пустого лезвия момент
         // нехватки не просит, и честный ответ — холостой ход, а не «не берёт»
-        boolean stalled = (!working.isEmpty() && torqueLoad > torqueStall) || blocked;
+        boolean stalled = ((!working.isEmpty() || brake > 0.0) && torqueLoad > torqueStall) || blocked;
         double torqueAvail = motor.linear ? torqueStall * (1.0 - state.omega / w0) : torqueStall;
         if (torqueAvail < 0.0) {
             torqueAvail = 0.0;
