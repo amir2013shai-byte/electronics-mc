@@ -67,7 +67,7 @@
 
 ```
 1) Плагин
-   cp plugin/target/Electronics-1.0.0.jar /plugins/
+   cp plugin/target/Electronics-*.jar /plugins/     # имя = версия плагина
    # или собрать: cd plugin && mvn -DskipTests package
 
 2) Ресурспак (выдаётся игрокам, если resource-pack.auto-apply: true)
@@ -640,7 +640,7 @@ tools/push.sh [тег]        — пуш (а с тегом и релиз) ток
   (39 проверок)`),
   `итог: OK=25 FAIL=0` (топология + расчёт цепи 9 В/220 Ом/LED: 28.46 мА
   против 28.9 мА «на бумажке») и `OK: все 111×6 ссылок … разрешается`.
-* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.0.0.jar`.
+* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.0.jar`.
 * `bash tools/user_pack.sh` при пустом `users_textures/` → пак и превью
   **байт-в-байт** как в релизе (`b1be027c…` / `f77d9a00…`); с положенным
   `led_red_top.png` → `led_red_top.png` пака = он же (16×16 → 32×32 NEAREST,
@@ -794,18 +794,20 @@ tools/push.sh [тег]        — пуш (а с тегом и релиз) ток
 `pack_format == 75`; артефакты уходят и в artifacts раннера, и (на теге `v*`)
 в GitHub Release. Сборка воспроизводима: в `pom.xml` задан
 `project.build.outputTimestamp`, поэтому два подряд `clean package` дают
-**одинаковый** `Electronics-1.0.0.jar` (на v1.6.0 проверено заново:
+**одинаковый** `Electronics-1.7.0.jar` (на v1.6.0 проверено заново:
 `5651448dd85b90af51e20a2fcab84447f0f9528e` в обоих прогонах, 372 393 байта;
 историческая проверка v1.4.0 — `ca9047ad5e86ce6554785047cc770b98fb9c84db`, 348091); ресурспак и датапак теперь тоже воспроизводимы по байтам — см. §6 — sha1 из `release/sha1sums.txt` имеет смысл.
 
-**Почему jar называется `Electronics-1.0.0.jar`, а не `1.6.0`.** Имя файла —
-maven-артефакт (`<version>` в `pom.xml`), его не переименовываем: на него
-ссылаются пути в `.github/workflows`, в `tools/publish.sh` и у всех, у кого
-плагин уже лежит в `plugins/`. Версия плагина при этом настоящая —
-`plugin.yml: version: 1.6.0`, её сервер печатает при включении и её же
+**Как называется jar.** С v1.6.0 — `Electronics-<версия>.jar`, номер в имени
+несёт настоящую версию плагина, а берётся она из одного места, `plugin.yml`:
+`tools/publish.sh` копирует сборку в `release/Electronics-$VER.jar` и выбрасывает
+старые имена, CI и `tools/release.sh` путь не хардкодят (маска
+`release/Electronics-*.jar`), а `tools/run_tests.sh` следит, чтобы `plugin.yml` и
+`<version>` в `pom.xml` не разошлись — иначе в `plugins/` лёг бы файл с номером,
+который никто не проверял. Ту же версию сервер печатает при включении и её же
 показывает `/version Electronics`.
 
-**Готовые файлы:** Releases → **v1.6.0** → Assets: `Electronics-1.0.0.jar`,
+**Готовые файлы:** Releases → **v1.7.0** → Assets: `Electronics-1.7.0.jar`,
 `electronics-resourcepack.zip` (ставить в `resource-pack.url` на сервере или в
 `.minecraft/resourcepacks`), `electronics-recipes-datapack.zip`, `preview.png`
 (все 111 предметов на листах `sheet-01…09`), `scope-screen.png` (кадр экрана

@@ -367,7 +367,7 @@ GUI, для `selftest` и для офлайн-теста; «списать/вы�
 
 ```bash
 cd ~/electronics/plugin && mvn -q -B -o package
-cp -f target/Electronics-1.0.0.jar ~/srv/plugins/
+cp -f target/Electronics-*.jar ~/srv/plugins/
 cd ~/srv && pkill -x java; sleep 3; rm -f /tmp/mc.in; mkfifo /tmp/mc.in
 (setsid java -Xms512M -Xmx1024M -Dstdout.encoding=UTF-8 -jar paper.jar --nogui \
    <> /tmp/mc.in > mcNN.log 2>&1 &)
@@ -394,8 +394,10 @@ git add -A && git commit
 bash tools/push.sh v1.3.2  # main (+ тег, релиз и ассеты, если передан тег)
 ```
 
-* Имя jar **зафиксировано**: `Electronics-1.0.0.jar` (меняется только содержимое —
-  иначе надо править `plugin.yml`/доки/скрипты и можно рассинхронизировать `srv/`).
+* Имя jar несёт версию: `Electronics-<version>.jar`, версия — в `plugin.yml`,
+  а `<version>` в `pom.xml` обязан с ней совпадать (это проверяет
+  `tools/run_tests.sh`); `publish.sh` кладёт сборку под этим именем и удаляет
+  старые, CI и `release.sh` работают по маске `release/Electronics-*.jar`.
 * Воспроизводимость: `project.build.outputTimestamp` в `pom.xml`, поэтому jar CI
   побайтово равен локальному; в `release/sha1sums.txt` есть смысл. **ZIP-и
   побайтово не воспроизводимы** (порядок/метки времени) — сравнивай по

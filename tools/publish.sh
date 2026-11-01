@@ -37,19 +37,25 @@ if [ -n "${JAVAC:-}" ] && [ -x "$JAVAC" ]; then
   fi
 fi
 
-JAR=plugin/target/Electronics-1.0.0.jar
-if [ ! -f "$JAR" ] && [ -f ../srv/plugins/Electronics-1.0.0.jar ]; then
-  JAR=../srv/plugins/Electronics-1.0.0.jar   # собранный и проверенный на сервере
-fi
-if [ -f "$JAR" ]; then
-  cp "$JAR" release/Electronics-1.0.0.jar
+# Имя jar — с версией плагина, и берётся оно из единственного места, plugin.yml:
+# артефакт вида Electronics-1.6.0.jar нельзя перепутать с предыдущим, лежащим в
+# plugins/, а `tools/publish.sh` сам выбрасывает старые имена из release/.
+VER=$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' plugin/src/main/resources/plugin.yml | head -1)
+VER=${VER:-0}
+JAR=plugin/target/Electronics-$VER.jar
+[ -f "$JAR" ] || JAR=$(ls -t plugin/target/Electronics-*.jar 2>/dev/null | head -1)
+[ -f "$JAR" ] || JAR=$(ls -t ../srv/plugins/Electronics-*.jar 2>/dev/null | head -1)
+if [ -n "$JAR" ]; then
+  rm -f release/Electronics-*.jar
+  cp "$JAR" "release/Electronics-$VER.jar"
+  echo "release/Electronics-$VER.jar  (из $JAR)"
 else
   echo "внимание: jar не найден — собери: (cd plugin && mvn -DskipTests package)" >&2
 fi
 
 cd release
 rm -f sha1sums.txt
-sha1sum Electronics-1.0.0.jar electronics-resourcepack.zip \
+sha1sum "Electronics-$VER.jar" electronics-resourcepack.zip \
         electronics-recipes-datapack.zip preview.png scope-screen.png textures/*.png \
         > sha1sums.txt 2>/dev/null || sha1sum * textures/*.png > sha1sums.txt
 cd ..

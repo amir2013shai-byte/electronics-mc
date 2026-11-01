@@ -51,6 +51,17 @@ java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestFirmware
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestKinetics
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestScope
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestBattery
+# 1) имя артефакта — из версии, и она должна быть одна на весь проект:
+# plugin.yml читает сервер, pom.xml читает maven, и расхождение значит, что в
+# plugins/ ляжет jar с номером, который никто не проверял.
+PV=$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' plugin/src/main/resources/plugin.yml | head -1)
+MV=$(python3 -c "import re,io;s=io.open('plugin/pom.xml',encoding='utf-8').read();m=re.search(r'<artifactId>electronics</artifactId>\\s*<version>([0-9][^<]*)</version>',s);print(m.group(1) if m else '')")
+if [ -n "$PV" ] && [ "$PV" = "$MV" ]; then
+  echo "OK    версия плагина = версия артефакта: $PV (jar будет Electronics-$PV.jar)"
+else
+  echo "FAIL  plugin.yml: ${PV:-нет}, pom.xml: ${MV:-нет} — версии разошлись"; exit 1
+fi
+
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestMovers
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestDynamo
 

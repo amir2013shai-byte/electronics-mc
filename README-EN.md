@@ -42,7 +42,7 @@ mutable states" are implemented where the vanilla client actually reads them:
 ## Install
 
 ```
-plugins/Electronics-1.0.0.jar                         # or: cd plugin && mvn -DskipTests package
+plugins/Electronics-1.7.0.jar                         # or: cd plugin && mvn -DskipTests package
 release/electronics-resourcepack.zip                   # resource pack (set resource-pack.url or apply manually)
 release/electronics-recipes-datapack.zip               # optional: 36 recipes — 67 parts are soldered instead
 ```
@@ -431,11 +431,15 @@ every third column, so a rare pulse survives between refreshes).
 
 ---
 
-**Why the jar is still `Electronics-1.0.0.jar`.** The file name is the Maven
-artifact (`<version>` in `pom.xml`); renaming it would move paths referenced by
-`.github/workflows`, `tools/publish.sh` and every existing `plugins/` folder.
-The plugin version itself is real: `plugin.yml: version: 1.6.0`, which is what
-the server logs on enable and what `/version Electronics` prints.
+**How the jar is named.** Since v1.6.0 it is `Electronics-<version>.jar` — the
+number in the file name is the real plugin version, and there is exactly one
+place it comes from: `plugin.yml`. `tools/publish.sh` copies the build to
+`release/Electronics-$VER.jar` and deletes stale names, CI and
+`tools/release.sh` glob `release/Electronics-*.jar` instead of hard-coding a
+path, and `tools/run_tests.sh` fails if `plugin.yml` and `<version>` in
+`pom.xml` disagree — otherwise a jar with an unchecked number would end up in
+`plugins/`. The same version is what the server logs on enable and what
+`/version Electronics` prints.
 
 ## Lead-acid battery: a cell that remembers (v1.6.0)
 
@@ -487,7 +491,7 @@ initialization. `Persistence` writes non-zero aux into `registry.json`
   hand-computed 28.9 mA), and the pack checker
   `OK: все 111×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
-* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.0.0.jar`.
+* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.0.jar`.
 * Live run on Paper 1.21.11 build 132: plugin enables — 111 components, 3282
   model states, 107 recipes (39 crafting + 68 JEI showcases), 3 worksheets;
   `selftest: true` → 28 PASS / 0 FAIL, including the in-world sawmill, two scope

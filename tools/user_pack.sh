@@ -50,7 +50,7 @@ if [ "${1:-}" = "--release" ]; then
   mkdir -p release
   cp build/electronics-resourcepack.zip release/electronics-resourcepack.zip
   cp build/preview.png release/preview.png
-  (cd release && sha1sum Electronics-1.0.0.jar electronics-resourcepack.zip \
+  (cd release && sha1sum Electronics-*.jar electronics-resourcepack.zip \
       electronics-recipes-datapack.zip preview.png scope-screen.png textures/*.png \
       > sha1sums.txt 2>/dev/null || true)
   echo "— обновлено release/ (внимание: теперь ваш пак отличается от того, что в git)"

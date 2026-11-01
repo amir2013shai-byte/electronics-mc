@@ -64,7 +64,7 @@ jobs:
         with:
           name: electronics-1.21.11
           path: |
-            release/Electronics-1.0.0.jar
+            release/Electronics-*.jar
             release/electronics-resourcepack.zip
             release/electronics-recipes-datapack.zip
             release/preview.png
@@ -84,7 +84,7 @@ jobs:
           # tools/release.sh (это штатный путь — артефакты нужны сразу). Тогда
           # gh release create вернёт 422 «already exists», и шаг обязан
           # перезаписать ассеты, а не уронить весь ран.
-          ASSETS="release/Electronics-1.0.0.jar release/electronics-resourcepack.zip
+          ASSETS="$(ls release/Electronics-*.jar) release/electronics-resourcepack.zip
           release/electronics-recipes-datapack.zip release/preview.png release/sha1sums.txt
           release/textures/sheet-01.png release/textures/sheet-02.png
           release/textures/sheet-03.png release/textures/sheet-04.png

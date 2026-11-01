@@ -29,7 +29,8 @@ TOK="${GITHUB_TOKEN:?нет токена: положи GH_TOKEN в $SECRETS ил
 API="https://api.github.com/repos/$OWNER/$REPO"
 GITURL="https://x-access-token:$TOK@github.com/$OWNER/$REPO.git"
 
-[ -f "release/Electronics-1.0.0.jar" ] || { echo "нет release/ — собери: bash tools/publish.sh" >&2; exit 1; }
+JAR_FILE=$(ls release/Electronics-*.jar 2>/dev/null | head -1)
+[ -n "$JAR_FILE" ] || { echo "нет release/Electronics-*.jar — собери: bash tools/publish.sh" >&2; exit 1; }
 git tag -f -a "$TAG" -m "Electronics $TAG (Minecraft/Spigot 1.21.11)" 2>/dev/null || git tag -f "$TAG"
 
 echo "— push main + $TAG"
@@ -40,7 +41,7 @@ echo "— релиз"
 # в логе сервера), а не из исходников: на каждый новый релиз его надо сверить,
 # иначе релизные заметки врут. sha1 берём из release/sha1sums.txt на лету, чтобы
 # они физически не могли разъехаться с ассетами.
-JAR_SHA=$(sha1sum release/Electronics-1.0.0.jar | cut -c1-40)
+JAR_SHA=$(sha1sum "$JAR_FILE" | cut -c1-40)
 RP_SHA=$(sha1sum release/electronics-resourcepack.zip | cut -c1-40)
 # PASS-строки — из последнего прогона /elec selftest: в логе их обычно два
 # (стартовый и ручной), поэтому считаем окно от «PASS редактор схемы» до
@@ -69,7 +70,7 @@ else
   up=$(echo "$resp" | python3 -c 'import json,sys; print(json.load(sys.stdin)["upload_url"].split("{")[0])')
 fi
 
-for f in release/Electronics-1.0.0.jar release/electronics-resourcepack.zip \
+for f in "$JAR_FILE" release/electronics-resourcepack.zip \
          release/electronics-recipes-datapack.zip release/preview.png release/scope-screen.png \
          release/sha1sums.txt release/textures/sheet-0*.png; do
   [ -f "$f" ] || continue
