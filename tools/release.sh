@@ -43,16 +43,56 @@ echo "— релиз"
 # они физически не могли разъехаться с ассетами.
 JAR_SHA=$(sha1sum "$JAR_FILE" | cut -c1-40)
 RP_SHA=$(sha1sum release/electronics-resourcepack.zip | cut -c1-40)
+DP_SHA=$(sha1sum release/electronics-recipes-datapack.zip | cut -c1-40)
+# Паспорт паков — из самих архивов, а не из памяти о сборке: заголовок читаем
+# прямо из zip, числа файлов считаем по содержимому. Иначе заметки расходятся с
+# ассетами ровно на тех полях, из-за которых паки и перестают грузиться.
+RP_FILES=$(unzip -l release/electronics-resourcepack.zip | awk 'END{print $(NF-1)}')  # записей, не байтов
+ITEM_DEFS=$(unzip -l release/electronics-resourcepack.zip | grep -c 'assets/electronics/items/.*\.json')
+DP_RECIPES=$(unzip -l release/electronics-recipes-datapack.zip | grep -c 'data/electronics/recipe/.*\.json')
+PK_FMT=$(python3 - <<'PYF'
+import io, json, zipfile
+out = []
+for path in ("release/electronics-resourcepack.zip", "release/electronics-recipes-datapack.zip"):
+    with zipfile.ZipFile(path) as z:
+        p = json.loads(io.TextIOWrapper(z.open("pack.mcmeta"), encoding="utf-8").read())["pack"]
+    out.append("%s..%s" % (p.get("min_format"), p.get("max_format")))
+print(" / ".join(out))
+PYF
+)
 # PASS-строки — из последнего прогона /elec selftest: в логе их обычно два
 # (стартовый и ручной), поэтому считаем окно от «PASS редактор схемы» до
 # «PASS каталог», а не весь файл. Лога нет — берём число проверок из исходника.
 LOG=$(ls -t /home/user/srv/mc*.log 2>/dev/null | head -1 || true)
 SELFTEST_LINES=$(awk '/PASS редактор схемы/{start=NR} /PASS каталог/{end=NR} /PASS /{hit[NR]=1} END{c=0; if (start && end) for (i=start;i<=end;i++) if (hit[i]) c++; print c+0}' "$LOG" 2>/dev/null || true)
 [ "${SELFTEST_LINES:-0}" -gt 0 ] 2>/dev/null || SELFTEST_LINES=$(grep -c '"&aPASS "' plugin/src/main/java/me/arena/electronics/command/ElecCommand.java || echo 0)
+LIVE_NAME=${LOG:-нет лога}; LIVE_NAME=$(basename "${LIVE_NAME}")
+LIVE_FAIL=$(grep -c ': FAIL' "$LOG" 2>/dev/null || echo 0)
+LIVE_ERR=$(grep -c 'ERROR' "$LOG" 2>/dev/null || echo 0)
+LIVE_PARSE=$(grep -c "Couldn't parse data file\|Couldn't load file\|missing mandatory" "$LOG" 2>/dev/null || echo 0)
+LIVE_DP=$(grep -m1 -o 'PASS датапак:.*' "$LOG" 2>/dev/null | head -1)
+LIVE_HAND=$(grep -m1 -o 'PASS рукоять крутит генератор:.*' "$LOG" 2>/dev/null | head -1)
 TB_CHECKS=$(grep -cE '^[[:space:]]+check\(' tools/TestBattery.java 2>/dev/null || echo 0)
+OFFLINE=$(bash tools/run_tests.sh 2>&1 | grep -oE 'итог: OK=[0-9]+ FAIL=[0-9]+' | tail -1)
 REG=$(python3 -c 'import json,io;d=json.load(io.open("shared/components.json",encoding="utf-8"));m=d["meta"];print(len(d["components"]), len(m["soldered"]), m["state_model_count"])' 2>/dev/null || echo "0 0 0")
 COMPONENTS=${REG%% *}; REGREST=${REG#* }; SOLDERED=${REGREST%% *}; STATES=${REGREST##* }
-NOTES="Сборка против Spigot/Paper 1.21.11 (пак форматов 75). Ставить: jar в plugins/, оба архива — на сервер как ресурспак и датапак. Реестр: ${COMPONENTS} id, из них ${SOLDERED} паяных, ${STATES} индексов состояния модели. Новое в версии — свинцовый аккумулятор 12 В / 7 А·ч (kind BATTERY, вид battery_lead_12v): первая деталь, которая помнит свой заряд. ЭДС зависит от заряда (12.65 → 11.85 В), ёмкость — от тока (эффект Пейкерта, n = 1.25: 35 А отдают 2.2 А·ч вместо 7), севшая банка проседает внутренним сопротивлением ×40, на 1C и выше и при напряжении свыше 14.4 В банк кипит и теряет ёмкость, при перегреве или сульфатации вздувается (burnt), саморазряд 4.8 %/сутки, КПД заряда 0.95 — три ключа в config.yml (блок battery:). Память живёт в CompInstance.aux и переживает рестарт через registry.json. Состояния: dim разряжает, rev заряжается, on кипит, closed полна в покое, burnt деградировала. Полярности модель не проверяет — в одинарной цепи знак напряжения на выводах зависит от разводки, а не от расстановки детали, поэтому выдуманный «детектор переплюсовки» только обманул бы ученика. Офлайн-физика: TestBattery: ALL OK (${TB_CHECKS} проверок). Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4 вместо мягкого края, палитра 20 цветов, три тона граней), архивы пакуются детерминированно. Проверка на живом сервере: /elec selftest — PASS-строк ${SELFTEST_LINES}, FAIL 0, [ERROR] 0 на прогон (Paper 1.21.11 b132), среди проверок есть мировая: TextDisplay экрана появляется над блоком и исчезает при удалении детали, и четыре строки про аккумулятор (разряд, штатная зарядка, перезаряд выше 1C, круговой прогон через registry.json). sha1 jar: ${JAR_SHA}, ресурспака: ${RP_SHA}."
+NOTES="Сборка против Spigot/Paper 1.21.11. Ставить: jar в plugins/, ресурспак — на клиент (или resource-pack.url в server.properties), датапак — в <world>/datapacks/.
+
+v1.7.1 — починка паков (по логу реального сервера: 1 ошибка метаданных + 38 «Couldn't parse data file», детали в мире рисовались плитой-основой):
+* pack.mcmeta обоих паков теперь пишет и pack_format + supported_formats (это читают 1.21.7–1.21.8), и min_format/max_format (с 1.21.9 они обязательны: без них сервер отвечает «missing mandatory fields» и пакет не берёт вовсе). Диапазоны этого билда: ${PK_FMT} (у датапака своя линия форматов, не совпадает с ресурспаком).
+* рецепты: ингредиенты — простые строки (объекты {"item": ...} ванильный разбор не принимает), результат — minecraft:smooth_quartz_slab / minecraft:brush с компонентами item_model, item_name и custom_data→electronics:def; раньше результат ссылался на electronics:<id>, ключа которого нет ни в одном реестре предметов.
+* ресурспак: определений предметов ${ITEM_DEFS} вместо 114 — адрес состояния electronics:<id>_<dim|on|burnt|rev|closed> обязан существовать, иначе клиент тихо берёт запасную модель и деталь выглядит как плита-основа.
+* плагин: Items.defOf() узнаёт деталь и по item_model, если ядро не переложило custom_data в PDC; /elec selftest проверяет, что ядро приняло рецепты из датапака (${LIVE_DP}).
+
+Реестр: ${COMPONENTS} id, из них ${SOLDERED} паяных, ${STATES} индексов состояния модели. Артефакты этого релиза: ресурспак ${RP_FILES} файлов, датапак ${DP_RECIPES} рецептов.
+
+Проверка живым сервером (Paper 1.21.11 build 132, лог ${LIVE_NAME}): ${SELFTEST_LINES} PASS-строк, ${LIVE_FAIL} FAIL, ${LIVE_ERR} [ERROR], ${LIVE_PARSE} строк «Couldn't parse data file». Живая строка про привод: ${LIVE_HAND}
+
+Офлайн: ${OFFLINE} (tools/run_tests.sh), TestBattery ALL OK (${TB_CHECKS} проверок), tools/check_pack_refs.py валидирует заголовки паков и форму всех рецептов.
+
+sha1: jar ${JAR_SHA}, ресурспак ${RP_SHA}, датапак ${DP_SHA}. Архивы пакуются детерминированно: два прогона tools/gen_pack.py дают те же байты.
+
+Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4, палитра 20 цветов, три тона граней); свои PNG можно положить в users_textures/ и пересобрать через bash tools/user_pack.sh — 1695 тегов описаны в users_textures/README.md. Что появилось в v1.7.0 (рукоять, водяное колесо, машинный генератор) — README.md §4f: там же живые цифры прогона."
 body=$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":"Electronics "+sys.argv[1]+" (Minecraft 1.21.11)","body":sys.argv[2]}))' "$TAG" "$NOTES")
 resp=$(curl -sf -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
         -H "Content-Type: application/json" -d "$body" "$API/releases" || true)
