@@ -10,10 +10,23 @@
 | 26.x | 76+ | 95+ | не тестировалось |
 
 С 1.21.9 формат имеет минорную версию, и минор совместим внутри мажора: пак с
-`"pack_format": 75` примут и 1.21.11, и хотфиксы 1.21.11.x. Поле
-`supported_formats` в `pack.mcmeta` с 1.21.9 **запрещено** для паков с
-`pack_format >= 65` — у нас его нет. `pack_format` теперь необязателен, но мы
-его пишем, чтобы игрок видел «пак для 1.21.11».
+`75` примут и 1.21.11, и хотфиксы 1.21.11.x. Главное изменение — `pack_format`
+больше **не достаточен**: `min_format`/`max_format` обязательны, а
+`supported_formats` разрешено ровно тогда, когда диапазон начинается ниже
+65 (ресурспак) / 82 (датапак), и тогда оно обязано совпадать с мажорами
+`min_format`/`max_format`. Наш заголовок (`tools/gen_pack.py` → `mcmeta()`)
+пишет все четыре поля, поэтому один и тот же архив принимают 1.21.7 и 1.21.11:
+ресурспак `64..75`, датапак `80..94`.
+
+Цена ошибки — молчание, а не exception: лог живого 1.21.11 на старом заголовке
+(`pack_format: 94`, без min/max) был ровно
+
+```
+Pack declares support for version newer than 81, but is missing mandatory
+fields min_format and max_format
+```
+
+и пакета не было вовсе.
 
 ## Что из чего требует какая версия
 
@@ -31,8 +44,10 @@
 
 1. `plugin/pom.xml` → `<version>1.21.XX-R0.2-SNAPSHOT</version>` спигот-API.
 2. `plugin/src/main/resources/plugin.yml` → `api-version`.
-3. `shared/components.json → meta.resource_pack_format` + `tools/gen_pack.py`
-   (`fmt`, `94` для датапака) → значения из таблицы выше.
+3. `shared/components.json → meta.resource_pack_format` (верхняя граница
+   ресурспака) + `tools/gen_pack.py` → `RP_MIN_FORMAT`/`RP_MAX_FORMAT` и
+   `DP_MIN_FORMAT`/`DP_MAX_FORMAT` (у датапака своя линия форматов!) → значения
+   из таблицы выше. `tools/check_pack_refs.py` и шаг CI сверяют заголовок.
 4. Проверить, что `atlases/blocks.json` нужен (≥1.21.9) или уже не нужен (<).
 5. `mvn -DskipTests package && python3 tools/gen_pack.py`.
 
@@ -40,12 +55,12 @@
 
 ```
 build/resourcepack/
-├── pack.mcmeta                       # pack_format 75 + описание
+├── pack.mcmeta                       # 64..75: pack_format + supported_formats + min/max
 ├── pack.png                          # иконка (генерируется: плата + LED)
 ├── assets/minecraft/atlases/blocks.json     # «шейте мои текстуры»
 ├── assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png  # перекраска платы
 ├── assets/electronics/lang/{ru_ru,en_us}.json
-├── assets/electronics/items/<id>.json                    # 114: выбор состояния модели
+├── assets/electronics/items/<id>[_<state>].json          # 684: 114 базовых + адрес каждого состояния
 ├── assets/electronics/models/item/<id>[_<state>].json    # 684: модель + display-трансформы
 └── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1695 текстур 32×32 (или то, что положили в users_textures/)
 ```

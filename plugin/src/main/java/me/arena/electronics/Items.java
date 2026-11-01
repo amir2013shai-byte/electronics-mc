@@ -130,9 +130,34 @@ public final class Items {
         if (stack == null || stack.getType().isAir() || !stack.hasItemMeta()) {
             return null;
         }
-        String id = stack.getItemMeta().getPersistentDataContainer()
+        ItemMeta meta = stack.getItemMeta();
+        String id = meta.getPersistentDataContainer()
                 .get(CompInstance.PDC_DEF, PersistentDataType.STRING);
-        return Components.byId(id);
+        Def byPdc = Components.byId(id);
+        if (byPdc != null) {
+            return byPdc;
+        }
+        // Метки в PDC может и не быть: предмет пришёл из датапака (компоненты
+        // результата recipe в некоторых ядрах не перекладываются в PDC-представление)
+        // или выдан командой. Тогда деталь опознаём по minecraft:item_model —
+        // он у наших предметов есть всегда, а суффикс состояния отрезаем.
+        NamespacedKey model = null;
+        try {
+            model = meta.getItemModel();
+        } catch (Throwable ignored) {
+            return null;                        // ядро без item_model (1.21.2-)
+        }
+        if (model == null || !Components.NAMESPACE.equals(model.getNamespace())) {
+            return null;
+        }
+        Def direct = Components.byId(model.getKey());
+        return direct != null ? direct : Components.byId(stripState(model.getKey()));
+    }
+
+    /** electronics:led_red_on -> led_red (нет такого — оставляем как есть). */
+    private static String stripState(String key) {
+        int i = key.lastIndexOf('_');
+        return i > 0 ? key.substring(0, i) : key;
     }
 
     public ItemStack giveItem(Def def) {

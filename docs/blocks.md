@@ -2,7 +2,7 @@
 
 Сгенерировано `tools/catalog.py` из `shared/components.json` — не правь руками.
 
-* Minecraft **1.21.11**, `pack_format: 75`
+* Minecraft **1.21.11**: форматы паков — ресурспак `64..75`, датапак `80..94` (и `pack_format`, и `min_format`/`max_format`) — см. docs/pack-compatibility.md
 * компонентов: **114**, визуальных состояний: **565**, индексов состояния модели: **3390** = Σ(`states` × 6 ориентаций)
 * namespace: `electronics` — ключ модели выглядит как `electronics:<id><суффикс состояния>`
 

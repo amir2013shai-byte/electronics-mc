@@ -432,6 +432,11 @@ public final class Recipes {
         return smeltCount;
     }
 
+    /** Id-шники с крафтом в верстаке по нашей таблице — ровно их несёт и датапак. */
+    public static java.util.Set<String> craftIds() {
+        return DEFS.keySet();
+    }
+
     /** Сколько «настоящих» рецептов зарегистрировано (без витрин). */
     public int realCount() {
         return okCount;

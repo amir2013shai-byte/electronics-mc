@@ -727,6 +727,52 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 inManager++;
             }
         }
+        // (datapack) крафты из electronics-recipes-datapack: плагин регистрирует
+        // СВОИ под ключом electronics:recipe_<id>, датапаковские лежат под
+        // electronics:<id> — по этому признаку их и отличаем. Если датапак не
+        // принят (битый pack.mcmeta или не тот формат полей), getRecipe вернёт
+        // null: это и есть честная проверка «артефакт работает у потребителя».
+        int dpWant = 0;
+        int dpFound = 0;
+        int dpModel = 0;
+        int dpDef = 0;
+        String dpBad = "";
+        for (String id : me.arena.electronics.recipes.Recipes.craftIds()) {
+            if (Components.isSoldered(id)) {
+                continue;                       // через паяльный стол: в датапаке его нет
+            }
+            dpWant++;
+            String name = id.chars().allMatch(c -> c < 128) ? id : id.replace('-', '_');
+            org.bukkit.inventory.Recipe r = plugin.getServer()
+                    .getRecipe(new org.bukkit.NamespacedKey(Components.NAMESPACE, name));
+            if (r == null) {
+                if (dpBad.isEmpty()) {
+                    dpBad = name;
+                }
+                continue;
+            }
+            if (!(r instanceof org.bukkit.inventory.CraftingRecipe)) {
+                if (dpBad.isEmpty()) {
+                    dpBad = name + " (не крафт)";
+                }
+                continue;
+            }
+            dpFound++;
+            if (r.getResult().getItemMeta() != null
+                    && r.getResult().getItemMeta().getItemModel() != null) {
+                dpModel++;
+            }
+            Def rd = Items.defOf(r.getResult());
+            if (rd != null && rd.id.equals(id)) {
+                dpDef++;
+            }
+        }
+        s.sendMessage(Items.color(((dpFound == dpWant && dpModel == dpFound) ? "&aPASS " : "&cFAIL ")
+                + "&7датапак: рецептов &f" + dpFound + "&7/&f" + dpWant
+                + " &7приняты ядром под ключом &felectronics:<id>&7, модель результата —"
+                + " у &f" + dpModel + "&7, деталь опознаётся в &f" + dpDef + "&7/&f" + dpWant
+                + " &8(item_model читается, когда custom_data в PDC не дошёл)"
+                + (dpBad.isEmpty() ? "" : "&7, непрошли: &f" + dpBad)));
         int withStation = 0;
         for (String sid : Components.soldered()) {
             if (stationIn(plugin.recipes().displayFor(sid))) {
@@ -739,7 +785,7 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 && plugin.recipes().isDisplayOnly(disp) && stationShown && withStation == dispCount
                 && plugin.recipes().hasDisplay("resistor_330r")
                 && !plugin.recipes().hasDisplay("wire_red")
-                && inManager == Components.soldered().size() + plugin.recipes().realCount();
+                && inManager == Components.soldered().size() + plugin.recipes().realCount() + dpFound;
         s.sendMessage(Items.color((jei ? "&aPASS " : "&cFAIL ")
                 + "&7JEI: витрин &f" + dispCount + "&7/(нужно " + Components.soldered().size()
                 + "), у светодиода реальным крафтом не собирается: &f"

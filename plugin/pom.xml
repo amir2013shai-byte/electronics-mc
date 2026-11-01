@@ -6,7 +6,7 @@
 
   <groupId>me.arena</groupId>
   <artifactId>electronics</artifactId>
-  <version>1.7.0</version>
+  <version>1.7.1</version>
   <packaging>jar</packaging>
   <name>Electronics</name>
   <description>Учебная электроника для Spigot 1.21.11 без клиентских модов</description>

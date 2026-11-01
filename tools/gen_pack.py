@@ -1007,16 +1007,41 @@ def resistor_recipes():
         }
 
 
-def write_recipe(datapack_dir, cid, spec):
+def ingredient(v):
+    """Ингредиент в форме, которую понимают и 1.21.7, и 1.21.11: ПРОСТАЯ СТРОКА.
+
+    Разбор рецепта в ваниле читает ingredient как string|tag|item — объект
+    {"item": "minecraft:stick"}Accepts только как item-объект НОВОЙ схемы, а на
+    1.21.7 это `Not a string: {...}` (реальный лог: 38 «Couldn't parse data
+    file», из них 36 — до релиза v1.7.0, т.е. баг ехал с v1.4)."""
+    if isinstance(v, str):
+        return v if ":" in v else f"minecraft:{v}"
+    if v.startswith("#"):
+        return {"tag": v[1:]}
+    if isinstance(v, dict) and "tag" in v:
+        return v
+    raise ValueError("непонятный ингредиент: %r" % (v,))
+
+
+def write_recipe(datapack_dir, comp, spec):
+    cid = comp["id"]
     name = cid if cid.isascii() else cid.replace("-", "_")
     path = os.path.join(datapack_dir, "data", NS, "recipe", name + ".json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    result = {"id": f"{NS}:{cid}", "count": spec.get("count", 1)}
+    # Своего item-реестра у плагина нет (деталь = ванильный предмет-основа с
+    # переопределённым item_model), поэтому результат — базовый материал, а
+    # «электроникой» его делают компоненты. minecraft:<id> здесь привёл бы к
+    # "Unknown registry key" на ВСЕХ 38 рецептах.
+    base = "minecraft:brush" if comp.get("kind") == "TOOL" else "minecraft:smooth_quartz_slab"
+    result = {"id": base, "count": spec.get("count", 1),
+              "components": {"minecraft:item_model": f"{NS}:{cid}",
+                             "minecraft:item_name": {"translate": f"item.{NS}.{cid}"},
+                             "minecraft:custom_data": {f"{NS}:def": cid}}}
     if spec.get("type") == "shapeless":
         body = {
             "type": "minecraft:crafting_shapeless",
             "category": "misc",
-            "ingredients": [{"item": f"minecraft:{k}"} for k, v in spec["ing"].items() for _ in range(v)],
+            "ingredients": [ingredient(k) for k, v in spec["ing"].items() for _ in range(v)],
             "result": result,
         }
     else:
@@ -1024,7 +1049,7 @@ def write_recipe(datapack_dir, cid, spec):
             "type": "minecraft:crafting_shaped",
             "category": "misc",
             "pattern": spec["shape"],
-            "key": {ch: {"item": f"minecraft:{item}"} for ch, item in spec["key"].items()},
+            "key": {ch: ingredient(item) for ch, item in spec["key"].items()},
             "result": result,
         }
     with open(path, "w", encoding="utf-8") as f:
@@ -1068,6 +1093,32 @@ def report_users():
         print("   полный список тегов: python3 tools/user_tags.py list")
 
 
+# ---------------------------------------------------------------- метаданные паков
+# 1.21.9 разделила форматы: у ресурспака и датапака они больше не совпадают, а
+# единственного pack_format теперь НЕдостаточно — сервер печатает
+#   "Pack declares support for version newer than 81, but is missing mandatory
+#    fields min_format and max_format"
+# и молча отвергает пак (полный лог 1.21.11: 38 ошибок "Couldn't parse data
+# file" на 38 рецептов). Поэтому объявляем обе схемы сразу:
+#   * min_format/max_format — читают 1.21.9+;
+#   * pack_format + supported_formats — читают 1.21.8 и старше (их формат ниже
+#     65 для ресурспаков / 82 для датапаков, поэтому эти поля всё ещё обязательны).
+# Диапазон — «что реально проверяли»: 1.21.7 .. 1.21.11. Датапак 1.21.7/8 —
+# это 80 или 81 (источники расходятся; лог 1.21.11 говорит «17 to 81»), поэтому
+# нижняя граница взята 80: шире — не ломает, уже — теряет версию.
+RP_MIN_FORMAT, RP_MAX_FORMAT = 64, 75          # ресурспак: 1.21.7 -> 1.21.11
+DP_MIN_FORMAT, DP_MAX_FORMAT = 80, 94          # датапак:  1.21.7 -> 1.21.11 (своя линия!)
+
+
+def mcmeta(description, lo, hi):
+    """pack.mcmeta, которую принимает и 1.21.7, и 1.21.11."""
+    return {"pack": {"description": description,
+                     "pack_format": lo,
+                     "supported_formats": {"min_inclusive": lo, "max_inclusive": hi},
+                     "min_format": lo,
+                     "max_format": hi}}
+
+
 def main():
     if os.path.isdir(BUILD):
         shutil.rmtree(BUILD)
@@ -1078,7 +1129,7 @@ def main():
     fmt = SHARED["meta"]["resource_pack_format"]
     desc = {"text": "Electronics — учебная электроника (светодиоды, диоды, схемы). Без модов."}
     with open(out("pack.mcmeta"), "w", encoding="utf-8") as f:
-        json.dump({"pack": {"pack_format": fmt, "description": desc}}, f, ensure_ascii=False, indent=2)
+        json.dump(mcmeta(desc, RP_MIN_FORMAT, fmt), f, ensure_ascii=False, indent=2)
 
     def dir_of(*p):
         d = os.path.join(RP, *p)
@@ -1093,6 +1144,7 @@ def main():
     ru = {"pack": "Electronics — электроника для уроков"}
     en = {"pack": "Electronics — circuits for lessons"}
     state_models = 0
+    item_defs = 0
     base_index = {}
     written = set()
 
@@ -1180,6 +1232,18 @@ def main():
         with open(os.path.join(items_dir, f"{cid}.json"), "w", encoding="utf-8") as f:
             json.dump(item_def, f, indent=1)
 
+        # Определение на КАЖДОЕ адресованное состояние. Плагин ставит предмету
+        # компонент minecraft:item_model = electronics:<id>_<state>; если файла
+        # items/<id>_<state>.json нет, клиент уходит в запасной разбор модели, и
+        # в мире деталь рисуется базовым блоком-основой (в жизни: «макетные платы
+        # и светодиод» превращались в зелёные плиты). Молча — без ошибки в логе.
+        for st in range(1, 6):
+            with open(os.path.join(items_dir, f"{cid}{STATE_SUFFIX[st]}.json"), "w",
+                      encoding="utf-8") as f:
+                json.dump({"model": {"type": "minecraft:model",
+                                     "model": models.get(st, models[0])}}, f, indent=1)
+        item_defs += 1 + 5
+
     # атлас: обязательно для 1.21.9+
     atlases = dir_of("assets", "minecraft", "atlases")
     with open(os.path.join(atlases, "blocks.json"), "w", encoding="utf-8") as f:
@@ -1231,7 +1295,7 @@ def main():
     # --- датапак с рецептами ---
     os.makedirs(os.path.join(DP, "data", NS, "recipe"), exist_ok=True)
     with open(os.path.join(DP, "pack.mcmeta"), "w", encoding="utf-8") as f:
-        json.dump({"pack": {"pack_format": 94, "description": desc}}, f, ensure_ascii=False, indent=2)
+        json.dump(mcmeta(desc, DP_MIN_FORMAT, DP_MAX_FORMAT), f, ensure_ascii=False, indent=2)
     nrecipes = 0
     missing = []
     # meta.soldered — то же правило читает плагин (Recipes.register их не регистрирует)
@@ -1243,7 +1307,7 @@ def main():
             skipped_solder += 1
             continue
         if cid in RECIPES:
-            write_recipe(DP, cid, RECIPES[cid])
+            write_recipe(DP, comp, RECIPES[cid])
             nrecipes += 1
         else:
             missing.append(cid)

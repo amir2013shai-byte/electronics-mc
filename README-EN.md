@@ -13,11 +13,11 @@ brightness, burnt parts. No client mod.
 | Game | Minecraft Java **1.21.11** |
 | Server | **Spigot / Paper 1.21.11-R0.2** (verified on Paper 1.21.11 build 132) |
 | Java | 21 |
-| Resource pack format | **75** (75.0–75.1) |
-| Data pack format (recipes) | **94** |
+| Resource pack format | **64 … 75**: `pack_format` 64 + `min_format`/`max_format` 64/75 |
+| Data pack format (recipes) | **80 … 94**: `pack_format` 80 + `min_format`/`max_format` 80/94 |
 | Client mod | not required |
 | Components | 114 ids (69 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts + hand crank & water wheel + dynamo + lead-acid battery), RU + EN names |
-| Built pack | 2501 files: 1695 item textures, 684 models (114 × 6), 114 `items/*.json` |
+| Built pack | 3071 files: 1695 item textures, 684 models (114 × 6), 684 `items/*.json` (114 base + one per state address) |
 | Resource-pack model states | **3390** = 565 visual states × 6 orientations |
 
 ## Why the "modify the player" trick became a state-model registry
@@ -42,7 +42,7 @@ mutable states" are implemented where the vanilla client actually reads them:
 ## Install
 
 ```
-plugins/Electronics-1.7.0.jar                         # or: cd plugin && mvn -DskipTests package
+plugins/Electronics-1.7.1.jar                         # or: cd plugin && mvn -DskipTests package
 release/electronics-resourcepack.zip                   # resource pack (set resource-pack.url or apply manually)
 release/electronics-recipes-datapack.zip               # optional: 38 recipes — 69 parts are soldered instead
 ```
@@ -89,8 +89,8 @@ Measured over the pack: pixels discarded by cutout 473 722 → 314 568, mean
 luminance unchanged (94.8 → 95.0), and no texture lost coverage (worst per-file
 delta 0). Pack archives are built deterministically — sorted entries, fixed
 1980-01-01 timestamps — so two runs of `python3 tools/gen_pack.py` give the
-same sha1 (`3f997520d0a12e2af2d69d62ca8d4fabf462edea` for the resourcepack on
-v1.6.0; the data pack is byte-identical to v1.4.0 — `1c254875146836c1d3d6c77a080ef9301e0595d6` —
+same sha1 (measured in this build: `1726a3acfa1a3ba80c77610f277f8826ec238e55` for
+the resourcepack and `30867db59677cee56c696ef6dcf9357254402b91` for the data pack —
 because the oscilloscope is soldered, so no data-pack recipe was added).
 
 Full block catalog (nominals, flags, model-index ranges): `docs/blocks.md`,
@@ -546,10 +546,12 @@ generator output, 1695 resolved references and 0 broken links in
   hand-computed 28.9 mA), and the pack checker
   `OK: все 114×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
-* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.0.jar`.
+* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.1.jar`.
 * Live run on Paper 1.21.11 build 132: plugin enables — 114 components, 3390
-  model states, 110 recipes (41 crafting + 69 JEI showcases), 3 worksheets;
-  `selftest: true` → 30 PASS / 0 FAIL, including the in-world sawmill, two scope
+  model states, 110 own recipes (41 crafting + 69 JEI showcases) + 38 from the
+  data pack = 148 in the recipe manager, 3 worksheets;
+  `selftest: true` → 31 PASS / 0 FAIL (log `srv/mc66.log`, zero
+  `Couldn't parse data file` lines), including the in-world sawmill, two scope
   checks — `PASS осциллограф: кадр 83 пикс., строки 4×20 | Upp 12.0 В | f 1.000 Гц`
   and the in-world one, `PASS живой экран осциллографа: TextDisplay над блоком
   появился: true, после удаления детали исчез: true` — plus four battery
@@ -571,8 +573,38 @@ generator output, 1695 resolved references and 0 broken links in
   *is* stored since v1.6.0 — that is how a battery keeps its charge, and the
   selftest checks the whole loop: write, read back, restore into a circuit.
 
+## Why the v1.7.0 packs did not load (fixed in v1.7.1)
+
+Three separate bugs, each with its own line in the server log:
+
+1. **Header.** `pack.mcmeta` declared `pack_format` only. Since 1.21.9 the
+   `min_format`/`max_format` pair is mandatory, so the server said
+   `Pack declares support for version newer than 81, but is missing mandatory
+   fields min_format and max_format` and dropped the pack entirely. `mcmeta()` in
+   `tools/gen_pack.py` now writes both schemas (old `pack_format` +
+   `supported_formats` for 1.21.7-1.21.8, `min_format`/`max_format` for 1.21.9+):
+   resource pack 64..75, data pack 80..94 - data packs have their own format line.
+2. **Recipe shape.** Ingredients were written as `{"item": "minecraft:stick"}`
+   objects while vanilla parsing wants a **string** (or `{"tag": ...}`) - hence
+   `Not a string` and the misleading `List is too short: 0` - and every result
+   pointed at `electronics:<id>`, a key that exists in no item registry (our part
+   = vanilla base material + `item_model` component): `Unknown registry key`,
+   38 files rejected, 36 of them shipped since v1.4.0.
+3. **Crafted-item recognition.** The result is now `minecraft:smooth_quartz_slab`
+   (`minecraft:brush` for the tool) carrying `item_model`, `item_name` (from the
+   pack lang) and `custom_data -> electronics:def`, the tag `Items.defOf` reads;
+   `defOf` also falls back to `item_model` when a core does not surface
+   `custom_data` in the PDC.
+
+Verified on a live server, not with our own scripts: Paper 1.21.11 build 132 with
+`world/datapacks/electronics-recipes-datapack.zip` - the log says
+`Found new data pack file/..., loading it automatically`, zero
+`Couldn't parse data file` lines (was 38) and the new selftest line
+`PASS датапак: рецептов 38/38 приняты ядром ... деталь опознаётся в 38/38`.
+
 CI: `.github/workflows/build.yml` runs `mvn package`, `tools/publish.sh`,
-`tools/run_tests.sh`, `check_pack_refs.py` and asserts `pack_format == 75`;
+`tools/run_tests.sh`, `check_pack_refs.py` and asserts the whole compatibility
+header of both packs (64..75 and 80..94) plus the 38 recipe files;
 artifacts go to the run, and a `v*` tag additionally publishes a GitHub Release.
 The jar is reproducible (`project.build.outputTimestamp` in `pom.xml`): two clean
 `mvn clean package` runs and the jar that

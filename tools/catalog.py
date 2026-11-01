@@ -9,6 +9,7 @@ import json
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RP_MIN, DP_MIN, DP_MAX = 64, 80, 94     # те же границы, что пишет tools/gen_pack.py
 SHARED = os.path.join(ROOT, "shared", "components.json")
 OUT = os.path.join(ROOT, "docs", "blocks.md")
 
@@ -186,7 +187,9 @@ def main():
         "",
         "Сгенерировано `tools/catalog.py` из `shared/components.json` — не правь руками.",
         "",
-        f"* Minecraft **{META['mc_version']}**, `pack_format: {META['resource_pack_format']}`",
+        f"* Minecraft **{META['mc_version']}**: форматы паков — ресурспак "
+        f"`{RP_MIN}..{META['resource_pack_format']}`, датапак `{DP_MIN}..{DP_MAX}` "
+        f"(и `pack_format`, и `min_format`/`max_format`) — см. docs/pack-compatibility.md",
         f"* компонентов: **{len(COMPS)}**, визуальных состояний: **{total_states}**, "
         f"индексов состояния модели: **{META['state_model_count']}** "
         f"= Σ(`states` × 6 ориентаций)",

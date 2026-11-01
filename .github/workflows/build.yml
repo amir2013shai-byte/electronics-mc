@@ -49,14 +49,29 @@ jobs:
       - name: Тесты ядра + сверка ссылок пака
         run: bash tools/run_tests.sh
 
-      - name: Проверка, что ресурспак совпадает с pack_format 75
+      - name: Проверка заголовков обоих паков (1.21.7..1.21.11)
         run: |
           python3 - <<'PY'
           import json
-          m = json.load(open('build/resourcepack/pack.mcmeta'))
-          pf = m['pack']['pack_format']
-          assert pf == 75, f"pack_format={pf}, ждали 75 (1.21.11)"
-          print("pack_format:", pf, "| supported_formats:", m['pack'].get('supported_formats'))
+          # 1.21.9+ не читает пак без min_format/max_format: сервер пишет
+          # "missing mandatory fields min_format and max_format" и молча
+          # выбрасывает 38 рецептов. Проверяем обе схемы сразу.
+          want = {'build/resourcepack/pack.mcmeta': (64, 75),
+                  'build/datapack/pack.mcmeta': (80, 94)}
+          for path, (lo, hi) in want.items():
+              p = json.load(open(path))['pack']
+              assert p['pack_format'] == lo, f"{path}: pack_format={p['pack_format']}, ждали {lo}"
+              assert p['min_format'] == lo and p['max_format'] == hi, \
+                  f"{path}: min/max = {p.get('min_format')}/{p.get('max_format')}, ждали {lo}/{hi}"
+              sf = p.get('supported_formats') or {}
+              assert (sf.get('min_inclusive'), sf.get('max_inclusive')) == (lo, hi), \
+                  f"{path}: supported_formats={sf}, ждали {lo}..{hi}"
+              print(path, "->", lo, "..", hi, "ok")
+          n = len(json.load(open('build/datapack/pack.mcmeta'))['pack'])
+          import os
+          rec = 'build/datapack/data/electronics/recipe'
+          assert len([f for f in os.listdir(rec) if f.endswith('.json')]) == 38, "рецептов должно быть 38"
+          print("рецептов в датапаке:", 38, "| полей в mcmeta:", n)
           PY
 
       - name: Артефакты сборки
@@ -90,7 +105,7 @@ jobs:
           release/textures/sheet-03.png release/textures/sheet-04.png
           release/textures/sheet-05.png release/textures/sheet-06.png
           release/textures/sheet-07.png release/textures/sheet-08.png"
-          NOTES="Плагин собран против spigot-api $SPIGOT_API, ресурспак — pack_format 75.
+          NOTES="Плагин собран против spigot-api $SPIGOT_API. Форматы паков: ресурспак 64..75, датапак 80..94 (pack_format + min_format/max_format).
           Ставить: jar в \`plugins/\`, архив — в \`resource-pack.url\` (или вручную клиенту).
           Контрольные цифры с живого Paper 1.21.11 build 132 — в README (17 строк PASS
           в /elec selftest, 0 FAIL). Хэши — в sha1sums.txt."
