@@ -100,19 +100,26 @@ jobs:
           # gh release create вернёт 422 «already exists», и шаг обязан
           # перезаписать ассеты, а не уронить весь ран.
           ASSETS="$(ls release/Electronics-*.jar) release/electronics-resourcepack.zip
-          release/electronics-recipes-datapack.zip release/preview.png release/sha1sums.txt
-          release/textures/sheet-01.png release/textures/sheet-02.png
-          release/textures/sheet-03.png release/textures/sheet-04.png
-          release/textures/sheet-05.png release/textures/sheet-06.png
-          release/textures/sheet-07.png release/textures/sheet-08.png"
+          release/electronics-recipes-datapack.zip release/preview.png release/scope-screen.png
+          release/sha1sums.txt $(ls release/textures/sheet-*.png)"
           NOTES="Плагин собран против spigot-api $SPIGOT_API. Форматы паков: ресурспак 64..75, датапак 80..94 (pack_format + min_format/max_format).
           Ставить: jar в \`plugins/\`, архив — в \`resource-pack.url\` (или вручную клиенту).
-          Контрольные цифры с живого Paper 1.21.11 build 132 — в README (17 строк PASS
-          в /elec selftest, 0 FAIL). Хэши — в sha1sums.txt."
+          Контрольные цифры с живого Paper 1.21.11 build 132 — в README §4g и в теле релиза
+          (строки PASS из /elec selftest, включая «датапак: рецептов N/M»). Хэши — в sha1sums.txt."
           if gh release create "$GITHUB_REF_NAME" $ASSETS \
                --title "Electronics $GITHUB_REF_NAME (Minecraft 1.21.11)" --notes "$NOTES"; then
             echo "релиз создан"
           else
             echo "релиз уже есть — обновляем ассеты"
-            gh release upload "$GITHUB_REF_NAME" $ASSETS --clobber
+            # --clobber = «удалить и залить», а ассеты в эту же минуту перекладывает
+            # tools/release.sh (штатный путь: артефакты нужны сразу). Между delete и
+            # upload прилетает HTTP 404, и красный прогон ничего не значит. Пробуем
+            # трижды с паузой — гонка с локальным скриптом за это время заканчивается.
+            for attempt in 1 2 3; do
+              if gh release upload "$GITHUB_REF_NAME" $ASSETS --clobber; then
+                echo "ассеты обновлены (попытка $attempt)"; ok=1; break
+              fi
+              echo "попытка $attempt не прошла — жду 20 с и повторяю"; sleep 20
+            done
+            [ "${ok:-0}" = 1 ] || { echo "ассеты не обновились — проверь вручную"; exit 1; }
           fi

@@ -49,7 +49,9 @@ DP_SHA=$(sha1sum release/electronics-recipes-datapack.zip | cut -c1-40)
 # ассетами ровно на тех полях, из-за которых паки и перестают грузиться.
 RP_FILES=$(unzip -l release/electronics-resourcepack.zip | awk 'END{print $(NF-1)}')  # записей, не байтов
 ITEM_DEFS=$(unzip -l release/electronics-resourcepack.zip | grep -c 'assets/electronics/items/.*\.json')
+ITEM_DEFS=${ITEM_DEFS:-0}
 DP_RECIPES=$(unzip -l release/electronics-recipes-datapack.zip | grep -c 'data/electronics/recipe/.*\.json')
+DP_RECIPES=${DP_RECIPES:-0}
 PK_FMT=$(python3 - <<'PYF'
 import io, json, zipfile
 out = []
@@ -67,12 +69,16 @@ LOG=$(ls -t /home/user/srv/mc*.log 2>/dev/null | head -1 || true)
 SELFTEST_LINES=$(awk '/PASS редактор схемы/{start=NR} /PASS каталог/{end=NR} /PASS /{hit[NR]=1} END{c=0; if (start && end) for (i=start;i<=end;i++) if (hit[i]) c++; print c+0}' "$LOG" 2>/dev/null || true)
 [ "${SELFTEST_LINES:-0}" -gt 0 ] 2>/dev/null || SELFTEST_LINES=$(grep -c '"&aPASS "' plugin/src/main/java/me/arena/electronics/command/ElecCommand.java || echo 0)
 LIVE_NAME=${LOG:-нет лога}; LIVE_NAME=$(basename "${LIVE_NAME}")
-LIVE_FAIL=$(grep -c ': FAIL' "$LOG" 2>/dev/null || echo 0)
-LIVE_ERR=$(grep -c 'ERROR' "$LOG" 2>/dev/null || echo 0)
-LIVE_PARSE=$(grep -c "Couldn't parse data file\|Couldn't load file\|missing mandatory" "$LOG" 2>/dev/null || echo 0)
+LIVE_FAIL=$(grep -c ': FAIL' "$LOG" 2>/dev/null)
+LIVE_FAIL=${LIVE_FAIL:-0}
+LIVE_ERR=$(grep -c 'ERROR' "$LOG" 2>/dev/null)
+LIVE_ERR=${LIVE_ERR:-0}
+LIVE_PARSE=$(grep -c "Couldn't parse data file\|Couldn't load file\|missing mandatory" "$LOG" 2>/dev/null)
+LIVE_PARSE=${LIVE_PARSE:-0}
 LIVE_DP=$(grep -m1 -o 'PASS датапак:.*' "$LOG" 2>/dev/null | head -1)
 LIVE_HAND=$(grep -m1 -o 'PASS рукоять крутит генератор:.*' "$LOG" 2>/dev/null | head -1)
-TB_CHECKS=$(grep -cE '^[[:space:]]+check\(' tools/TestBattery.java 2>/dev/null || echo 0)
+TB_CHECKS=$(grep -cE '^[[:space:]]+check\(' tools/TestBattery.java 2>/dev/null)
+TB_CHECKS=${TB_CHECKS:-0}
 OFFLINE=$(bash tools/run_tests.sh 2>&1 | grep -oE 'итог: OK=[0-9]+ FAIL=[0-9]+' | tail -1)
 REG=$(python3 -c 'import json,io;d=json.load(io.open("shared/components.json",encoding="utf-8"));m=d["meta"];print(len(d["components"]), len(m["soldered"]), m["state_model_count"])' 2>/dev/null || echo "0 0 0")
 COMPONENTS=${REG%% *}; REGREST=${REG#* }; SOLDERED=${REGREST%% *}; STATES=${REGREST##* }
