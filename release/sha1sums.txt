@@ -1,6 +1,6 @@
-fd45b81db0105ce5dc2c1be6d818b456f111182a  Electronics-1.7.1.jar
+73e8b259b547e1787a775b2cf35b5b12c8dfd34f  Electronics-1.7.2.jar
 1726a3acfa1a3ba80c77610f277f8826ec238e55  electronics-resourcepack.zip
-30867db59677cee56c696ef6dcf9357254402b91  electronics-recipes-datapack.zip
+fa20b9f3e8308f16275e5d7f56e73e4fc381f10b  electronics-recipes-datapack.zip
 70f223d9e7defa546706b648daf4ba6e122bbbe5  preview.png
 7302499b087bbf7c33db1cc843a1f7edf5c56117  scope-screen.png
 75d8259a520abc2818d407dea4729ed8743bc04d  textures/sheet-01.png

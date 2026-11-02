@@ -77,6 +77,8 @@ LIVE_PARSE=$(grep -c "Couldn't parse data file\|Couldn't load file\|missing mand
 LIVE_PARSE=${LIVE_PARSE:-0}
 LIVE_DP=$(grep -m1 -o 'PASS датапак:.*' "$LOG" 2>/dev/null | head -1 || true)
 LIVE_HAND=$(grep -m1 -o 'PASS рукоять крутит генератор:.*' "$LOG" 2>/dev/null | head -1 || true)
+LIVE_CRAFT=$(grep -m1 -o 'PASS крафты собраны из реестра.*' "$LOG" 2>/dev/null | head -1 || true)
+LIVE_CRAFT=${LIVE_CRAFT:-нет строки в логе}
 TB_CHECKS=$(grep -cE '^[[:space:]]+check\(' tools/TestBattery.java 2>/dev/null || true)
 TB_CHECKS=${TB_CHECKS:-0}
 OFFLINE=$(bash tools/run_tests.sh 2>&1 | grep -oE 'итог: OK=[0-9]+ FAIL=[0-9]+' | tail -1)
@@ -84,21 +86,26 @@ REG=$(python3 -c 'import json,io;d=json.load(io.open("shared/components.json",en
 COMPONENTS=${REG%% *}; REGREST=${REG#* }; SOLDERED=${REGREST%% *}; STATES=${REGREST##* }
 NOTES="Сборка против Spigot/Paper 1.21.11. Ставить: jar в plugins/, ресурспак — на клиент (или resource-pack.url в server.properties), датапак — в <world>/datapacks/.
 
-v1.7.1 — починка паков (по логу реального сервера: 1 ошибка метаданных + 38 «Couldn't parse data file», детали в мире рисовались плитой-основой):
-* pack.mcmeta обоих паков теперь пишет и pack_format + supported_formats (это читают 1.21.7–1.21.8), и min_format/max_format (с 1.21.9 они обязательны: без них сервер отвечает «missing mandatory fields» и пакет не берёт вовсе). Диапазоны этого билда: ${PK_FMT} (у датапака своя линия форматов, не совпадает с ресурспаком).
-* рецепты: ингредиенты — простые строки (объекты {"item": ...} ванильный разбор не принимает), результат — minecraft:smooth_quartz_slab / minecraft:brush с компонентами item_model, item_name и custom_data→electronics:def; раньше результат ссылался на electronics:<id>, ключа которого нет ни в одном реестре предметов.
-* ресурспак: определений предметов ${ITEM_DEFS} вместо 114 — адрес состояния electronics:<id>_<dim|on|burnt|rev|closed> обязан существовать, иначе клиент тихо берёт запасную модель и деталь выглядит как плита-основа.
-* плагин: Items.defOf() узнаёт деталь и по item_model, если ядро не переложило custom_data в PDC; /elec selftest проверяет, что ядро приняло рецепты из датапака (${LIVE_DP}).
+v1.7.2 — крафт в верстаке описан один раз, и плагин с датапаком перестали спорить:
+* рецепт живёт в реестре: у детали в shared/components.json поле craft (shapeless {\"item\": n} или pattern+key) и count. Из него крафт регистрирует сервер (Recipes.loadFromRegistry), из него же gen_pack.py пишет датапак. Двух таблиц (230 строк literal-ов в Java + 16 КБ в генераторе) больше нет.
+* что чинит на практике: верстак в датапаке собирался из бумаги и отдавал 2 штуки, плагином — из плиты-основы и 1; провода wire_red|black|yellow|blue датапак выдавал по 4, плагин — по 1; припой, флюс и оплётка — 2 против 1. Теперь ингредиенты и число штук на обеих сторонах одинаковые: в датапаке этого релиза семантически изменился ровно 1 файл из 38 (bench.json), остальные 15 отличались только порядком ключей в JSON (сверено разбором, не diff-ом).
+* count читает и плагин, так что сборка с датапаком и без него даёт тот же результат; JEI не показывает то, что не собирается.
+* форма craft валидируется офлайн (check_pack_refs.py: сетка <=3x3, каждый символ паттерна описан в key, count 1..64, имена — ванильные item id); неразведённое имя на сервере — SEVERE, рецепт не регистрируется, и selftest это видит.
+* users_textures/README.md пересобран: он тоже брал рецепты из генератора, поэтому у верстака теперь плита-основа x1, а у 4 деталей, живших только в Java-таблице, рецепт показан.
 
-Реестр: ${COMPONENTS} id, из них ${SOLDERED} паяных, ${STATES} индексов состояния модели. Артефакты этого релиза: ресурспак ${RP_FILES} файлов, датапак ${DP_RECIPES} рецептов.
+Паки v1.7.1 (форму pack.mcmeta 1.21.9+, строки-ингредиенты, ${ITEM_DEFS} определений предметов, defOf по item_model) без изменений; ресурспак этого релиза байт-в-байт равен ресурспаку v1.7.1 (${RP_SHA}) — крафт на него не влияет.
 
-Проверка живым сервером (Paper 1.21.11 build 132, лог ${LIVE_NAME}): ${SELFTEST_LINES} PASS-строк, ${LIVE_FAIL} FAIL, ${LIVE_ERR} [ERROR], ${LIVE_PARSE} строк «Couldn't parse data file». Живая строка про привод: ${LIVE_HAND}
+Реестр: ${COMPONENTS} id, из них ${SOLDERED} паяных, ${STATES} индексов состояния модели; craft у 107. Артефакты релиза: ресурспак ${RP_FILES} файлов, датапак ${DP_RECIPES} рецептов, диапазоны форматов ${PK_FMT}.
 
-Офлайн: ${OFFLINE} (tools/run_tests.sh), TestBattery ALL OK (${TB_CHECKS} проверок), tools/check_pack_refs.py валидирует заголовки паков и форму всех рецептов.
+Проверка живым сервером (Paper 1.21.11 build 132, лог ${LIVE_NAME}): ${SELFTEST_LINES} PASS-строк, ${LIVE_FAIL} FAIL, ${LIVE_ERR} [ERROR], ${LIVE_PARSE} строк «Couldn't parse data file». Живая строка про крафты: ${LIVE_CRAFT}. Живая строка про привод: ${LIVE_HAND}
+
+Офлайн: ${OFFLINE} (tools/run_tests.sh; сверяет и components.json внутри jar с shared/components.json), TestBattery ALL OK (${TB_CHECKS} проверок), tools/check_pack_refs.py.
 
 sha1: jar ${JAR_SHA}, ресурспак ${RP_SHA}, датапак ${DP_SHA}. Архивы пакуются детерминированно: два прогона tools/gen_pack.py дают те же байты.
 
-Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4, палитра 20 цветов, три тона граней); свои PNG можно положить в users_textures/ и пересобрать через bash tools/user_pack.sh — 1695 тегов описаны в users_textures/README.md. Что появилось в v1.7.0 (рукоять, водяное колесо, машинный генератор) — README.md §4f: там же живые цифры прогона."
+Честно о методе: равнение крафтов проверялось сравнением артефактов (все 38 файлов датапака разобраны и сведены: 1 семантическое изменение) и живым логом (ядро приняло 38/38, счётчик рецептов не сдвинулся), а не дампом рецептов с сервера до/после — отдельной команды для дампа в плагине нет.
+
+Текстуры нарисованы процедурно и доведены до вида ванильного ресурса (mc_texture: сетка 16 px, дизер Bayer 4x4, палитра 20 цветов, три тона граней); свои PNG кладите в users_textures/ и пересобирайте bash tools/user_pack.sh — 1695 тегов описаны в users_textures/README.md. Про рукоять, колесо и генератор (v1.7.0) — README.md §4f, про единый источник крафта — §4h."
 body=$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":"Electronics "+sys.argv[1]+" (Minecraft 1.21.11)","body":sys.argv[2]}))' "$TAG" "$NOTES")
 resp=$(curl -sf -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" \
         -H "Content-Type: application/json" -d "$body" "$API/releases" || true)
