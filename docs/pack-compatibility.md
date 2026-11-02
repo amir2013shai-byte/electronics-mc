@@ -57,30 +57,40 @@ fields min_format and max_format
 build/resourcepack/
 ├── pack.mcmeta                       # 64..75: pack_format + supported_formats + min/max
 ├── pack.png                          # иконка (генерируется: плата + LED)
-├── assets/minecraft/atlases/blocks.json     # «шейте мои текстуры»
-├── assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png  # перекраска платы
+├── pack.png
+├── assets/minecraft/atlases/blocks.json     # «шейте мои текстуры» — единственный чужой путь
 ├── assets/electronics/lang/{ru_ru,en_us}.json
-├── assets/electronics/items/<id>[_<state>].json          # 684: 114 базовых + адрес каждого состояния
-├── assets/electronics/models/item/<id>[_<state>].json    # 684: модель + display-трансформы
-└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1695 текстур 32×32 (или то, что положили в users_textures/)
+├── assets/electronics/items/<id>[_<state>].json          # 702: 117 базовых + адрес каждого состояния
+├── assets/electronics/models/item/<id>[_<state>].json    # 702: модель + display-трансформы
+└── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1749 текстур 32×32 (или то, что положили в users_textures/)
+
+До v1.7.3 в дереве был ещё `assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png`:
+im платили «зелёную плату» под деталями, и он же перекрашивал весь кварц мира. Теперь
+эти три файла появляются только если пользователь сам положил `host_{top,side,bottom}.png`
+в `users_textures/` (см. `users_textures/README.md`); `tools/gen_pack.py` печатает, какая
+ветка сработала — «перекрашиваем кварц по …» или «ванильные текстуры не трогаем».
 ```
 
-Файлы в чужом namespace ровно два вида, и оба безопасны:
+Про чужой namespace — два факта, и держим мы их в голове по-разному:
 
-* `assets/minecraft/atlases/blocks.json` — **дополняет** список источников
-  атласа (клиент склеивает `sources` из всех паков, а не заменяет файл), поэтому
-  ванильные `block/` и `item/` никуда не деваются; у пака нет ни одного файла в
-  `assets/minecraft/items/`, то есть определения предметов ванилы (включая
-  `music_disc_*` и `jukebox`) не перезаписаны — `tools/check_pack_refs.py` падает,
-  если там что-то появится;
-* `assets/minecraft/textures/block/quartz_block_*.png` — текстура блока-основы.
+* `assets/minecraft/atlases/blocks.json` **перезаписывает** файл атласов ванилы,
+  а не дополняет его: пак обязан перечислить `minecraft:block` и `minecraft:item`,
+  иначе во всём мире исчезнут текстуры блоков. Утверждение «клиент склеивает
+  `sources` из всех паков» проверено глазами на 1.21.11 (наш пак + ваниль = мир
+  выглядит нормально), а не тестом; для клиентов `min_inclusive = 64` это
+  непроверенная область — если там шейка ведёт себя иначе, жалуемся игрокам до
+  релиза, а не после.
+* **Больше в `assets/minecraft` ничего нет**: ни определений предметов (`items/`
+  пуст → `music_disc_*`, `jukebox`, зелья живут своей жизнью), ни текстур блоков.
+  `tools/check_pack_refs.py` падает на любом чужом файле, кроме разрешённого
+  `host_*.png`-кварца, — так случайный перекос ванилы становится ошибкой сборки.
 
 С 1.21.11 текстуры предметов вынесены в отдельный атлас `items`, и одна модель
-не может смешивать атласы: все наши спрайты (1692 текстур предмета плюс 3
-перекрашенных текстур слаба = 1695) попадают в `blocks`
-через наш же источник `electronics/item`, поэтому каждая модель одноатласная ✓.
+не может смешивать атласы: все наши спрайты (1749 текстур предмета) попадают в
+`blocks` через наш же источник `electronics/item`, поэтому каждая модель
+одноатласная ✓.
 
-Всего 2501 файл, zip ≈ 2.5 МБ (`build/electronics-resourcepack.zip`).
+Всего 3158 файлов, zip ≈ 2.8 МБ (`build/electronics-resourcepack.zip`).
 Состояние модели = `baseModelIndex + state·6 + orientation` — та же арифметика
 в `registry/Components.java` (плагин) и в `tools/gen_pack.py` (пак); индекс
 можно посмотреть командой `/elec model <id> <состояние> <ориентация>`.

@@ -1093,29 +1093,31 @@ def main():
             ]
         }, f, indent=1)
 
-    # тема блока-основы (гладкий кварцевый полублок = «плата»)
-    tb = dir_of("assets", "minecraft", "textures", "block")
+    # Тема блока-основы (гладкий кварцевый полублок = «плата»).
+    #
+    # Раньше сюда вписывались свои quartz_block_{top,side,bottom}.png всегда —
+    # и пак перекрашивал весь кварц в мире: постройка из кварца или ступеней
+    # становилась зелёной платой. Это перекрёсток двух чужих интересов: любой
+    # пак, который хочет ту же текстуру, теряет её, а игрок теряет свой дом.
+    # Поэтому теперь по умолчанию в assets/minecraft не летит ничего: кварц
+    # остаётся кварцем, а плата отличается набором деталей на ней.
+    #
+    # Зелёный фон включается одним явным действием — положить host_top.png /
+    # host_side.png / host_bottom.png (16x16) в users_textures/. Кто захотел
+    # вид «платы» во всём мире, тот на это подписался сам; остальные — нет.
     host = {f"quartz_block_{f}": user_png([f"host_{f}.png"]) for f in ("top", "side", "bottom")}
-    plate = Image.new("RGBA", (16, 16), (58, 108, 74, 255))
-    dp = ImageDraw.Draw(plate)
-    for i in range(0, 16, 3):
-        dp.line([i, 0, i, 16], fill=(48, 92, 62, 255))
-    for i in range(0, 16, 3):
-        dp.line([0, i, 16, i], fill=(52, 98, 66, 255))
-    for i in (2, 8, 13):
-        for j in (2, 8, 13):
-            dp.point([i, j], fill=(190, 190, 150, 255))
-    plate.save(os.path.join(tb, "quartz_block_side.png"))
-    Image.new("RGBA", (16, 16), (44, 84, 58, 255)).save(os.path.join(tb, "quartz_block_bottom.png"))
-    side = plate.copy()
-    d2 = ImageDraw.Draw(side)
-    d2.rectangle([0, 12, 16, 16], fill=(40, 44, 48, 255))
-    side.save(os.path.join(tb, "quartz_block_top.png"))
-    # «плата»-основа тоже переопределяется: host_top.png / host_side.png /
-    # host_bottom.png (16x16 — это ванильный размер блока, не 32)
-    for fname, up in host.items():
-        if up:
-            load_user(up, 16).save(os.path.join(tb, fname + ".png"))
+    given = sorted(k for k, v in host.items() if v)
+    if given:
+        tb = dir_of("assets", "minecraft", "textures", "block")
+        for fname in given:
+            load_user(host[fname], 16).save(os.path.join(tb, fname + ".png"))
+        print("  фон платы: перекрашиваем кварц по " + ", ".join(
+            "users_textures/" + f.replace("quartz_block_", "host_").replace("_block", "")
+            for f in given) + "  (это перекроет кварц во всём мире — вы это выбрали)")
+    # USER_USED тут не трогаем: _read_user_png уже записал host_*.png, а имена
+    # quartz_block_*.png — не пользовательские, они сбили бы отчёт «не использованы».
+    else:
+        print("  фон платы: host_top/side/bottom.png не найдены — ванильные текстуры не трогаем")
 
     with open(os.path.join(lang_dir, "ru_ru.json"), "w", encoding="utf-8") as f:
         json.dump(ru, f, ensure_ascii=False, indent=1)

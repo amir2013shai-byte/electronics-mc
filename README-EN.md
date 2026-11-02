@@ -17,7 +17,7 @@ brightness, burnt parts. No client mod.
 | Data pack format (recipes) | **80 … 94**: `pack_format` 80 + `min_format`/`max_format` 80/94 |
 | Client mod | not required |
 | Components | 114 ids (69 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts + hand crank & water wheel + dynamo + lead-acid battery), RU + EN names |
-| Built pack | 3071 files: 1695 item textures, 684 models (114 × 6), 684 `items/*.json` (114 base + one per state address) |
+| Built pack | 3158 files: 1749 item textures, 702 models (117 × 6), 702 `items/*.json` (117 base + one per state address), no foreign textures by default |
 | Resource-pack model states | **3390** = 565 visual states × 6 orientations |
 
 ## Why the "modify the player" trick became a state-model registry
@@ -111,7 +111,7 @@ derives `dim`/`on`/`burnt`/`rev`/`closed`, the sides and the bottom — you do n
 have to draw six states. User files skip `mc_texture()` (otherwise you would get
 something else than you drew); only the per-state pixel operations are applied.
 `host_top|side|bottom.png` retextures the host block itself. The full tag list —
-**1695** slots — with RU/EN block names, palettes and vanilla anchors lives in
+**1749** slots — with RU/EN block names, palettes and vanilla anchors lives in
 `users_textures/README.md`, generated from the packer's own code
 (`python3 tools/user_tags.py doc`), so it cannot drift. With `users_textures/`
 empty the pack is byte-identical to the release.
@@ -274,12 +274,13 @@ No, and the pack build proves it rather than promises it:
   engages: `PASS item_model is set on 114/114 items,
   custom_model_data не ставится ни на одном`;
 * `custom_model_data` is read inside the definition of *that* item. All our
-  definitions live in `assets/electronics/items/` (114 files, with a CMD
+  definitions live in `assets/electronics/items/` (117 files, with a CMD
   dispatch); `assets/minecraft/items/` holds **zero** files, so `music_disc_13`,
   `jukebox`, potions and spawn eggs keep vanilla behaviour;
 * `tools/check_pack_refs.py` aborts if the pack ever ships another
-  `assets/minecraft/**` file beyond the atlas source list and the three quartz
-  textures — a silent vanilla override is now a build error;
+  `assets/minecraft/**` file beyond the atlas source list — a silent vanilla
+  override is now a build error (the three quartz textures appear only if the
+  user opts in with `users_textures/host_*.png`);
 * the indices (0…3245) are not global numbers: in the fallback case the integer
   sits on a `SMOOTH_QUARTZ_SLAB`/`BRUSH` stack, never on a disc, and the plugin
   refuses to touch items that are not in its registry (`Items.defOf` → null);
@@ -287,9 +288,15 @@ No, and the pack build proves it rather than promises it:
   (the only `disc` hit is the shape of a ceramic capacitor); buzzer/reed sounds
   go through `world.playSound`.
 
-The one genuine override in a foreign namespace is `quartz_block_side/top/bottom`
-— smooth quartz looks like a PCB world-wide, which is the point of the
-`blocks.base` config. Which also shows how you *could* break a jukebox: set
+Since v1.7.3 the pack ships **no** texture in a foreign namespace. It used to
+always write `quartz_block_side/top/bottom` so that the base slab looked like a
+green PCB — which repainted every quartz block in the world (real user report:
+"my quartz staircase turned into a green board"). Green paint is opt-in now:
+drop `host_top/side/bottom.png` into `users_textures/`, which is the only way to
+get the old look back.
+
+`blocks.base` still decides which block is the plate, and it shows how you
+*could* break a jukebox: set
 `blocks.base: JUKEBOX` and every jukebox becomes a plate (and the inserted disc
 disappears, since it is part of the block model). The default is a building
 block, not a machine, for exactly this reason.
@@ -534,7 +541,7 @@ the same wheel. Current sign comes from circuit nodes, not from "winding
 direction", so back-driving a dynamo into motor mode is possible and the player
 has to notice it, exactly like with a real battery. And how the three new textures
 look in-game cannot be checked from this sandbox: what is verifiable here is the
-generator output, 1695 resolved references and 0 broken links in
+generator output, 1749 resolved references and 0 broken links in
 `tools/check_pack_refs.py`.
 
 ## Checks actually run

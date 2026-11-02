@@ -20,16 +20,28 @@ comps = DOC["components"]
 
 # --- пак не имеет права перекрывать ванильные определения предметов и блоков:
 #     иначе чужие вещи (пластинка в проигрывателе, зелье, яйцо спавна) начнут
-#     одевать наши модели. Разрешены ровно два «чужих» файла: список источников
-#     атласа (он дополняет ванильный, а не заменяет) и текстура блока-основы платы.
+#     одевать наши модели, а постройки игрока — переодеваться в плату. Разрешён
+#     ровно один чужой файл: список источников атласа. Про него честно скажем,
+#     что мы НЕ проверяли: ваниль читает atlases/*.json как единый список на атлас,
+#     и наш blocks.json либо дополняет ванильный, либо заменяет его — на клиенте
+#     1.21.11 (Paper build 132) мир после применения пака выглядит нормально, так
+#     что на этой версии дополнение подтверждено глазами; для более старых
+#     клиентских форматов (min_inclusive у нас 64) это не проверено.
+#     Текстуры кварца (textures/block/quartz_block_*) появляются в паке ТОЛЬКО
+#     если человек сам принёс users_textures/host_*.png — тогда это его выбор,
+#     и guard ниже его пропускает.
 ALLOWED_MC_DIRS = ("textures/block/quartz_block_",)
 ALLOWED_MC_FILES = {"atlases/blocks.json"}
 stomp = []
+quartz_stomped = 0
 mc_root = os.path.join(RP, "assets", "minecraft")
 for sub, _, files in os.walk(mc_root):
     for fn in files:
         rel = os.path.relpath(os.path.join(sub, fn), mc_root).replace(os.sep, "/")
-        if rel in ALLOWED_MC_FILES or rel.startswith(ALLOWED_MC_DIRS):
+        if rel in ALLOWED_MC_FILES:
+            continue
+        if rel.startswith(ALLOWED_MC_DIRS):
+            quartz_stomped += 1
             continue
         stomp.append(rel)
 if stomp:
@@ -42,8 +54,9 @@ if os.path.isfile(atlas):
     if alien:
         print("ПОЗОР: atlases/blocks.json претендует на чужие папки (заменил бы ванильный список):", alien)
         sys.exit(1)
-print("ванильные определения не перекрываем: в assets/minecraft только",
-      "атлас-источник (дополняется) и текстуры кварца-основы")
+print("ванильные определения не перекрываем: в assets/minecraft только атлас-источник",
+      ("+" + str(quartz_stomped) + " текст. кварца — включены пользователем (host_*.png)"
+       if quartz_stomped else "(текстуры кварца не трогаем)"))
 
 missing_model, missing_tex, missing_tex_ref = [], [], 0
 item_defs = 0
