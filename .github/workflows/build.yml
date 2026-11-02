@@ -55,7 +55,7 @@ jobs:
           import json
           # 1.21.9+ не читает пак без min_format/max_format: сервер пишет
           # "missing mandatory fields min_format and max_format" и молча
-          # выбрасывает 38 рецептов. Проверяем обе схемы сразу.
+          # выбрасывает все рецепты датапака. Проверяем обе схемы сразу.
           want = {'build/resourcepack/pack.mcmeta': (64, 75),
                   'build/datapack/pack.mcmeta': (80, 94)}
           for path, (lo, hi) in want.items():
@@ -68,10 +68,22 @@ jobs:
                   f"{path}: supported_formats={sf}, ждали {lo}..{hi}"
               print(path, "->", lo, "..", hi, "ok")
           n = len(json.load(open('build/datapack/pack.mcmeta'))['pack'])
-          import os
+          import os, zipfile
+          # Число рецептов раньше было литералом и устарело на первом же
+          # добавленном крафте (38 -> 41): CI падал на сборке, с которой всё в
+          # порядке. Проверяем вместо этого два факта, которые и должны
+          # расходиться: что генератор что-то выдал, и что лежавший в git
+          # архив release/ совпадает со свежеиспечённым деревом.
           rec = 'build/datapack/data/electronics/recipe'
-          assert len([f for f in os.listdir(rec) if f.endswith('.json')]) == 38, "рецептов должно быть 38"
-          print("рецептов в датапаке:", 38, "| полей в mcmeta:", n)
+          fresh = len([f for f in os.listdir(rec) if f.endswith('.json')])
+          assert fresh > 0, "датапак без рецептов: 1.21.9+ не прочитал его вовсе"
+          with zipfile.ZipFile('release/electronics-recipes-datapack.zip') as z:
+              shipped = len([x for x in z.namelist()
+                             if x.startswith('data/electronics/recipe/') and x.endswith('.json')])
+          assert shipped == fresh, (
+              "датапак в release/ устарел: ассорт " + str(shipped) +
+              " рецептов, генератор выдал " + str(fresh) + " — запускай bash tools/publish.sh")
+          print("рецептов в датапаке:", fresh, "(в release/ столько же)", "| полей в mcmeta:", n)
           PY
 
       - name: Артефакты сборки
