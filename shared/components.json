@@ -74,9 +74,9 @@
    "battery_lead_12v",
    "dynamo_12v"
   ],
-  "state_model_count": 3390,
+  "state_model_count": 3498,
   "note": "Единый реестр компонентов. Читается плагином (resources/components.json) и генератором ресурспака (tools/gen_pack.py).",
-  "component_count": 114
+  "component_count": 117
  },
  "kinds": [
   "BOARD",
@@ -107,15 +107,28 @@
   "GENERATOR",
   "SOLAR",
   "DISTRIBUTOR",
-  "EMPTY",
   "MAGNET",
   "ELECTROMAGNET",
   "INDUCTOR",
   "RELAY",
   "REED",
+  "PTC",
+  "VARISTOR",
+  "BRIDGE",
+  "REGULATOR",
+  "TRANSFORMER",
+  "MCU",
   "STATION",
   "TOOL",
-  "SUPPLY"
+  "SUPPLY",
+  "KINETIC",
+  "SCOPE",
+  "BATTERY",
+  "DYNAMO",
+  "MOVER",
+  "CHARGE_CTRL",
+  "ENERGY_METER",
+  "EMPTY"
  ],
  "orientations": [
   {
@@ -552,7 +565,10 @@
      "Q": "quartz"
     },
     "count": 1
-   }
+   },
+   "max_current": 0.6,
+   "resistance": 25.0,
+   "note": "учебная панелька: 5 В хватает на лампу, но не на 12 В аккумулятор"
   },
   {
    "id": "generator",
@@ -3888,6 +3904,129 @@
      "I": "iron_ingot",
      "R": "redstone",
      "W": "gold_block"
+    },
+    "count": 1
+   }
+  },
+  {
+   "id": "solar_panel",
+   "ru": "Солнечная панель 12 В",
+   "en": "Solar Panel 12 V",
+   "kind": "SOLAR",
+   "shape": "plate",
+   "size": [
+    15,
+    3,
+    15
+   ],
+   "palette": [
+    "#16324f",
+    "#3d7ecb",
+    "#cfe8ff"
+   ],
+   "voltage": 21.6,
+   "r_int": 3.0,
+   "max_current": 2.4,
+   "resistance": 30.0,
+   "rated_power": 39.0,
+   "stack": false,
+   "states": 6,
+   "note": "36 элементов: Uxx 21.6 В, Isc 2.4 А, ~39 Вт в полдень; на полном заряде клеммы банка уходят в 14.7 В — ровно там, где реле-регулятор обязан отключить заряд; в темноте 30 Ом утечки разряжают банк, если блокирующего ключа нет",
+   "craft": {
+    "pattern": [
+     "QQQ",
+     "GPG",
+     "GIG"
+    ],
+    "key": {
+     "Q": "quartz",
+     "G": "gold_nugget",
+     "P": "lapis_block",
+     "I": "iron_ingot"
+    },
+    "count": 1
+   }
+  },
+  {
+   "id": "charge_controller_12v",
+   "ru": "Реле-регулятор заряда 12 В",
+   "en": "12 V Charge Controller",
+   "kind": "CHARGE_CTRL",
+   "shape": "bridge",
+   "size": [
+    14,
+    5,
+    14
+   ],
+   "palette": [
+    "#2b3138",
+    "#8b97a3",
+    "#d7dee6"
+   ],
+   "pins": 3,
+   "internal_resistance": 0.4,
+   "v_drop": 0.3,
+   "max_current": 10.0,
+   "cut_off_v": 14.4,
+   "recharge_v": 13.8,
+   "v_reverse_max": 40.0,
+   "rated_voltage": 12.0,
+   "stack": false,
+   "states": 6,
+   "note": "ключ между «+ панели» и «+ банка»: не отдаёт банк ночью, снимает заряд на 14.4 В (газование свинца) и возвращается ниже 13.8 В; выше 40 В на входе — пробой",
+   "craft": {
+    "pattern": [
+     "QCQ",
+     "CRC",
+     "I I"
+    ],
+    "key": {
+     "Q": "quartz",
+     "C": "copper_ingot",
+     "R": "repeater",
+     "I": "iron_ingot"
+    },
+    "count": 1,
+    "note": "радиатор, медь, стабилизатор на повторителе"
+   }
+  },
+  {
+   "id": "meter_energy_1p",
+   "ru": "Счётчик электроэнергии 1Ф",
+   "en": "Energy Meter 1-Phase",
+   "kind": "ENERGY_METER",
+   "shape": "meter",
+   "size": [
+    12,
+    8,
+    12
+   ],
+   "palette": [
+    "#2f3a42",
+    "#cfd6dd",
+    "#f2c14e"
+   ],
+   "pins": 4,
+   "internal_resistance": 0.01,
+   "resistance": 1000000.0,
+   "max_current": 10.0,
+   "rated_voltage": 250.0,
+   "rated_power": 2.0,
+   "stack": false,
+   "states": 6,
+   "note": "катушка тока в разрыве (0.01 Ом) и датчик напряжения на нейтраль (1 МОм); 1600 импульсов на кВт·ч, обнуляется правой кнопкой, импульсы не сбрасываются",
+   "craft": {
+    "pattern": [
+     "GCG",
+     "RLR",
+     "GIG"
+    ],
+    "key": {
+     "G": "glass",
+     "C": "copper_ingot",
+     "R": "redstone",
+     "L": "light_blue_dye",
+     "I": "iron_ingot"
     },
     "count": 1
    }

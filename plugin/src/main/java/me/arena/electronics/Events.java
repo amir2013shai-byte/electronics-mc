@@ -3,6 +3,7 @@ package me.arena.electronics;
 import me.arena.electronics.circuit.Circuit;
 import me.arena.electronics.circuit.CompInstance;
 import me.arena.electronics.circuit.CompStates;
+import me.arena.electronics.circuit.EnergyMeter;
 import me.arena.electronics.circuit.ModelState;
 import me.arena.electronics.registry.Def;
 import me.arena.electronics.registry.Kind;
@@ -156,6 +157,7 @@ public final class Events implements Listener {
             case SWITCH, TOGGLE, BUTTON, PROBE -> toggle(existing);
             case POT -> tune(p, existing, 0.05);
             case SCOPE -> tune(p, existing, 1.0 / 3.0);   // развёртка: 1,2,4,8 отсчётов на столбец
+            case ENERGY_METER -> resetMeter(p, existing);
             case SOURCE -> {
                 if (existing.def.tunable) {
                     tune(p, existing, 0.1);
@@ -293,6 +295,22 @@ public final class Events implements Listener {
         plugin.circuit().persistence().write(c);
         plugin.renderer().requestUpdate(c);
         plugin.circuit().markDirty();
+    }
+
+    /**
+     * Правая кнопка по счётчику: обнуляет намотанные Вт·ч, но не счётчик
+     * импульсов — по нему на настоящих приборах сверяют поверку.
+     */
+    private void resetMeter(org.bukkit.entity.Player p, CompInstance c) {
+        double before = c.aux[EnergyMeter.WATT_HOURS];
+        EnergyMeter.resetTotal(c.aux);
+        plugin.circuit().persistence().write(c);
+        plugin.circuit().markDirty();
+        plugin.renderer().requestUpdate(c);
+        plugin.sounds().click(c.key, true);
+        Items.message(p, String.format(java.util.Locale.ROOT,
+                "&7Счётчик обнулён, было &f%.3f Вт·ч&7. Импульсов за всё время &f%.0f&7 — их не сбрасывают: это ресурс прибора, по нему сверяют поверку",
+                before, c.aux[EnergyMeter.IMPULSES]));
     }
 
     private void tune(Player p, CompInstance c, double step) {

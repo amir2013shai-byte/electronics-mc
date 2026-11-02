@@ -138,6 +138,8 @@ public final class Components {
         d.ratedVoltage = Json.num(o, "rated_voltage", 0);
         d.maxCurrent = Json.num(o, "max_current", 0);
         d.minCurrent = Json.num(o, "min_current", 0);
+        d.cutOffVoltage = Json.num(o, "cut_off_v", 0);
+        d.rechargeVoltage = Json.num(o, "recharge_v", 0);
         d.capacitance = Json.num(o, "capacitance", 0);
         d.beta = Json.num(o, "beta", 0);
         d.resistanceHot = Json.num(o, "resistance_hot", 0);

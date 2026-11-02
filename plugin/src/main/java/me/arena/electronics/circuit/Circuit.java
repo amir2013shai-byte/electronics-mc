@@ -307,6 +307,11 @@ public final class Circuit {
             public boolean stack() {
                 return d.stack;
             }
+
+            @Override
+            public int pins() {
+                return d.pins;
+            }
         };
     }
 

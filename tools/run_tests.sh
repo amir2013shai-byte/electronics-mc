@@ -42,7 +42,11 @@ javac -encoding UTF-8 -d "$OUT" -cp "$CP" \
   plugin/src/main/java/me/arena/electronics/fw/Firmware.java \
   tools/TestMna.java tools/TestTopology.java tools/TestCoupled.java \
   tools/TestDeposits.java tools/TestFirmware.java tools/TestKinetics.java \
-  tools/TestScope.java tools/TestBattery.java tools/TestMovers.java tools/TestDynamo.java
+  tools/TestScope.java tools/TestBattery.java tools/TestMovers.java tools/TestDynamo.java \
+  plugin/src/main/java/me/arena/electronics/circuit/Solar.java \
+  plugin/src/main/java/me/arena/electronics/circuit/ChargeCtrl.java \
+  plugin/src/main/java/me/arena/electronics/circuit/EnergyMeter.java \
+  tools/TestPower.java
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestMna
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestTopology
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestCoupled
@@ -64,6 +68,7 @@ fi
 
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestMovers
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestDynamo
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestPower
 
 # --- реестр внутри jar обязан совпадать с shared/components.json ------------------
 # Проверяем именно собранный jar, а не два исходника: «забыли обновить копию»
@@ -85,6 +90,17 @@ fi
 # --- ресурспак: сверка ссылок на модели/текстуры (если пак собран) ----------------
 if [ -d build/resourcepack ]; then
   python3 tools/check_pack_refs.py
+
+# config.yml читает сервер, docs/config.md читает человек: расхождение = доки врут
+if python3 tools/check_config_docs.py > /tmp/cfgdocs.$$ 2>&1; then
+  echo "OK    $(tail -1 /tmp/cfgdocs.$$ | sed 's/^OK *//')"
+else
+  cat /tmp/cfgdocs.$$ | sed 's/^/      /'
+  echo "FAIL  config.yml и docs/config.md разошлись"
+  rm -f /tmp/cfgdocs.$$
+  exit 1
+fi
+rm -f /tmp/cfgdocs.$$
 else
   echo "пропуск: собери пак — bash tools/publish.sh"
 fi

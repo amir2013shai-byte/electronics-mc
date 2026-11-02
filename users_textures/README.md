@@ -6,10 +6,10 @@
 (`gen_pack.user_candidates()`), и документ читает их оттуда же, поэтому
 расхождение «в доке одно, в сборке другое» невозможно по построению.
 
-Сейчас в реестре **114** компонентов, у них в сумме
-**565** визуальных состояний и
-**1695** текстурных тегов (состояние × грань) — ровно столько же
-файлов кладёт генератор: 1695 PNG в `textures/item/`.
+Сейчас в реестре **117** компонентов, у них в сумме
+**583** визуальных состояний и
+**1749** текстурных тегов (состояние × грань) — ровно столько же
+файлов кладёт генератор: 1749 PNG в `textures/item/`.
 
 ## Как положить свою текстуру
 
@@ -104,8 +104,8 @@
 
 Порядок — как в `shared/components.json`; `индекс` — с какого номера
 состояния модели начинается этот компонент (`/elec model <id> <сост> <ориент>`);
-всего индексов в реестре — **3390** =
-565 × 6 ориентаций.
+всего индексов в реестре — **3498** =
+583 × 6 ориентаций.
 
 ### `bench` — Рабочий стол
 
@@ -3010,4 +3010,88 @@
 | `dynamo_12v_closed_top.png` / `dynamo_12v_closed.png` | closed·top | `closed` | `top` | `textures/item/dynamo_12v_closed_top.png` |
 | `dynamo_12v_closed_side.png` / `dynamo_12v_side.png` | closed·side | `closed` | `side` | `textures/item/dynamo_12v_closed_side.png` |
 | `dynamo_12v_closed_bottom.png` / `dynamo_12v_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/dynamo_12v_closed_bottom.png` |
+
+### `solar_panel` — Солнечная панель 12 В
+
+* по-английски: Solar Panel 12 V
+* kind `SOLAR`, shape `plate`, размер [15, 3, 15], состояний 6, индексы моделей 3390…3425
+* палитра процедурной отрисовки: `#16324f`, `#3d7ecb`, `#cfe8ff`
+* рецепт: `gold_nugget`×4, `iron_ingot`×1, `lapis_block`×1, `quartz`×3
+
+| положить (теги) | вместо | состояние | грань | файл в паке |
+|---|---|---|---|---|
+| `solar_panel_off_top.png` / `solar_panel_off.png` / `solar_panel_top.png` / `solar_panel.png` | off·top | `off` | `top` | `textures/item/solar_panel_top.png` |
+| `solar_panel_off_side.png` / `solar_panel_side.png` | off·side | `off` | `side` | `textures/item/solar_panel_side.png` |
+| `solar_panel_off_bottom.png` / `solar_panel_bottom.png` | off·bottom | `off` | `bottom` | `textures/item/solar_panel_bottom.png` |
+| `solar_panel_dim_top.png` / `solar_panel_dim.png` | dim·top | `dim` | `top` | `textures/item/solar_panel_dim_top.png` |
+| `solar_panel_dim_side.png` / `solar_panel_side.png` | dim·side | `dim` | `side` | `textures/item/solar_panel_dim_side.png` |
+| `solar_panel_dim_bottom.png` / `solar_panel_bottom.png` | dim·bottom | `dim` | `bottom` | `textures/item/solar_panel_dim_bottom.png` |
+| `solar_panel_on_top.png` / `solar_panel_on.png` | on·top | `on` | `top` | `textures/item/solar_panel_on_top.png` |
+| `solar_panel_on_side.png` / `solar_panel_side.png` | on·side | `on` | `side` | `textures/item/solar_panel_on_side.png` |
+| `solar_panel_on_bottom.png` / `solar_panel_bottom.png` | on·bottom | `on` | `bottom` | `textures/item/solar_panel_on_bottom.png` |
+| `solar_panel_burnt_top.png` / `solar_panel_burnt.png` | burnt·top | `burnt` | `top` | `textures/item/solar_panel_burnt_top.png` |
+| `solar_panel_burnt_side.png` / `solar_panel_side.png` | burnt·side | `burnt` | `side` | `textures/item/solar_panel_burnt_side.png` |
+| `solar_panel_burnt_bottom.png` / `solar_panel_bottom.png` | burnt·bottom | `burnt` | `bottom` | `textures/item/solar_panel_burnt_bottom.png` |
+| `solar_panel_rev_top.png` / `solar_panel_rev.png` | rev·top | `rev` | `top` | `textures/item/solar_panel_rev_top.png` |
+| `solar_panel_rev_side.png` / `solar_panel_side.png` | rev·side | `rev` | `side` | `textures/item/solar_panel_rev_side.png` |
+| `solar_panel_rev_bottom.png` / `solar_panel_bottom.png` | rev·bottom | `rev` | `bottom` | `textures/item/solar_panel_rev_bottom.png` |
+| `solar_panel_closed_top.png` / `solar_panel_closed.png` | closed·top | `closed` | `top` | `textures/item/solar_panel_closed_top.png` |
+| `solar_panel_closed_side.png` / `solar_panel_side.png` | closed·side | `closed` | `side` | `textures/item/solar_panel_closed_side.png` |
+| `solar_panel_closed_bottom.png` / `solar_panel_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/solar_panel_closed_bottom.png` |
+
+### `charge_controller_12v` — Реле-регулятор заряда 12 В
+
+* по-английски: 12 V Charge Controller
+* kind `CHARGE_CTRL`, shape `bridge`, размер [14, 5, 14], состояний 6, индексы моделей 3426…3461
+* палитра процедурной отрисовки: `#2b3138`, `#8b97a3`, `#d7dee6`
+* рецепт: `copper_ingot`×3, `iron_ingot`×2, `quartz`×2, `repeater`×1
+
+| положить (теги) | вместо | состояние | грань | файл в паке |
+|---|---|---|---|---|
+| `charge_controller_12v_off_top.png` / `charge_controller_12v_off.png` / `charge_controller_12v_top.png` / `charge_controller_12v.png` | off·top | `off` | `top` | `textures/item/charge_controller_12v_top.png` |
+| `charge_controller_12v_off_side.png` / `charge_controller_12v_side.png` | off·side | `off` | `side` | `textures/item/charge_controller_12v_side.png` |
+| `charge_controller_12v_off_bottom.png` / `charge_controller_12v_bottom.png` | off·bottom | `off` | `bottom` | `textures/item/charge_controller_12v_bottom.png` |
+| `charge_controller_12v_dim_top.png` / `charge_controller_12v_dim.png` | dim·top | `dim` | `top` | `textures/item/charge_controller_12v_dim_top.png` |
+| `charge_controller_12v_dim_side.png` / `charge_controller_12v_side.png` | dim·side | `dim` | `side` | `textures/item/charge_controller_12v_dim_side.png` |
+| `charge_controller_12v_dim_bottom.png` / `charge_controller_12v_bottom.png` | dim·bottom | `dim` | `bottom` | `textures/item/charge_controller_12v_dim_bottom.png` |
+| `charge_controller_12v_on_top.png` / `charge_controller_12v_on.png` | on·top | `on` | `top` | `textures/item/charge_controller_12v_on_top.png` |
+| `charge_controller_12v_on_side.png` / `charge_controller_12v_side.png` | on·side | `on` | `side` | `textures/item/charge_controller_12v_on_side.png` |
+| `charge_controller_12v_on_bottom.png` / `charge_controller_12v_bottom.png` | on·bottom | `on` | `bottom` | `textures/item/charge_controller_12v_on_bottom.png` |
+| `charge_controller_12v_burnt_top.png` / `charge_controller_12v_burnt.png` | burnt·top | `burnt` | `top` | `textures/item/charge_controller_12v_burnt_top.png` |
+| `charge_controller_12v_burnt_side.png` / `charge_controller_12v_side.png` | burnt·side | `burnt` | `side` | `textures/item/charge_controller_12v_burnt_side.png` |
+| `charge_controller_12v_burnt_bottom.png` / `charge_controller_12v_bottom.png` | burnt·bottom | `burnt` | `bottom` | `textures/item/charge_controller_12v_burnt_bottom.png` |
+| `charge_controller_12v_rev_top.png` / `charge_controller_12v_rev.png` | rev·top | `rev` | `top` | `textures/item/charge_controller_12v_rev_top.png` |
+| `charge_controller_12v_rev_side.png` / `charge_controller_12v_side.png` | rev·side | `rev` | `side` | `textures/item/charge_controller_12v_rev_side.png` |
+| `charge_controller_12v_rev_bottom.png` / `charge_controller_12v_bottom.png` | rev·bottom | `rev` | `bottom` | `textures/item/charge_controller_12v_rev_bottom.png` |
+| `charge_controller_12v_closed_top.png` / `charge_controller_12v_closed.png` | closed·top | `closed` | `top` | `textures/item/charge_controller_12v_closed_top.png` |
+| `charge_controller_12v_closed_side.png` / `charge_controller_12v_side.png` | closed·side | `closed` | `side` | `textures/item/charge_controller_12v_closed_side.png` |
+| `charge_controller_12v_closed_bottom.png` / `charge_controller_12v_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/charge_controller_12v_closed_bottom.png` |
+
+### `meter_energy_1p` — Счётчик электроэнергии 1Ф
+
+* по-английски: Energy Meter 1-Phase
+* kind `ENERGY_METER`, shape `meter`, размер [12, 8, 12], состояний 6, индексы моделей 3462…3497
+* палитра процедурной отрисовки: `#2f3a42`, `#cfd6dd`, `#f2c14e`
+* рецепт: `copper_ingot`×1, `glass`×4, `iron_ingot`×1, `light_blue_dye`×1, `redstone`×2
+
+| положить (теги) | вместо | состояние | грань | файл в паке |
+|---|---|---|---|---|
+| `meter_energy_1p_off_top.png` / `meter_energy_1p_off.png` / `meter_energy_1p_top.png` / `meter_energy_1p.png` | off·top | `off` | `top` | `textures/item/meter_energy_1p_top.png` |
+| `meter_energy_1p_off_side.png` / `meter_energy_1p_side.png` | off·side | `off` | `side` | `textures/item/meter_energy_1p_side.png` |
+| `meter_energy_1p_off_bottom.png` / `meter_energy_1p_bottom.png` | off·bottom | `off` | `bottom` | `textures/item/meter_energy_1p_bottom.png` |
+| `meter_energy_1p_dim_top.png` / `meter_energy_1p_dim.png` | dim·top | `dim` | `top` | `textures/item/meter_energy_1p_dim_top.png` |
+| `meter_energy_1p_dim_side.png` / `meter_energy_1p_side.png` | dim·side | `dim` | `side` | `textures/item/meter_energy_1p_dim_side.png` |
+| `meter_energy_1p_dim_bottom.png` / `meter_energy_1p_bottom.png` | dim·bottom | `dim` | `bottom` | `textures/item/meter_energy_1p_dim_bottom.png` |
+| `meter_energy_1p_on_top.png` / `meter_energy_1p_on.png` | on·top | `on` | `top` | `textures/item/meter_energy_1p_on_top.png` |
+| `meter_energy_1p_on_side.png` / `meter_energy_1p_side.png` | on·side | `on` | `side` | `textures/item/meter_energy_1p_on_side.png` |
+| `meter_energy_1p_on_bottom.png` / `meter_energy_1p_bottom.png` | on·bottom | `on` | `bottom` | `textures/item/meter_energy_1p_on_bottom.png` |
+| `meter_energy_1p_burnt_top.png` / `meter_energy_1p_burnt.png` | burnt·top | `burnt` | `top` | `textures/item/meter_energy_1p_burnt_top.png` |
+| `meter_energy_1p_burnt_side.png` / `meter_energy_1p_side.png` | burnt·side | `burnt` | `side` | `textures/item/meter_energy_1p_burnt_side.png` |
+| `meter_energy_1p_burnt_bottom.png` / `meter_energy_1p_bottom.png` | burnt·bottom | `burnt` | `bottom` | `textures/item/meter_energy_1p_burnt_bottom.png` |
+| `meter_energy_1p_rev_top.png` / `meter_energy_1p_rev.png` | rev·top | `rev` | `top` | `textures/item/meter_energy_1p_rev_top.png` |
+| `meter_energy_1p_rev_side.png` / `meter_energy_1p_side.png` | rev·side | `rev` | `side` | `textures/item/meter_energy_1p_rev_side.png` |
+| `meter_energy_1p_rev_bottom.png` / `meter_energy_1p_bottom.png` | rev·bottom | `rev` | `bottom` | `textures/item/meter_energy_1p_rev_bottom.png` |
+| `meter_energy_1p_closed_top.png` / `meter_energy_1p_closed.png` | closed·top | `closed` | `top` | `textures/item/meter_energy_1p_closed_top.png` |
+| `meter_energy_1p_closed_side.png` / `meter_energy_1p_side.png` | closed·side | `closed` | `side` | `textures/item/meter_energy_1p_closed_side.png` |
+| `meter_energy_1p_closed_bottom.png` / `meter_energy_1p_bottom.png` | closed·bottom | `closed` | `bottom` | `textures/item/meter_energy_1p_closed_bottom.png` |
 

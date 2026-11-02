@@ -185,6 +185,38 @@ if os.path.isdir(RCP):
 else:
     print("датапак не собран — рецептов не проверялось")
 
+# --- kinds: список родов в реестре обязан совпадать с перечислением Kind.java.
+#     Раньше он просто отставал (37 строк против 49), и это была четвёртая копия
+#     одного факта; теперь копия проверяется, а не поддерживается «на глаз».
+KIND_SRC = os.path.join(ROOT, "plugin", "src", "main", "java", "me", "arena",
+                        "electronics", "registry", "Kind.java")
+if os.path.exists(KIND_SRC):
+    with open(KIND_SRC, encoding="utf-8") as fh:
+        src = fh.read()
+    body = src[src.index("public enum Kind {"):src.index("EMPTY;")]
+    want = []
+    for line in body.splitlines():
+        nm = line.strip().rstrip(",")
+        if len(line) - len(line.lstrip()) == 4 and nm and nm.replace("_", "").isalpha() \
+                and nm.isupper():
+            want.append(nm)
+    want.append("EMPTY")          # последнее значение перечисления — «не задано»
+    got = DOC.get("kinds") or []
+    if got != want:
+        print("ПОЗОР: meta/kinds отстал от Kind.java — правь реестр: tools/catalog.py не трогает, "
+              "перечисли заново")
+        print("  в реестре:", len(got), "в enum:", len(want))
+        for miss in sorted(set(want) - set(got))[:6]:
+            print("   нет в реестре:", miss)
+        for extra in sorted(set(got) - set(want))[:6]:
+            print("   нет в enum:", extra)
+        sys.exit(1)
+    unknown = sorted({c.get("kind") for c in comps} - set(want))
+    if unknown:
+        print("ПОЗОР: компонент использует род, которого нет в Kind.java:", unknown[:5])
+        sys.exit(1)
+    print(f"kinds: {len(want)} родов (включая EMPTY — значение по умолчанию), "
+          "реестр и Kind.java совпадают; неизвестных родов у деталей нет")
 # --- структура craft в реестре: единственный источник крафтов (и для плагина,
 #     и для датапака), значит кривое поле должно падать офлайн, а не в логе ядра.
 craft_bad = []

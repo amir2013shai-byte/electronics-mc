@@ -10,6 +10,7 @@ import me.arena.electronics.sim.Mna;
 import me.arena.electronics.util.Num;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 
 import java.util.ArrayDeque;
@@ -499,7 +500,7 @@ public final class Simulation {
                         }
                     }
                 }
-                case SOURCE, GENERATOR, SOLAR -> {
+                case SOURCE, GENERATOR -> {
                     if (b != null) {
                         // Thévenin: ЭДС emf и внутреннее сопротивление r между «-» (b) и «+» (a)
                         double emf = sourceVoltage(plugin, cfg, c);
@@ -512,6 +513,17 @@ public final class Simulation {
                         mna.stamp(b, a, 1.0 / r, emf / r);
                     }
                 }
+                case SOLAR -> {
+                    // Панель — источник ТОКА: сколько света, столько ампер, и ни
+                    // ваттом больше. Напряжение при этом растёт логарифмом, поэтому
+                    // «Uxx 21.6 В» на холостом ходу и «Isc 2.4 А» в коротыше — это
+                    // одна и та же деталь при одном потоке (см. Solar).
+                    if (b != null) {
+                        stampSolar(cfg, mna, prev, a, b, d, c, sunFactor(c, cfg));
+                    }
+                }
+                case CHARGE_CTRL -> stampCharge(isl, mna, cfg, c, prev);
+                case ENERGY_METER -> stampMeter(isl, mna, cfg, c, d);
                 case BATTERY -> {
                     if (b != null) {
                         // Тот же Тевенин, что у SOURCE, но ЭДС берётся из заряда
@@ -934,6 +946,60 @@ public final class Simulation {
                 c.fault = Battery.faultOf(bp, c.aux, c.voltage, c.reading);
                 // подсветка корпуса пропорциональна току: 20 А = полный огонь
                 c.brightness = Math.min(1.0, Math.abs(c.reading) / 20.0);
+            }
+            case SOLAR -> {
+                c.reading = c.aux[2];                                  // поток, 0..1
+                c.brightness = 0.0;
+                c.state = i > 0.002 ? CompStates.ON : (c.aux[2] > 0.02 ? CompStates.DIM : CompStates.OFF);
+            }
+            case CHARGE_CTRL -> {
+                boolean sense = c.pinNet[2] != null;   // без «−» остаётся только ключ
+                boolean on = c.aux[ChargeCtrl.CLOSED] > 0.5;
+                boolean was = c.aux[ChargeCtrl.PREV_CLOSED] > 0.5;
+                double uBat = Math.abs(c.pinVoltage[1] - c.pinVoltage[2]);
+                if (was && !on && uBat >= ChargeCtrl.cutOff(d) - 0.05) {
+                    c.aux[ChargeCtrl.CUTS] += 1.0;                     // ровно один раз за такт
+                }
+                c.aux[ChargeCtrl.PREV_CLOSED] = on ? 1.0 : 0.0;
+                if (on) {
+                    c.aux[ChargeCtrl.AMPERE_HOURS] += Math.max(0.0, i) * dt / 3600.0;
+                }
+                c.reading = uBat;
+                c.brightness = on ? Math.min(1.0, i / Math.max(0.5, d.maxCurrent)) : 0.0;
+                double uPv = Math.abs(c.pinVoltage[0] - (sense ? c.pinVoltage[2] : 0.0));
+                double vBreak = d.vReverseMax > 0 ? d.vReverseMax : 40.0;
+                // Пробой меряется между «панелью» и общей «−»: без sense-провода
+                // узел панели ничем не закреплён, и висячие вольты в диагноз
+                // писать нельзя — это было бы враньё, а не диагностика.
+                if (sense && uPv > vBreak) {
+                    c.state = CompStates.BURNT;
+                    c.fault = String.format(java.util.Locale.ROOT,
+                            "ключ пробит: на входе %.1f В, изолятор держит %.0f В", uPv, vBreak);
+                } else if (!sense) {
+                    c.state = on ? (i > 0.02 ? CompStates.ON : CompStates.DIM) : CompStates.OFF;
+                } else {
+                    c.state = on ? (i > 0.02 ? CompStates.ON : CompStates.DIM) : CompStates.OFF;
+                    c.fault = "";
+                }
+            }
+            case ENERGY_METER -> {
+                if (c.pinNet[2] == null) {
+                    c.fault = "датчик напряжения не подключён: счётчик намотает 0 Вт·ч";
+                    c.state = CompStates.OFF;
+                    c.reading = 0.0;
+                    break;
+                }
+                double uLoad = c.pinVoltage[1] - c.pinVoltage[2];
+                boolean blink = EnergyMeter.step(c.aux, uLoad, i, dt);
+                c.reading = Math.abs(uLoad * i);
+                c.brightness = blink ? 1.0 : Math.min(0.4, c.reading / 500.0);
+                if (i > Math.max(1.0, d.maxCurrent) * 2.5) {
+                    c.state = CompStates.BURNT;
+                    c.fault = String.format(java.util.Locale.ROOT,
+                            "катушка тока сгорела: %.1f А при паспорте %.0f А", i, d.maxCurrent);
+                    break;
+                }
+                c.state = c.reading > 0.5 ? CompStates.ON : (c.reading > 0.05 ? CompStates.DIM : CompStates.OFF);
             }
             case DYNAMO -> {
                 Dynamo.Params dp = Dynamo.of(d);
@@ -1521,14 +1587,123 @@ public final class Simulation {
             long phase = plugin.circuit().tick() % (period * 2);
             return phase < period ? d.voltage : 0.0;
         }
-        if (d.kind == Kind.SOLAR) {
-            Block b = c.key.block();
-            World w = b == null ? null : b.getWorld();
-            long time = w == null ? 6000 : w.getTime();
-            boolean day = time > 0 && time < 12000;
-            return day ? cfg.solarDayVoltage : cfg.solarNightVoltage;
-        }
         return c.tunedVoltage();
+    }
+
+    /**
+     * Световой поток для конкретной панели: 0..1.
+     *
+     * <p>Блока под деталью нет (схема в редакторе) — поток берётся паспортный,
+     * {@code solar-gain}: в редакторе нет ни неба, ни крыши, поэтому придумывать
+     * там «ночь» было бы обманом. Есть мир — считаем часы, погоду и сколько неба
+     * реально видно над стеклом.</p>
+     */
+    private static double sunFactor(CompInstance c, Config cfg) {
+        Block b = c.key.block();
+        World w = b == null ? null : b.getWorld();
+        if (w == null) {
+            return Math.min(1.0, Math.max(0.0, cfg.solarGain));
+        }
+        double sky = openSky(b);
+        return Math.min(1.0, Solar.irradiance(w.getTime(), w.hasStorm(), sky) * Math.max(0.0, cfg.solarGain));
+    }
+
+    /**
+     * Доля неба над блоком: 16 блоков вверх, первый непрозрачный обрывает поток,
+     * полупрозрачные множат его на {@link Solar#attenuation}. Считаем геометрией,
+     * а не {@code getLightFromSky()}: свет в чанке обновляется на тик позже и
+     * зависит от соседних блоков, а не от того, что стоит прямо над панелью.
+     */
+    private static double openSky(Block from) {
+        World w = from.getWorld();
+        Block cur = from;
+        double t = 1.0;
+        for (int i = 0; i < 16; i++) {
+            cur = cur.getRelative(BlockFace.UP);
+            if (cur.getY() > w.getMaxHeight() - 2) {
+                break;
+            }
+            Material m = cur.getType();
+            if (m.isAir()) {
+                continue;
+            }
+            if (!m.isTransparent()) {
+                return 0.0;
+            }
+            t *= Solar.attenuation(m.name());
+        }
+        return t;
+    }
+
+    /**
+     * Панель: утечка параллельно клеммам, дальше — или источник тока Isc (когда
+     * потребитель просит больше, чем панель может), или Тевенин Uxx/r_int.
+     */
+    private static void stampSolar(Config cfg, Mna mna, Map<String, Double> prev, String a, String b,
+                                   Def d, CompInstance c, double f) {
+        mna.stamp(a, b, 1.0 / Solar.darkResistance(d.resistance), 0);
+        double uoc = Solar.openCircuit(d.voltage, f);
+        double isc = Solar.shortCircuit(d.maxCurrent, f);
+        c.aux[2] = f;              // поток — на подпись и в осциллограф
+        c.aux[3] = uoc;
+        if (isc <= 1e-9 || uoc <= 1e-3) {
+            return;                // ночь: от панели остаётся только утечка
+        }
+        double r = Math.max(0.05, d.rInt);
+        double u = prev.getOrDefault(a, 0.0) - prev.getOrDefault(b, 0.0);
+        double iWant = (uoc - u) / r;
+        if (iWant > isc) {
+            mna.stamp(b, a, cfg.gLeak(), isc);   // сел на потолок тока
+        } else {
+            mna.stamp(b, a, 1.0 / r, uoc / r);
+        }
+    }
+
+    /** Реле-регулятор: ключ между панелью и банком, управляется измеренным напряжением. */
+    private static void stampCharge(Island isl, Mna mna, Config cfg, CompInstance c, Map<String, Double> prev) {
+        // Sense-провод (вывод «−») нужен только отсечке: ток деталь пропускает и без
+        // него. Предупреждаем здесь, а не в updateState: тот вызов пропускается,
+        // когда у детали ничего не меняется, и тишина выглядела бы как «всё в порядке».
+        if (c.pinNet[2] == null) {
+            c.fault = "нет общей «−»: пропускает, но отсечки нет";
+        }
+        Def d = c.def;
+        String pv = rep(isl, c.pinNet[0]);
+        String bat = rep(isl, c.pinNet[1]);
+        String neg = rep(isl, c.pinNet[2]);
+        if (pv == null || bat == null) {
+            return;
+        }
+        double vg = neg == null ? 0 : prev.getOrDefault(neg, 0.0);
+        double uPv = prev.containsKey(pv) ? prev.get(pv) - vg : Double.NaN;
+        double uBat = prev.containsKey(bat) ? prev.get(bat) - vg : Double.NaN;
+        boolean on = ChargeCtrl.closed(c.aux, d, uPv, uBat);
+        if (!on) {
+            mna.stamp(pv, bat, cfg.gLeak(), 0);   // разомкнутый ключ = утечка, не обрыв
+            return;
+        }
+        double vf = ChargeCtrl.forward(d);
+        mna.stamp(pv, bat, 1.0 / ChargeCtrl.rOn(d), vf / ChargeCtrl.rOn(d));
+    }
+
+    /** Счётчик: катушка тока в разрыв (0.01 Ом), датчик напряжения — на нейтраль (1 МОм). */
+    private static void stampMeter(Island isl, Mna mna, Config cfg, CompInstance c, Def d) {
+        if (c.pinNet[2] == null && c.pinNet[3] == null) {
+            c.fault = "датчик напряжения не подключён: счётчик намотает 0 Вт·ч";
+        }
+        String lin = rep(isl, c.pinNet[0]);
+        String out = rep(isl, c.pinNet[1]);
+        String nin = rep(isl, c.pinNet[2]);
+        String nout = rep(isl, c.pinNet[3]);
+        if (lin != null && out != null) {
+            mna.stamp(lin, out, 1.0 / Math.max(0.001, d.internalResistance), 0);
+        }
+        if (nin != null && nout != null) {
+            mna.bond(nin, nout);        // нейтраль сквозь счётчик — она же опора измерения
+        }
+        if (out != null && nin != null) {
+            mna.stamp(out, nin, 1.0 / Math.max(1e4, d.resistance), 0);
+        }
     }
 
     /** Узел «как он называется» без имени мира — для диагностики. */

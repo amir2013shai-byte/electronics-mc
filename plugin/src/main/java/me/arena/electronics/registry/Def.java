@@ -44,6 +44,10 @@ public final class Def {
     public double ratedVoltage = 0.0;
     public double maxCurrent = 0.0;
     public double minCurrent = 0.0;
+    /** Порог отсечки заряда по клеммам, В (CHARGE_CTRL; 0 — брать Battery.V_GAS). */
+    public double cutOffVoltage = 0.0;
+    /** Ниже этого напряжения реле снова возвращает заряд, В (0 — отсечка минус 0.6 В). */
+    public double rechargeVoltage = 0.0;
     /** Ёмкость, Ф. */
     public double capacitance = 0.0;
     /** Коэффициент усиления. */
@@ -259,9 +263,16 @@ public final class Def {
                 default -> "вал: J=" + trim(inertia) + " кг·м², потери "
                         + (int) Math.round(Math.max(0.0, 1.0 - coupling) * 100) + "%";
             };
-            case SOURCE, GENERATOR, SOLAR -> (acHz > 0 ? "U=" + trim(voltage) + " В, синус "
+            case SOURCE, GENERATOR -> (acHz > 0 ? "U=" + trim(voltage) + " В, синус "
                     + trim(acHz) + " Гц" : "U=" + trim(voltage) + " В");
             case CAPACITOR -> "C=" + trim(capacitance) + " Ф";
+            case SOLAR -> "Uxx " + trim(voltage) + " В на полном солнце, Isc "
+                    + trim(maxCurrent) + " А, в темноте утечка " + trim(resistance) + " Ом";
+            case CHARGE_CTRL -> "отсечка " + trim(cutOffVoltage > 0 ? cutOffVoltage : 14.4)
+                    + " В, возврат " + trim(rechargeVoltage > 0 ? rechargeVoltage : 13.8)
+                    + " В, падение ключа " + trim(vDrop) + " В, " + trim(maxCurrent) + " А";
+            case ENERGY_METER -> "1600 имп/кВт·ч, катушка тока " + trim(internalResistance * 1000)
+                    + " мОм, до " + trim(maxCurrent) + " А, " + trim(ratedVoltage) + " В";
             case BATTERY -> "U=" + trim(voltage) + " В, ёмкость " + trim(capacityAh)
                     + " А·ч (Пейкерт " + trim(peukert) + ")";
             case DYNAMO -> "U=" + trim(ratedVoltage) + " В на " + trim(rpm) + " об/мин, обмотка "

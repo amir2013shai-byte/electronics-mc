@@ -556,6 +556,59 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         int n = plugin.circuit().persistence().fullScan(p.getWorld());
         p.sendMessage(Items.color("&aПолное сканирование: найдено записей " + n));
     }
+    /**
+     * Раскладка «панель -> реле-регулятор -> банк» для самотеста. «+» идёт по
+     * среднему ряду, возврат — по верхнему: ряд над деталями не касается их
+     * боковых выводов (у панели и банки выводы восток/запад, у реле плюс север),
+     * поэтому цепь действительно замкнута, а не висит одним проводом.
+     *
+     * @param sense true — на север от реле висит шина «−» (тогда отсечка работает),
+     *              false — север над реле пуст (реле пропускает ток, отсечки нет)
+     */
+    /**
+     * Раскладка «панель -> реле-регулятор -> банк» для самотеста.
+     *
+     * <p>Ориентации выбраны по выводам, а не по геометрии: у детали с orient = 1
+     * вывод 0 смотрит на восток, вывод 1 — на запад (см. Topology.pinDirs), а
+     * реле-регулятор трактует вывод 0 как «панель», вывод 1 — как «банк», и
+     * общий «−» — вывод 2. Поэтому реле и банки стоят orient = 3: у них вывод 0
+     * смотрит на запад, то есть на панель. Плюс к «+» банка, минус через верхний
+     * ряд обратно к панели — цепь замкнута, а не висит одним проводом.</p>
+     *
+     * @param sense true — на юг от реле идёт провод на общий «−» (отсечка работает),
+     *              false — юг пустой (реле пропускает ток, но отсечку мерить нечем)
+     * @param banks сколько банков последовательно (2 = 25.3 В, чтобы отсечку увидеть)
+     */
+    private static void pvWires(me.arena.electronics.gui.SchematicGui g, boolean sense, int banks) {
+        int last = 3 + banks;                       // колонка провода после последнего банка
+        g.put(1, 0, "wire_black", 0);
+        g.put(1, 1, "solar_panel", 1);
+        g.put(1, 2, "charge_controller_12v", 3);
+        for (int i = 0; i < banks; i++) {
+            g.put(1, 3 + i, "battery_lead_12v", 3);
+        }
+        g.put(1, last, "wire_black", 0);
+        for (int c = 0; c <= last; c++) {
+            g.put(0, c, c == 2 ? "ground_bus" : "wire_black", 1);   // «−» и опора островка
+        }
+        if (sense) {
+            g.put(2, 2, "ground_bus", 1);
+            for (int c = 3; c <= last; c++) {
+                g.put(2, c, "wire_black", 0);       // вывод «−» реле — на юг, к тому же узлу
+            }
+        }
+    }
+
+    /** aux[i] экземпляра (0 у отсутствующей детали — стенка тогда просто FAIL). */
+    private static double aux(CompInstance c, int i) {
+        return c == null ? 0 : c.aux[i];
+    }
+
+    /** Ток вывода 0: для стенки «что течёт через панель» этого достаточно. */
+    private static double cur(CompInstance c) {
+        return c == null ? 0 : c.current;
+    }
+
 
     /**
      * Самопроверка без игрока: рисует тестовую цепь в редакторе схемы, гоняет
@@ -1669,6 +1722,164 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Items.color((missing == 0 ? "&aPASS " : "&cFAIL ")
                 + "&7каталог: &f" + me.arena.electronics.registry.Components.size()
                 + " &7предметов, описаний не хватает у &f" + missing));
+
+        // (12з) солнце, реле-регулятор и счётчик. У схемы в редакторе блоков нет,
+        // поэтому панель там освещена паспортно (см. Simulation.sunFactor): проверка
+        // не зависит от часов мира и погоды. Тень в игре работает по геометрии.
+        {
+            double gain0 = plugin.config().solarGain;
+            me.arena.electronics.registry.Def dCtrl =
+                    me.arena.electronics.registry.Components.byId("charge_controller_12v");
+            me.arena.electronics.registry.Def dMet =
+                    me.arena.electronics.registry.Components.byId("meter_energy_1p");
+            me.arena.electronics.registry.Def dPanel =
+                    me.arena.electronics.registry.Components.byId("solar_panel");
+
+            // (а) день: панель -> реле -> 12 В банк. Ключ пропускает, банк копит,
+            // отсечки нет и быть не должно: клеммы свинцовой банки = ЭДС + I·r_int
+            // = 12.65 + 2.4·0.02 = 12.7 В, а 14.4 В — это про зарядку, которая
+            // держит на банке 14.4 В, а не про то, что показывает модель банки.
+            me.arena.electronics.gui.SchematicGui gpv =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            pvWires(gpv, true, 1);
+            gpv.recalcSteps(null, 4000);
+            CompInstance pvPanel = gpv.instanceAt(1, 1);
+            CompInstance pvCtrl = gpv.instanceAt(1, 2);
+            CompInstance pvBatt = gpv.instanceAt(1, 3);
+            double flux = pvPanel == null ? -1 : pvPanel.aux[2];
+            double uoc = pvPanel == null ? 0 : pvPanel.aux[3];
+            double ctrlAh = aux(pvCtrl, me.arena.electronics.circuit.ChargeCtrl.AMPERE_HOURS);
+            double cuts = aux(pvCtrl, me.arena.electronics.circuit.ChargeCtrl.CUTS);
+            double ctrlI = pvCtrl == null ? 0 : Math.abs(pvCtrl.current);
+            double battAh = aux(pvBatt, me.arena.electronics.circuit.Battery.AMPERE_HOURS);
+            double battLoss = aux(pvBatt, me.arena.electronics.circuit.Battery.DEGRADE);
+            double battU = pvBatt == null ? 0 : Math.abs(pvBatt.voltage);
+            boolean chargeOk = flux > 0.99 && ctrlAh > 1e-6 && cuts == 0 && Math.abs(battAh) > 1e-6
+                    && battU > 12.0 && battU < 13.2 && ctrlI > 0.5 && battLoss == 0.0;
+
+            // (б) ночь (solarGain = 0): банк 12.65 В сидит на утечке панели 30 Ом.
+            // Без реле он разряжается током 12.65/33 = 0.38 А, с реле — нулём:
+            // ключ разомкнут, потому что на входе нет напряжения панели.
+            plugin.config().solarGain = 0.0;
+            me.arena.electronics.gui.SchematicGui gkey =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            pvWires(gkey, true, 1);
+            gkey.recalcSteps(null, 200);
+            double withKeyI = Math.abs(cur(gkey.instanceAt(1, 1)));
+            me.arena.electronics.gui.SchematicGui gbare =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            gbare.put(1, 0, "wire_black", 0);
+            gbare.put(1, 1, "solar_panel", 1);          // «+» на восток
+            gbare.put(1, 2, "battery_lead_12v", 3);     // «+» на запад — заряд, не коротыш
+            gbare.put(1, 3, "wire_black", 0);
+            for (int c = 0; c <= 3; c++) {
+                gbare.put(0, c, "wire_black", 0);       // общий «−» над деталями
+            }
+            gbare.recalcSteps(null, 200);
+            double bareI = Math.abs(cur(gbare.instanceAt(1, 1)));
+            double bareAh = aux(gbare.instanceAt(1, 2), me.arena.electronics.circuit.Battery.AMPERE_HOURS);
+            plugin.config().solarGain = gain0;
+            boolean nightOk = withKeyI < 0.02 && bareI > 0.2 && Math.abs(bareAh) > 1e-7;
+
+            // (в) реле без общей «−»: ток пропускает, отсечку мерить нечем — и оно
+            // об этом говорит, а не молчит
+            me.arena.electronics.gui.SchematicGui gsns =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            pvWires(gsns, false, 1);
+            gsns.recalcSteps(null, 4000);
+            CompInstance snsCtrl = gsns.instanceAt(1, 2);
+            double snsAh = aux(snsCtrl, me.arena.electronics.circuit.ChargeCtrl.AMPERE_HOURS);
+            double snsCuts = aux(snsCtrl, me.arena.electronics.circuit.ChargeCtrl.CUTS);
+            String snsFault = snsCtrl == null ? "" : snsCtrl.fault;
+            boolean senseless = snsFault.contains("общей") && snsAh > 1e-6 && snsCuts == 0;
+
+            // (г) отсечка: банк не по паспорту — две банки последовательно, 25.3 В
+            // на клеммах при пороге 14.4 В. Реле обязано разомкнуться и больше не
+            // пропускать; счётчик снятых зарядов растёт один раз за такт.
+            me.arena.electronics.gui.SchematicGui gcut =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            pvWires(gcut, true, 2);
+            gcut.recalcSteps(null, 400);
+            CompInstance cutCtrl = gcut.instanceAt(1, 2);
+            double cutU = cutCtrl == null ? 0 : Math.abs(cutCtrl.reading);
+            double cutCuts = aux(cutCtrl, me.arena.electronics.circuit.ChargeCtrl.CUTS);
+            double cutAh = aux(cutCtrl, me.arena.electronics.circuit.ChargeCtrl.AMPERE_HOURS);
+            boolean cutOk = cutCuts > 0 && cutU > 14.4 && cutAh < 0.02;
+
+            // (д) счётчик в разрыве нагрузки 10 Ом: мотает ровно U·I·dt,
+            // 1600 имп/кВт·ч => 0.625 Вт·ч на импульс
+            me.arena.electronics.gui.SchematicGui gmet =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            gmet.put(1, 1, "wire_black", 0);
+            gmet.put(1, 2, "battery_lead_12v", 1);
+            gmet.put(1, 3, "meter_energy_1p", 1);
+            gmet.put(1, 4, "resistor_10r", 1);
+            gmet.put(1, 5, "wire_black", 0);
+            gmet.put(0, 1, "wire_black", 0);
+            gmet.put(0, 2, "wire_black", 0);
+            gmet.put(0, 3, "wire_black", 0);      // «ноль» счётчика — он же общая «−»
+            gmet.put(0, 4, "ground_bus", 1);
+            gmet.put(0, 5, "wire_black", 0);
+            gmet.recalcSteps(null, 12000);
+            CompInstance met = gmet.instanceAt(1, 3);
+            double metWh = aux(met, me.arena.electronics.circuit.EnergyMeter.WATT_HOURS);
+            double metImp = aux(met, me.arena.electronics.circuit.EnergyMeter.IMPULSES);
+            double metP = met == null ? -1 : met.reading;
+            String metFault = met == null ? "нет детали" : met.fault;
+            boolean meterOk = metWh > 0.05 && metImp > 0 && metP > 6.0 && metP < 30.0 && metFault.isEmpty();
+            me.arena.electronics.gui.SchematicGui gmet2 =
+                    me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
+            gmet2.put(1, 1, "wire_black", 0);
+            gmet2.put(1, 2, "battery_lead_12v", 3);
+            gmet2.put(1, 3, "meter_energy_1p", 1);
+            gmet2.put(1, 4, "resistor_10r", 1);
+            gmet2.put(1, 5, "wire_black", 0);
+            gmet2.put(0, 1, "wire_black", 0);
+            gmet2.put(0, 2, "wire_black", 0);      // (0,3) пусто: «ноль» счётчика оборван
+            gmet2.put(0, 4, "ground_bus", 1);
+            gmet2.put(0, 5, "wire_black", 0);
+            gmet2.recalcSteps(null, 200);
+            CompInstance met2 = gmet2.instanceAt(1, 3);
+            boolean metHint = met2 != null && met2.fault.contains("датчик")
+                    && aux(met2, me.arena.electronics.circuit.EnergyMeter.WATT_HOURS) == 0.0;
+
+            boolean passportOk = dCtrl != null && dMet != null && dPanel != null
+                    && Math.abs(dCtrl.cutOffVoltage - 14.4) < 1e-9 && Math.abs(dCtrl.rechargeVoltage - 13.8) < 1e-9
+                    && dCtrl.pins == 3 && dMet.pins == 4
+                    && Math.abs(dMet.internalResistance - 0.01) < 1e-9 && Math.abs(dPanel.maxCurrent - 2.4) < 1e-9;
+            long eNow = org.bukkit.Bukkit.getWorlds().isEmpty() ? 6000
+                    : org.bukkit.Bukkit.getWorlds().get(0).getTime();
+            double fNow = me.arena.electronics.circuit.Solar.irradiance(eNow, false, 1.0);
+            boolean clockOk = (fNow > 0.0) == me.arena.electronics.circuit.Solar.isDaytime(eNow);
+
+            s.sendMessage(Items.color(((chargeOk && nightOk && senseless && cutOk && clockOk) ? "&aPASS " : "&cFAIL ")
+                    + "&7солнце и реле: поток &f" + String.format(java.util.Locale.US, "%.2f", flux)
+                    + " &7(Uxx &f" + String.format(java.util.Locale.US, "%.1f", uoc) + " В&7, через ключ &f"
+                    + String.format(java.util.Locale.US, "%.2f", ctrlI) + " А&7), реле пропустило &f"
+                    + String.format(java.util.Locale.US, "%.3f", ctrlAh) + " &7А·ч, банк принял &f"
+                    + String.format(java.util.Locale.US, "%.3f", Math.abs(battAh)) + " &7А·ч при &f"
+                    + String.format(java.util.Locale.US, "%.2f", battU)
+                    + " &7В (до газа 14.4 В далеко — отсечки нет: &f" + (int) cuts
+                    + "&7), потери ёмкости &f" + String.format(java.util.Locale.US, "%.3f", 100 * battLoss)
+                    + " %&7; ночью через реле &f" + String.format(java.util.Locale.US, "%.3f", withKeyI)
+                    + " &7А, без реле &f" + String.format(java.util.Locale.US, "%.3f", bareI)
+                    + " &7А; реле без «−»: &f«" + snsFault + "&7» и &f" + String.format(java.util.Locale.US, "%.3f", snsAh)
+                    + " &7А·ч; банк 2×12 В: отсечек &f" + (int) cutCuts + " &7при &f"
+                    + String.format(java.util.Locale.US, "%.1f", cutU) + " &7В, тик мира &f" + (eNow % 24000L)
+                    + "&7 / поток &f" + String.format(java.util.Locale.US, "%.2f", fNow)
+                    + (chargeOk && nightOk && senseless && cutOk && clockOk ? "" : "&8 [нет детали в ячейке?]")));
+            s.sendMessage(Items.color(((meterOk && metHint && passportOk) ? "&aPASS " : "&cFAIL ")
+                    + "&7счётчик и паспорт: на 10 Ом намотал &f" + String.format(java.util.Locale.US, "%.3f", metWh)
+                    + " &7Вт·ч (" + String.format(java.util.Locale.US, "%.1f", metP) + " Вт&7, &f" + (int) metImp
+                    + " &7имп. из 1600/кВт·ч&7), без «нуля» говорит «&f" + (met2 == null ? "?" : met2.fault)
+                    + "&7»; из реестра: реле " + (dCtrl == null ? "?" : dCtrl.pins) + " вывода / отсечка "
+                    + (dCtrl == null ? "?" : String.format(java.util.Locale.US, "%.1f", dCtrl.cutOffVoltage))
+                    + " В, счётчик " + (dMet == null ? "?" : dMet.pins) + " вывода / "
+                    + (dMet == null ? "?" : String.format(java.util.Locale.US, "%.3f", dMet.internalResistance))
+                    + " Ом, панель Isc " + (dPanel == null ? "?" : String.format(java.util.Locale.US, "%.1f", dPanel.maxCurrent))
+                    + " А" + (meterOk && metHint && passportOk ? "" : "&8 [fault=&f«" + metFault + "&8», net=&f"
+                    + (met == null ? "?" : met.pinNets[2]) + "&8]")));
+        }
     }
 
     /** Сколько многострочных TextDisplay рядом: экран осциллографа — единственный

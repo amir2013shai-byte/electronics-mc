@@ -2,11 +2,14 @@ package me.arena.electronics.render;
 
 import me.arena.electronics.ElectronicsPlugin;
 import me.arena.electronics.circuit.Battery;
+import me.arena.electronics.circuit.ChargeCtrl;
 import me.arena.electronics.circuit.CompInstance;
 import me.arena.electronics.circuit.CompStates;
 import me.arena.electronics.circuit.Dynamo;
 import me.arena.electronics.circuit.ScopeScreen;
+import me.arena.electronics.circuit.EnergyMeter;
 import me.arena.electronics.circuit.ScopeTrace;
+import me.arena.electronics.circuit.Solar;
 import me.arena.electronics.registry.LocationKey;
 import me.arena.electronics.registry.Orientation;
 import me.arena.electronics.util.Num;
@@ -367,6 +370,10 @@ public final class Renderer {
             case SCOPE -> scopeLabel(c);
             // аккумулятор: подпись — не «U=», а чем он занят (заряд/разряд/А)
             case BATTERY -> Battery.label(c.aux, c.voltage, c.reading);
+            case SOLAR -> c.aux[3] > 0.02 ? Solar.label(c.aux[2], c.aux[3]) : "";
+            case CHARGE_CTRL -> ChargeCtrl.label(c.aux[ChargeCtrl.CLOSED] > 0.5, c.reading,
+                    c.current, c.aux, ChargeCtrl.cutOff(c.def));
+            case ENERGY_METER -> EnergyMeter.label(c.aux, c.reading);
             case DYNAMO -> Dynamo.label(Dynamo.of(c.def), c.aux,
                     me.arena.electronics.kinetics.Kinetics.toRpm(c.kinOmega), c.reading);
             case MOTOR -> c.speedPrev > 0.02 ? "n=" + Num.pct(c.speedPrev) + "%" : "";

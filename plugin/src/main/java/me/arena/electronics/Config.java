@@ -48,8 +48,12 @@ public final class Config {
     public double conductorOhm = 1e-6;
     public double leakOhm = 5.0e7;
     public int generatorPeriodTicks = 10;
-    public double solarDayVoltage = 5.0;
-    public double solarNightVoltage = 0.05;
+    /**
+     * Множитель светового потока для панелей, 1 = физика как в жизни. Меньше —
+     * «медленная» энергетика, больше — учебный читер-режим: сутки и погода при
+     * этом честные, меняется только количество джоулей.
+     */
+    public double solarGain = 1.0;
     public int simDtMillis = 50;
     public boolean benchWiring = false;
 
@@ -125,8 +129,7 @@ public final class Config {
         conductorOhm = c.getDouble("simulation.conductor-ohm", conductorOhm);
         leakOhm = c.getDouble("simulation.leak-ohm", leakOhm);
         generatorPeriodTicks = Math.max(2, c.getInt("simulation.generator-period-ticks", generatorPeriodTicks));
-        solarDayVoltage = c.getDouble("simulation.solar-day-voltage", solarDayVoltage);
-        solarNightVoltage = c.getDouble("simulation.solar-night-voltage", solarNightVoltage);
+        solarGain = Math.max(0.0, c.getDouble("simulation.solar-gain", solarGain));
         simDtMillis = Math.max(10, c.getInt("simulation.time-step-ms", simDtMillis));
         benchWiring = c.getBoolean("simulation.bench-wiring", benchWiring);
         depositsEnabled = c.getBoolean("deposits.enabled", depositsEnabled);
