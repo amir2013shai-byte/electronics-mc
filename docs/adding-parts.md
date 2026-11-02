@@ -74,6 +74,20 @@ tools/gen_pack.py                           ← читает shared/, генер
 | `states` | сколько визуальных состояний (1..6) | `gen_pack`, индексы |
 | `orientable` | рисуются ли 6 ориентаций | `gen_pack` |
 | `pins` | сколько выводов; по умолчанию берётся из `kind` (`defaultPins`) | `Topology`, `Simulation` |
+
+Два правила про выводы, на которых уже спотыкались:
+
+* **полярность**: у рода-источника (`SOURCE`, `SOLAR`, `BATTERY`, `DYNAMO`,
+  `GENERATOR`) «+» — это **вывод 1**, а «−» — вывод 0: Тевенина пишется как
+  `mna.stamp(b, a, 1/r, E/r)`, и `stamp(from, to, g, i)` втекает током в
+  `from`. Поставить узлы местами — значит получить панель, которая «ниже»
+  своей ЭДС на 2Uxx, всегда насыщена и поднимает чужой узел до `Isc·R`;
+  именно так в v1.7.2 выглядело «панель даёт 72 В на холостом ходу»;
+* **«вывод подключён»** — не `pinNet[i] == null`: `Topology.resolve` называет
+  узел каждого вывода, и у висячего он свой, пустой. Правильный критерий —
+  «на узле есть ещё хотя бы один вывод» (`Simulation.pinDriven`), иначе
+  «не подключено» не наступит никогда, а диагностика врёт молча.
+
 | `resistance`, `capacitance`, `inductance`, `voltage`, `r_int`, `v_forward`, `v_drop`, `rated_power`, `rated_voltage`, `max_current` | электрика | `Simulation.stampAll` |
 | `heat_j`, `thermal_k`, `trip_temp`, `v_clamp`, `dropout`, `i_limit`, `i_quiescent`, `ac_hz`, `ratio`, `coupling`, `beta`, `resistance_hot`, `cold_factor` | тепловые и нелинейные модели | `Simulation` (PTC, стабы, варистор, МК, лампы…) |
 | `hub` | «провод-концентратор»: все соседи объединяются в один узел | `Topology` |
@@ -559,7 +573,7 @@ bash tools/push.sh v1.3.2  # main (+ тег, релиз и ассеты, есл�
 7. **Самотест** (Paper build 132, `selftest: true`): блок 13 — реестр привода
    (`у вала выводов 0`), и живой прогон: `demo()` у спавна, 600 × `engineTick()`
    вручную, требует `блоков срублено > 0` и чистого отката → **22 PASS / 0 FAIL**
-   (на v1.6.0 — 28 PASS / 0 FAIL; число — `grep -c PASS` по логу
+   (на v1.7.3 — 34 PASS / 0 FAIL; число — `grep -c PASS` по логу
    сервера, а не из исходника).
 8. **Документы**: README (новый §4d), README-EN, `docs/config.md` — 4 ключа
    `kinetics.*`, `config.yml` по умолчанию, §4bis и §12 здесь.

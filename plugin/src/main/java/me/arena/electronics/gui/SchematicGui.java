@@ -97,11 +97,22 @@ public final class SchematicGui implements Gui {
     }
 
     /** Положить деталь в клетку (для самопроверки и скриптов); null — стереть. */
+    /**
+     * Память клетки между прогонами: ровно те же четыре числа, что мир хранит в
+     * {@code Persistence.Entry.aux} (ампер-часы банки, счётчик отсечек, Вт·ч
+     * счётчика, состояние ключа). Без них «Пересчитать» каждый раз начинало бы с
+     * нуля: пропущенный заряд не мог бы накопиться, а проверка «сначала
+     * зарядить банк, потом добить вторым» была бы неиграбельна вовсе —
+     * экземпляры решатель пересобирает на каждом прогоне.
+     */
+    private final double[][] cellAux = new double[CELLS][4];
+
     public void put(int row, int col, String defId, int orientation) {
         int cell = cellIndex(row, col);
         this.defId[cell] = defId;
         this.orient[cell] = orientation;
         this.program[cell] = null;      // деталь сменилась — её прошивка не остаётся
+        java.util.Arrays.fill(cellAux[cell], 0);   //  ...и её «накопленное» тоже
         islands = -1;
     }
 
@@ -327,6 +338,7 @@ public final class SchematicGui implements Gui {
             int c = cell % COLS, r = cell / COLS;
             CompInstance inst = new CompInstance(new LocationKey((World) null, c, 0, r), d);
             inst.orientation = Orientation.byIndex(orient[cell]);
+            System.arraycopy(cellAux[cell], 0, inst.aux, 0, Math.min(4, inst.aux.length));
             inst.state = closed[cell] ? CompStates.CLOSED : CompStates.OFF;
             if (program[cell] != null) {
                 inst.program = program[cell];
@@ -404,6 +416,10 @@ public final class SchematicGui implements Gui {
         islands = solveOnce(list);
         for (int i = 0; i < Math.max(1, steps); i++) {
             islands = solveOnce(list);
+        }
+        for (CompInstance inst : list) {
+            System.arraycopy(inst.aux, 0, cellAux[cellIndex(inst.key.z, inst.key.x)], 0,
+                    Math.min(4, inst.aux.length));
         }
         annotate(list);
         redraw();

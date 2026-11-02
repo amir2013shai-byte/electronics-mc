@@ -42,7 +42,7 @@ mutable states" are implemented where the vanilla client actually reads them:
 ## Install
 
 ```
-plugins/Electronics-1.7.2.jar                         # or: cd plugin && mvn -DskipTests package
+plugins/Electronics-1.7.3.jar                         # or: cd plugin && mvn -DskipTests package
 release/electronics-resourcepack.zip                   # resource pack (set resource-pack.url or apply manually)
 release/electronics-recipes-datapack.zip               # optional: 38 recipes — 69 parts are soldered instead
 ```
@@ -544,6 +544,53 @@ look in-game cannot be checked from this sandbox: what is verifiable here is the
 generator output, 1749 resolved references and 0 broken links in
 `tools/check_pack_refs.py`.
 
+## Sun, charge controller and the Wh meter (v1.7.3)
+
+Three parts close the power loop: the panel gives exactly as much as the sky it
+can see, the charge controller keeps the bank from draining at night and from
+boiling, and the meter shows what actually went into the load.
+
+* **`solar_panel`** — 21.6 V, 2.4 A, 30 Ω dark leakage. It is a *current*
+  source: `Isc = Isc_nom · f`, `Uxx = Uxx_nom · ln(1 + f·(e−1))`, where `f` is
+  the share of sky visible through 16 blocks above (glass/ice/carpet ×0.95,
+  leaves ×0.75, water ×0.55, any opaque block — 0; chunk sky-light is useless
+  here, it updates a tick late and depends on neighbours). At night `f` is
+  exactly zero. The operating point is the Thevenin line clipped by the current
+  ceiling (`Solar.terminal`) — clipped, not an "either a current source or
+  Thevenin" branch: with the branch, a panel on open circuit pushed its node to
+  `Isc·R_leak` = 72 V against a Uxx of 21.6 V and then reported its own key as
+  broken.
+* **`charge_controller_12v`** — three pins (panel, bank, common "−"), cut-off
+  14.4 V, reconnect 13.8 V, 0.3 V drop, 0.4 Ω closed. Ideal-diode rules are
+  asymmetric on purpose: it closes only if the panel beats the bank by its own
+  drop, and *stays* closed until the current tries to run backwards — with the
+  key closed `uPv − uBat` equals the drop exactly, so requiring "greater than"
+  in both directions makes the key flicker on every solver pass. The cut-off is
+  counted only when the common "−" is really wired: "pin connected" means
+  "another pin sits on this node" (`Simulation.pinDriven`), never
+  `pinNet[i] != null` — `Topology` names a net for every pin, dangling ones too.
+* **`meter_energy_1p`** — four pins: a 0.01 Ω current coil in the break and a
+  1 MΩ voltage sensor on the neutral, 1600 imp/kWh. Wh lives in the part's
+  `aux`, so it survives a chunk reload like the rest of the state.
+
+**Numbers from the live selftest** (Paper 1.21.11, `selftest: true`): noon —
+`flux 1.00 (Uxx 21.6 V, 1.94 A through the key)`, `bank took 0.108 Ah at
+12.67 V`, 0 cut-offs; night — `0.000 A through the relay`, `0.421 A` without it
+(which is 10 Ah a day down the leak); controller without a common "−" —
+`no common "−": it passes current, but there is no cut-off to measure`; a bank
+of two cells (25.3 V at the terminals) — `1 cut-off`; the meter on 10 Ω —
+`1.327 Wh (15.9 W, 2 imp. of 1600/kWh)`, and with a broken neutral it says
+`voltage sensor not connected: the meter will count 0 Wh`. Whole run: 34 PASS,
+0 FAIL.
+
+**What the model honestly cannot do.** The controller does not know the bank's
+state of charge: terminals of a 12.65 V cell reach 12.67 V, never the 14.4 V
+threshold, so a 21.6 V panel on a single 12 V bank is overcharge — use a 24 V
+bank or a current limiter. And a panel takes ~200 ticks to reach its operating
+point after placement: two solver passes on a 0.05 Ω source add `Isc·r ≈ 0.12 V`
+per tick. Labels and ampere-hours are unaffected, but selftest walls that care
+about state run 400 steps, not 60.
+
 ## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), kinetics
@@ -553,7 +600,7 @@ generator output, 1749 resolved references and 0 broken links in
   hand-computed 28.9 mA), and the pack checker
   `OK: все 114×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
-* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.2.jar`.
+* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.3.jar`.
 * Live run on Paper 1.21.11 build 132: plugin enables — 114 components, 3390
   model states, 110 own recipes (41 crafting + 69 JEI showcases) + 38 from the
   data pack = 148 in the recipe manager, 3 worksheets;

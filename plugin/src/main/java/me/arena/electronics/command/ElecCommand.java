@@ -581,11 +581,16 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
      */
     private static void pvWires(me.arena.electronics.gui.SchematicGui g, boolean sense, int banks) {
         int last = 3 + banks;                       // колонка провода после последнего банка
+        // Полярность: у источника «+» — вывод 1 (у orientation 3 (WEST) он смотрит
+        // на восток), «−» — вывод 0. Поэтому панель стоит на 3 (её «+» — в реле),
+        // а каждая банка на 1 (её «+» — тоже в реле, «−» — на провод в конец
+        // ряда, к общей «−»). Наоборот реле видит банк на 2 В «выше» панели,
+        // идеальный диод замыкается, и банка разряжает сама себя в утечку панели.
         g.put(1, 0, "wire_black", 0);
-        g.put(1, 1, "solar_panel", 1);
+        g.put(1, 1, "solar_panel", 3);
         g.put(1, 2, "charge_controller_12v", 3);
         for (int i = 0; i < banks; i++) {
-            g.put(1, 3 + i, "battery_lead_12v", 3);
+            g.put(1, 3 + i, "battery_lead_12v", 1);
         }
         g.put(1, last, "wire_black", 0);
         for (int c = 0; c <= last; c++) {
@@ -1769,8 +1774,8 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             me.arena.electronics.gui.SchematicGui gbare =
                     me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
             gbare.put(1, 0, "wire_black", 0);
-            gbare.put(1, 1, "solar_panel", 1);          // «+» на восток
-            gbare.put(1, 2, "battery_lead_12v", 3);     // «+» на запад — заряд, не коротыш
+            gbare.put(1, 1, "solar_panel", 3);           // «+» (вывод 1) на восток, в банку
+            gbare.put(1, 2, "battery_lead_12v", 1);     // «+» (вывод 1) на запад — заряд, не коротыш
             gbare.put(1, 3, "wire_black", 0);
             for (int c = 0; c <= 3; c++) {
                 gbare.put(0, c, "wire_black", 0);       // общий «−» над деталями
@@ -1798,7 +1803,17 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
             // пропускать; счётчик снятых зарядов растёт один раз за такт.
             me.arena.electronics.gui.SchematicGui gcut =
                     me.arena.electronics.gui.SchematicGui.forId(plugin, java.util.UUID.randomUUID());
-            pvWires(gcut, true, 2);
+            // Два банка сразу — это «ключ никогда не замыкался», а не «отсечка»:
+            // на 25.3 В против 21.6 В панели диод не закроется никогда, и считать
+            // снятый заряд не с чего. Поэтому сначала честный заряд одним банком,
+            // потом в разрыв встаёт второй — и реле обязано снять заряд ровно раз.
+            // Aux клетки переживает пересборку экземпляров (SchematicGui.cellAux),
+            // иначе «было замкнуто» между прогонами забывается.
+            pvWires(gcut, true, 1);
+            gcut.recalcSteps(null, 400);   // рабочей точки панели нужно ~200 шагов (см. Solar)
+            gcut.put(1, 4, "battery_lead_12v", 1);      // «−» на восток, в хвост ряда
+            gcut.put(1, 5, "wire_black", 0);
+            gcut.put(0, 5, "wire_black", 1);
             gcut.recalcSteps(null, 400);
             CompInstance cutCtrl = gcut.instanceAt(1, 2);
             double cutU = cutCtrl == null ? 0 : Math.abs(cutCtrl.reading);

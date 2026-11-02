@@ -103,6 +103,29 @@ public final class TestPower {
         check("воздух не мешает вовсе", Solar.attenuation("AIR") == 1.0 && Solar.attenuation("") == 1.0,
                 "1.0 — под открытым небом поток паспортный");
 
+        // --- рабочая точка панели --------------------------------------------
+        // Проверка не переписывает физику, а зовёт ту же Solar.terminal, которую
+        // зовёт Simulation.stampSolar, и сходится к узлу вручную: 30 Ом утечки
+        // параллельно r. Старый «или-или» давал на холостом ходу 72 В при Uxx 21.6.
+        double ru = 0.05, g = 1.0 / ru, gLeak = 1.0 / 30.0;
+        double uNoon = Solar.openCircuit(21.6, 1.0), iNoon = Solar.shortCircuit(2.4, 1.0);
+        double u = 0.0;
+        for (int k = 0; k < 200; k++) {
+            u = (g * u + Solar.terminal(uNoon, iNoon, ru, u)) / (g + gLeak);
+        }
+        check("холостой ход не выше Uxx + 1 %", u <= uNoon * 1.01 + 1e-9 && u > uNoon * 0.9,
+                f2(u) + " В при Uxx " + f2(uNoon) + " В (утечка 30 Ом), раньше было 72.0 В");
+        check("накоротке — ровно Isc", near(Solar.terminal(uNoon, iNoon, ru, 0.0), iNoon, 1e-12)
+                        && Solar.terminal(uNoon, iNoon, ru, uNoon) == 0.0,
+                f2(iNoon) + " А при u = 0, 0.000 А при u = Uxx — потолок и ноль на месте");
+        double uBank = 12.65;
+        check("банк 12.65 В берёт с панели не больше паспорта",
+                Solar.terminal(uNoon, iNoon, ru, uBank) <= iNoon + 1e-12,
+                f2(Solar.terminal(uNoon, iNoon, ru, uBank)) + " А — линия Тевенина упёрлась в Isc");
+        check("ночью терминаль не выдумывает ток",
+                Solar.terminal(Solar.openCircuit(21.6, 0.0), Solar.shortCircuit(2.4, 0.0), ru, 12.0) == 0.0,
+                "Uxx(0) = 0 В → 0 А: утечка банки разряжается сама, панель не мешает");
+
         // --- реле-регулятор --------------------------------------------------
         Def d = ctrl();
         double[] aux = new double[4];
@@ -112,6 +135,35 @@ public final class TestPower {
                 "21 В против 12.5 В: толкать есть что");
         check("слабее банка — не замыкает", !ChargeCtrl.closed(aux, d, 12.9, 13.0),
                 "Uпанели − Uбанка = −0.1 В < порога 0.3 В");
+        double[] lz = new double[4];
+        lz[ChargeCtrl.CLOSED] = 1.0;
+        check("замкнутый ключ держит заряд на лезвии порога",
+                ChargeCtrl.closed(lz, d, 13.30, 12.65) && lz[ChargeCtrl.CLOSED] > 0.5,
+                "uPv − uBat = 0.65 В ≥ 0: при замкнутом ключе падение равно своему же порогу, требовать «> vf» — значит заставить ключ мигать");
+        lz[ChargeCtrl.CLOSED] = 1.0;
+        check("но банк сильнее — ключ бросает заряд", !ChargeCtrl.closed(lz, d, 12.48, 12.65),
+                "uPv − uBat = −0.17 В: пошёл обратный ток, идеальный диод закрывается");
+        double[] edge = new double[4];
+        edge[ChargeCtrl.CLOSED] = 1.0;
+        edge[ChargeCtrl.PREV_CLOSED] = 1.0;     // ключ был замкнут весь прошлый такт
+        ChargeCtrl.tick(edge, d, false, 14.45, 0.0, 0.05);
+        double cuts1 = edge[ChargeCtrl.CUTS];
+        ChargeCtrl.tick(edge, d, false, 14.45, 0.0, 0.05);
+        check("отсечка считается один раз за переход", cuts1 == 1.0 && edge[ChargeCtrl.CUTS] == 1.0,
+                "было замкнуто → стало разомкнуто на 14.45 В: +1; второй такт на тех же клеммах — всё ещё 1");
+        edge[ChargeCtrl.CLOSED] = 1.0;
+        edge[ChargeCtrl.PREV_CLOSED] = 1.0;
+        ChargeCtrl.tick(edge, d, true, 13.0, 2.0, 0.05);
+        check("ампер-часы растут только при замкнутом ключе",
+                near(edge[ChargeCtrl.AMPERE_HOURS], 2.0 * 0.05 / 3600.0, 1e-12)
+                        && edge[ChargeCtrl.CUTS] == 1.0,
+                "2 А за 50 мс = 0.0000278 А·ч, отсечка не изменилась");
+        double[] cold = new double[4];
+        cold[ChargeCtrl.CLOSED] = 1.0;
+        cold[ChargeCtrl.PREV_CLOSED] = 1.0;
+        ChargeCtrl.tick(cold, d, false, 13.9, 0.0, 0.05);
+        check("ключ упал раньше порога — отсечки нет", cold[ChargeCtrl.CUTS] == 0.0,
+                "13.9 В < 14.35 В: ключ разомкнуло не «по полному банку» (например, панель ушла в тень)");
         aux[ChargeCtrl.CLOSED] = 1.0;
         check("отсечка на 14.4 В", !ChargeCtrl.closed(aux, d, 21.0, 14.45),
                 "клеммы 14.45 В: заряд снят, банк не газируется");

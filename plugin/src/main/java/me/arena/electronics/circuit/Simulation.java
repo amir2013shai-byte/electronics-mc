@@ -314,6 +314,18 @@ public final class Simulation {
             }
             v = iterate(plugin, cfg, isl, dt, v, notify, true);
         }
+        // Ключ реле-регулятора — такая же петля обратной связи, как якорь реле:
+        // состояние пересобираем по УЖЕ решённым узлам. По prev прошлого прохода
+        // нельзя: на первом проходе prev пуст, closed() получает NaN и «держит
+        // прошлое решение» — а прошлого решения у только что поставленной детали
+        // нет вовсе, и ключ, один раз закрывшись, оставался закрытым хоть ночью
+        // (банк тогда разряжался через «идеальный диод» током 0.4 А вечно).
+        for (int extra = 0; extra < 4; extra++) {
+            if (!refreshChargeKey(isl, v)) {
+                break;
+            }
+            v = iterate(plugin, cfg, isl, dt, v, notify, true);
+        }
         // один «шаг света» для синусоидальных источников: считаем решение острова,
         // а не число проходов внутри него
         acPhaseStep++;
@@ -346,6 +358,31 @@ public final class Simulation {
      *
      * @return true, если хоть одно переключение изменилось (тогда надо решить ещё раз)
      */
+    /**
+     * Пересчитывает состояние ключа реле-регулятора по решённым напряжениям узлов.
+     * true — если хоть один ключ щёлкнул и матрицу надо собирать заново.
+     */
+    private static boolean refreshChargeKey(Island isl, Map<String, Double> v) {
+        boolean changed = false;
+        for (CompInstance c : isl.comps) {
+            Def d = c.def;
+            if (d.kind != Kind.CHARGE_CTRL) {
+                continue;
+            }
+            String pv = rep(isl, c.pinNet[0]);
+            String bat = rep(isl, c.pinNet[1]);
+            if (pv == null || bat == null || !v.containsKey(pv) || !v.containsKey(bat)) {
+                continue;                       // мерить нечем: держим прежнее решение
+            }
+            double vg = pinDriven(isl, c, 2) ? v.getOrDefault(rep(isl, c.pinNet[2]), 0.0) : 0.0;
+            boolean on = ChargeCtrl.closed(c.aux, d, v.get(pv) - vg, v.get(bat) - vg);
+            if ((on ? 1.0 : 0.0) != c.aux[ChargeCtrl.CLOSED]) {
+                changed = true;                   // closed() уже записал новый ответ
+            }
+        }
+        return changed;
+    }
+
     private static boolean refreshMagnetics(Island isl, Neighbors neighbors) {
         boolean changed = false;
         for (CompInstance c : isl.comps) {
@@ -519,7 +556,7 @@ public final class Simulation {
                     // «Uxx 21.6 В» на холостом ходу и «Isc 2.4 А» в коротыше — это
                     // одна и та же деталь при одном потоке (см. Solar).
                     if (b != null) {
-                        stampSolar(cfg, mna, prev, a, b, d, c, sunFactor(c, cfg));
+                        stampSolar(mna, prev, a, b, d, c, sunFactor(c, cfg));
                     }
                 }
                 case CHARGE_CTRL -> stampCharge(isl, mna, cfg, c, prev);
@@ -718,7 +755,7 @@ public final class Simulation {
                 c.iPrev = inductorCurrent(c, isl, v, dtF);
             }
             c.power = Math.abs(c.voltage * i);
-            updateState(plugin, cfg, c, i);
+            updateState(plugin, cfg, isl, c, i);
             if (protect(cfg, c, isl)) {
                 burned = true;
             }
@@ -921,7 +958,8 @@ public final class Simulation {
         }
     }
 
-    private static void updateState(ElectronicsPlugin plugin, Config cfg, CompInstance c, double i) {
+    private static void updateState(ElectronicsPlugin plugin, Config cfg, Island isl,
+                                 CompInstance c, double i) {
         Def d = c.def;
         double dt = Math.max(0.005, cfg.dt());
         switch (d.kind) {
@@ -953,17 +991,15 @@ public final class Simulation {
                 c.state = i > 0.002 ? CompStates.ON : (c.aux[2] > 0.02 ? CompStates.DIM : CompStates.OFF);
             }
             case CHARGE_CTRL -> {
-                boolean sense = c.pinNet[2] != null;   // без «−» остаётся только ключ
+                // «−» считается подключённой, только если на узле есть ещё один
+                // вывод: без этого мерить нечем, и отсечку считать нельзя —
+                // иначе реле считает её по собственному висячему узлу.
+                boolean sense = pinDriven(isl, c, 2);
                 boolean on = c.aux[ChargeCtrl.CLOSED] > 0.5;
-                boolean was = c.aux[ChargeCtrl.PREV_CLOSED] > 0.5;
-                double uBat = Math.abs(c.pinVoltage[1] - c.pinVoltage[2]);
-                if (was && !on && uBat >= ChargeCtrl.cutOff(d) - 0.05) {
-                    c.aux[ChargeCtrl.CUTS] += 1.0;                     // ровно один раз за такт
-                }
-                c.aux[ChargeCtrl.PREV_CLOSED] = on ? 1.0 : 0.0;
-                if (on) {
-                    c.aux[ChargeCtrl.AMPERE_HOURS] += Math.max(0.0, i) * dt / 3600.0;
-                }
+                // Без sense-провода узел банка реле не видит: merить нечем, и
+                // отсечку (ни снятый заряд, ни «полон») писать нельзя.
+                double uBat = sense ? Math.abs(c.pinVoltage[1] - c.pinVoltage[2]) : 0.0;
+                ChargeCtrl.tick(c.aux, d, on, uBat, i, dt);
                 c.reading = uBat;
                 c.brightness = on ? Math.min(1.0, i / Math.max(0.5, d.maxCurrent)) : 0.0;
                 double uPv = Math.abs(c.pinVoltage[0] - (sense ? c.pinVoltage[2] : 0.0));
@@ -983,7 +1019,8 @@ public final class Simulation {
                 }
             }
             case ENERGY_METER -> {
-                if (c.pinNet[2] == null) {
+                // либо «−» сверху, либо снизу — нейтраль сквозь счётчик склеена (bond)
+                if (!pinDriven(isl, c, 2) && !pinDriven(isl, c, 3)) {
                     c.fault = "датчик напряжения не подключён: счётчик намотает 0 Вт·ч";
                     c.state = CompStates.OFF;
                     c.reading = 0.0;
@@ -1636,10 +1673,14 @@ public final class Simulation {
     }
 
     /**
-     * Панель: утечка параллельно клеммам, дальше — или источник тока Isc (когда
-     * потребитель просит больше, чем панель может), или Тевенин Uxx/r_int.
+     * Панель: утечка параллельно клеммам, дальше — линия Тевенина Uxx/r_int,
+     * срезанная сверху на Isc ({@link Solar#terminal}). Проводимость 1/r стоит в
+     * матрице ВСЕГДА, а потолок тока подкладывается к ней источником тока вместе
+     * с companion-членом {@code g·u} (та же схема, что у конденсатора выше): иначе
+     * «насыщенная» панель превращается в чистый источник Isc и на холостом ходу
+     * поднимает узел до {@code Isc·R_утечки} = 72 В при Uxx = 21.6 В.
      */
-    private static void stampSolar(Config cfg, Mna mna, Map<String, Double> prev, String a, String b,
+    private static void stampSolar(Mna mna, Map<String, Double> prev, String a, String b,
                                    Def d, CompInstance c, double f) {
         mna.stamp(a, b, 1.0 / Solar.darkResistance(d.resistance), 0);
         double uoc = Solar.openCircuit(d.voltage, f);
@@ -1650,13 +1691,23 @@ public final class Simulation {
             return;                // ночь: от панели остаётся только утечка
         }
         double r = Math.max(0.05, d.rInt);
-        double u = prev.getOrDefault(a, 0.0) - prev.getOrDefault(b, 0.0);
-        double iWant = (uoc - u) / r;
-        if (iWant > isc) {
-            mna.stamp(b, a, cfg.gLeak(), isc);   // сел на потолок тока
-        } else {
-            mna.stamp(b, a, 1.0 / r, uoc / r);
-        }
+        double g = 1.0 / r;
+        // Напряжение ячейки: у источника «+» — вывод 1 (это b), «−» — вывод 0 (a),
+        // значит u = V(b) − V(a). Знак здесь и решает всё: с переставленными
+        // узлами (u = V(a) − V(b)) панель всегда оказывалась «ниже» своей ЭДС на
+        // 2Uxx, iWant = (uoc − u)/r = 430 А — и потолок Isc включался даже на
+        // холостом ходу, поднимая узел до Isc·R_утечки. Отсюда и «72 В на входе»
+        // в старой стенке: дефект был не в потолке, а в знаке.
+        //
+        // Берём из уже решённого прохода, а если его нет (первый из
+        // solve-passes) — из истории детали, как у конденсатора его vcPrev.
+        // У истории знак обратный (c.voltage = V(a) − V(b)) — отсюда минус.
+        double u = prev.containsKey(b) ? prev.get(b) - prev.getOrDefault(a, 0.0) : -c.voltage;
+        double iCell = Solar.terminal(uoc, isc, r, u);
+        // Фиксированная точка: (g + G_нагрузки)·u = g·u + i(u)  ⟹  G·u = i(u),
+        // т.е. ровно вольт-амперная кривая панели. При i = g·(uoc − u) это старый
+        // Тевенин (I = g·uoc), при потолке — старый источник тока, но без 72 В.
+        mna.stamp(b, a, g, g * u + iCell);
     }
 
     /** Реле-регулятор: ключ между панелью и банком, управляется измеренным напряжением. */
@@ -1664,7 +1715,10 @@ public final class Simulation {
         // Sense-провод (вывод «−») нужен только отсечке: ток деталь пропускает и без
         // него. Предупреждаем здесь, а не в updateState: тот вызов пропускается,
         // когда у детали ничего не меняется, и тишина выглядела бы как «всё в порядке».
-        if (c.pinNet[2] == null) {
+        // «Без него» = на узле вывода нет второго вывода (см. pinDriven), а не
+        // «pinNet[2] == null»: имена узлов Topology даёт всегда.
+        boolean sense = pinDriven(isl, c, 2);
+        if (!sense) {
             c.fault = "нет общей «−»: пропускает, но отсечки нет";
         }
         Def d = c.def;
@@ -1674,7 +1728,7 @@ public final class Simulation {
         if (pv == null || bat == null) {
             return;
         }
-        double vg = neg == null ? 0 : prev.getOrDefault(neg, 0.0);
+        double vg = sense ? prev.getOrDefault(neg, 0.0) : 0.0;
         double uPv = prev.containsKey(pv) ? prev.get(pv) - vg : Double.NaN;
         double uBat = prev.containsKey(bat) ? prev.get(bat) - vg : Double.NaN;
         boolean on = ChargeCtrl.closed(c.aux, d, uPv, uBat);
@@ -1688,7 +1742,7 @@ public final class Simulation {
 
     /** Счётчик: катушка тока в разрыв (0.01 Ом), датчик напряжения — на нейтраль (1 МОм). */
     private static void stampMeter(Island isl, Mna mna, Config cfg, CompInstance c, Def d) {
-        if (c.pinNet[2] == null && c.pinNet[3] == null) {
+        if (!pinDriven(isl, c, 2) && !pinDriven(isl, c, 3)) {
             c.fault = "датчик напряжения не подключён: счётчик намотает 0 Вт·ч";
         }
         String lin = rep(isl, c.pinNet[0]);
@@ -1729,6 +1783,36 @@ public final class Simulation {
 
     private static String rep(Island isl, String net) {
         return net == null ? null : find(isl, net);
+    }
+
+    /**
+     * Подключён ли вывод: на его узле есть ещё хотя бы один вывод.
+     *
+     * <p>{@code pinNet[i] != null} для этого не годится и никогда не годился:
+     * {@link Topology#resolve} называет узел вывода в любом случае — это пара
+     * «деталь и соседняя клетка», и у висячего вывода такая пара своя, пустая.
+     * Проверка «sense-провода нет» была всегда ложной: реле искало отсечку по
+     * узлу, к которому никто не подключался, а счётчик молча наматывал 0 Вт·ч
+     * вместо подсказки. Островок при этом остаётся связным, так что «не null»
+     * значит лишь «вывод существует».</p>
+     *
+     * <p>Считать по выводам, а не по блокам, — то же самое правило, по которому
+     * {@code Topology} склеивает контакт с соседом: провод или шина, глядящие на
+     * эту же пару, дают второй вывод на узле, и тогда узел «держат».</p>
+     */
+    static boolean pinDriven(Island isl, CompInstance c, int pin) {
+        String node = rep(isl, c.pinNet[pin]);
+        if (node == null) {
+            return false;
+        }
+        for (CompInstance o : isl.comps) {
+            for (int i = 0; i < 6; i++) {
+                if ((o != c || i != pin) && node.equals(rep(isl, o.pinNet[i]))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static String find(Island isl, String a) {
