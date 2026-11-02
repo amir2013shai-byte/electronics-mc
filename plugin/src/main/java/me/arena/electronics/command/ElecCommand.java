@@ -1867,7 +1867,12 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                     + " &7А·ч; банк 2×12 В: отсечек &f" + (int) cutCuts + " &7при &f"
                     + String.format(java.util.Locale.US, "%.1f", cutU) + " &7В, тик мира &f" + (eNow % 24000L)
                     + "&7 / поток &f" + String.format(java.util.Locale.US, "%.2f", fNow)
-                    + (chargeOk && nightOk && senseless && cutOk && clockOk ? "" : "&8 [нет детали в ячейке?]")));
+                    + (chargeOk && nightOk && senseless && cutOk && clockOk ? ""
+                    : "&8 [ключ=" + (pvCtrl == null ? "?" : (int) pvCtrl.aux[me.arena.electronics.circuit.ChargeCtrl.CLOSED])
+                    + " net(реле)=" + (pvCtrl == null ? "?" : java.util.Arrays.toString(pvCtrl.pinNets))
+                    + " net(банк)=" + (pvBatt == null ? "?" : java.util.Arrays.toString(pvBatt.pinNets))
+                    + " I(панель)=" + String.format(java.util.Locale.US, "%.2f", cur(pvPanel))
+                    + " battAh=" + String.format(java.util.Locale.US, "%.3f", battAh) + "]")));
             s.sendMessage(Items.color(((meterOk && metHint && passportOk) ? "&aPASS " : "&cFAIL ")
                     + "&7счётчик и паспорт: на 10 Ом намотал &f" + String.format(java.util.Locale.US, "%.3f", metWh)
                     + " &7Вт·ч (" + String.format(java.util.Locale.US, "%.1f", metP) + " Вт&7, &f" + (int) metImp
