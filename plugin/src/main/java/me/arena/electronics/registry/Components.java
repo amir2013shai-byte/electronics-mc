@@ -114,6 +114,14 @@ public final class Components {
         d.nameEn = Json.str(o, "en", "");
         d.kind = Kind.valueOf(Json.str(o, "kind", "EMPTY").toUpperCase(Locale.ROOT));
         d.shape = Json.str(o, "shape", "box");
+        Object craftNode = o.get("craft");
+        if (craftNode instanceof java.util.Map) {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> cm = (java.util.Map<String, Object>) craftNode;
+            d.craft = cm;
+            int cnt = (int) Json.num(cm, "count", 1);
+            d.craftCount = cnt > 0 ? cnt : 1;
+        }
         d.logic = Json.str(o, "logic", "");
         d.resistance = Json.num(o, "resistance", 0);
         d.rInt = Json.num(o, "r_int", 1.0);

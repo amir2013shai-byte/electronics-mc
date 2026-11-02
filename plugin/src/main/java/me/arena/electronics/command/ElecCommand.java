@@ -719,6 +719,23 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 + "&7модель задаётся компонентом item_model у &f" + modelOk + "&7/&f"
                 + Components.size() + " &7предметов, custom_model_data не ставится ни на одном"
                 + " &8(чужие предметы — пластинка в проигрывателе, зелья — наших моделей не видят)"));
+        // (recipes) таблица крафтов собирается из реестра (components[].craft) —
+        // того же файла, из которого tools/gen_pack.py пишет датапак. Проверяем,
+        // что все ванильные item из craft разрешились и что верстачных рецептов
+        // ровно столько, сколько неспаечных деталей с craft.
+        int badCraft = me.arena.electronics.recipes.Recipes.loadFromRegistry();
+        int withCraft = 0;
+        for (Def d : Components.all()) {
+            if (d.craft != null && !Components.isSoldered(d.id)) {
+                withCraft++;
+            }
+        }
+        int smelt = plugin.recipes().smeltCount();
+        boolean craftOk = badCraft == 0 && withCraft == plugin.recipes().realCount() - smelt;
+        s.sendMessage(Items.color((craftOk ? "&aPASS " : "&cFAIL ")
+                + "&7крафты собраны из реестра: неразобранных ингредиентов &f" + badCraft
+                + "&7, верстачных &f" + withCraft + "&7/(нужно " + (plugin.recipes().realCount() - smelt)
+                + "&7, плавка &f" + smelt + "&7) &8— один источник для плагина и датапака"));
         int inManager = 0;
         java.util.Iterator<org.bukkit.inventory.Recipe> it = plugin.getServer().recipeIterator();
         while (it.hasNext()) {

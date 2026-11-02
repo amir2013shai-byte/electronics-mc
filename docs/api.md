@@ -121,7 +121,7 @@ Map<String,String> nets = Simulation.mergedNets(ep.circuit());
 1. дописать объект в `shared/components.json` (`id`, `kind`, `shape`, `size`,
    `palette`, электрика: `resistance`/`voltage`/`capacitance`/`v_forward`…,
    `states`, при необходимости `hub: true`);
-2. скопировать в `plugin/src/main/resources/components.json`
+2. ничего копировать не нужно: `plugin/pom.xml` кладёт `shared/components.json` в jar
    (или положить переопределение в `plugins/Electronics/components/`);
 3. если форма новая — добавить рисовалку в `base_canvas()` в
    `tools/gen_pack.py`, затем `python3 tools/gen_pack.py` и

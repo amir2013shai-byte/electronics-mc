@@ -816,211 +816,52 @@ def model_of(comp):
 
 
 # ---------------------------------------------------------------------------- recipes
-RECIPES = {
-    "bench": {"type": "shapeless", "ing": {"paper": 1, "repeater": 1}, "count": 2},
-    # разведка недр, зачистка и кварц на тактовую частоту — только руками,
-    # их не паяют (содержимое обязано совпадать с Recipes.DEFS)
-    "crystal_16mhz": {"type": "shapeless", "ing": {"quartz": 2, "gold_nugget": 1}},
-    "geoprobe": {"shape": ["Q", "I", "S"], "key": {"Q": "quartz", "I": "iron_ingot", "S": "stick"}},
-    "wire_stripper": {"shape": ["SI", "CF"], "key": {"S": "shears", "I": "iron_ingot",
-                                                    "C": "copper_ingot", "F": "flint"}},
-    # станочные заготовки рудной цепочки: в датапак они не попадают (id в
-    # meta.soldered), но таблица обязана совпадать с Recipes.DEFS
-    "wire_bare": {"type": "shapeless", "ing": {"string": 2}},
-    "wire_tinned": {"type": "shapeless", "ing": {"sand": 1}},
-    "battery_zinc": {"type": "shapeless", "ing": {"coal": 1, "string": 1}},
-    "mcu_atmega328": {"type": "shapeless", "ing": {"quartz": 1, "gold_nugget": 1}},
-    "programmer_usb": {"shape": ["IG", "CR"], "key": {"I": "iron_nugget", "G": "gold_nugget",
-                                                     "C": "copper_ingot", "R": "repeater"}},
-    # металлургия: станки собираются в верстаке, рудный концентрат — тоже
-    # (это и есть путь «без шахты»); сплавы и проволоку делает сам стан,
-    # их содержимое описано в Metallurgy, а не здесь
-    "crucible_station": {"shape": ["B B", "BLB", "IFI"], "key": {"B": "bricks",
-                                                 "L": "lava_bucket", "I": "iron_ingot",
-                                                 "F": "furnace"}},
-    "mill_station": {"shape": ["IRI", "CPC", "IRI"], "key": {"I": "iron_ingot",
-                                            "R": "redstone_block", "C": "copper_ingot",
-                                            "P": "piston"}},
-    "raw_copper_chunk": {"type": "shapeless", "ing": {"copper_ingot": 2, "calcite": 1}},
-    "raw_tin_chunk": {"type": "shapeless", "ing": {"iron_nugget": 4, "quartz": 1,
-                                                   "calcite": 1}},
-    "raw_zinc_chunk": {"type": "shapeless", "ing": {"iron_nugget": 2, "coal": 1,
-                                                    "gunpowder": 1, "calcite": 1}},
-    "resistor_shunt_0r01": {"type": "shapeless", "ing": {"gold_nugget": 1}},
-    "breadboard": {"shape": ["HRH", "RRR", "RSR"], "key": {"H": "hopper", "R": "repeater", "S": "redstone"}},
-    "wire_red": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "redstone": 1}, "count": 4},
-    "wire_black": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "ink_sac": 1}, "count": 4},
-    "wire_yellow": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "yellow_dye": 1}, "count": 4},
-    "wire_blue": {"type": "shapeless", "ing": {"string": 1, "copper_ingot": 1, "lapis_lazuli": 1}, "count": 4},
-    "battery_aa": {"shape": ["I", "R", "G"], "key": {"I": "iron_nugget", "R": "redstone", "G": "gold_nugget"}},
-    "battery_3": {"type": "shapeless", "ing": {"copper_ingot": 2, "honeycomb": 1}},
-    "battery_9": {"shape": ["GGG", "CRC", "GGG"], "key": {"G": "gold_nugget", "C": "copper_ingot", "R": "redstone"}},
-    "crank_hand": {"shape": ["II", " I", " S"], "key": {"I": "iron_ingot", "S": "stick"}},
-    "wheel_water": {"shape": ["P P", "PWP", "P P"], "key": {"P": "spruce_planks", "W": "iron_bars"}},
-    "dynamo_12v": {"shape": ["ICI", "CWC", " R "], "key": {"I": "iron_ingot", "C": "copper_ingot",
-                  "W": "gold_block", "R": "redstone"}},
-    "battery_lead_12v": {"shape": ["I I", "PRP", "CWC"], "key": {"I": "iron_ingot", "P": "black_concrete", "R": "redstone", "C": "copper_ingot", "W": "glass_bottle"}},
-    "power_supply": {"shape": ["CGC", "RBR", "IRI"], "key": {"C": "copper_ingot", "G": "glass", "B": "copper_bulb",
-                                                             "R": "repeater", "I": "iron_ingot"}},
-    "solar_cell": {"shape": [" GG", "QLQ", "GIG"], "key": {"G": "tinted_glass", "Q": "quartz", "L": "lapis_block",
-                                                            "I": "iron_ingot"}},
-    "source_ac": {"shape": ["GCG", "RIR", "G G"], "key": {"G": "gold_nugget", "C": "copper_ingot",
-                                                           "R": "redstone", "I": "iron_ingot"}},
-    "generator": {"shape": ["ICI", "RPR", "ICI"], "key": {"I": "iron_ingot", "C": "copper_ingot",
-                                                           "P": "sticky_piston", "R": "repeater"}},
-    "ground_bus": {"shape": ["CCC", "GRG", "CCC"], "key": {"C": "copper_block", "G": "lightning_rod", "R": "redstone"}},
-    "diode": {"shape": ["CR"], "key": {"C": "copper_ingot", "R": "redstone"}, "count": 3},
-    "led_red": {"shape": ["G", "R", "C"], "key": {"G": "glass", "R": "redstone", "C": "copper_ingot"}, "count": 2},
-    "led_green": {"shape": ["G", "V", "C"], "key": {"G": "glass", "V": "lime_dye", "C": "copper_ingot"}, "count": 2},
-    "led_blue": {"shape": ["G", "B", "C"], "key": {"G": "glass", "B": "lapis_lazuli", "C": "copper_ingot"}, "count": 2},
-    "led_yellow": {"shape": ["G", "Y", "C"], "key": {"G": "glass", "Y": "yellow_dye", "C": "copper_ingot"}, "count": 2},
-    "led_white": {"shape": ["G", "Q", "C"], "key": {"G": "glass", "Q": "quartz", "C": "copper_ingot"}, "count": 2},
-    "lamp": {"shape": [" G ", "GCG", " R "], "key": {"G": "glass", "C": "copper_ingot", "R": "redstone"}},
-    "button": {"shape": ["R", "S"], "key": {"R": "redstone", "S": "stone_pressure_plate"}},
-    "switch_spst": {"shape": ["L", "R", "S"], "key": {"L": "lever", "R": "redstone", "S": "stone_button"}},
-    "switch_spdt": {"shape": ["LL", "RS", "SS"], "key": {"L": "lever", "R": "redstone", "S": "stone_button"}},
-    "transistor_npn": {"shape": ["R R", "GSG"], "key": {"R": "redstone", "G": "gold_nugget", "S": "sand"}},
-    "transistor_pnp": {"shape": ["R R", "ISI"], "key": {"R": "redstone", "I": "iron_nugget", "S": "sand"}},
-    "gate_and": {"shape": ["RSR", "SCS", "R R"], "key": {"R": "redstone", "S": "sand", "C": "copper_ingot"}},
-    "gate_or": {"shape": ["R R", "SCS", "R R"], "key": {"R": "redstone", "S": "sand", "C": "copper_ingot"}},
-    "gate_xor": {"shape": ["RSR", "SCS", "R R"], "key": {"R": "redstone", "S": "sand", "C": "gold_nugget"}},
-    "gate_not": {"shape": [" R ", "R R", " C "], "key": {"R": "redstone", "C": "copper_ingot"}},
-    "comparator": {"shape": ["AG", " C", "GA"], "key": {"A": "amethyst_shard", "G": "glass", "C": "copper_ingot"}},
-    "buzzer": {"shape": [" C ", "CGC", " R "], "key": {"C": "copper_ingot", "G": "gold_nugget",
-                                                       "R": "redstone_block"}},
-    "motor": {"shape": [" C ", "CRC", " I "], "key": {"C": "copper_ingot", "R": "redstone", "I": "iron_ingot"}},
-    "fuse": {"shape": ["GC", "CR", "CG"], "key": {"G": "glass", "C": "copper_ingot", "R": "redstone"}},
-    # --- защита, выпрямление, стабилизация, трансформация (зеркало Recipes.DEFS) ---
-    "fuse_cartridge_1a": {"shape": ["I I", "CGC", "I I"],
-                          "key": {"I": "iron_nugget", "C": "copper_ingot", "G": "glass"}},
-    "fuse_cartridge_5a": {"shape": ["I I", "CCC", "I I"],
-                          "key": {"I": "iron_nugget", "C": "copper_ingot"}},
-    "fuse_slow_2a": {"shape": ["I I", "CSC", "I I"],
-                     "key": {"I": "iron_nugget", "C": "copper_ingot", "S": "sand"}},
-    "ptc_500ma": {"type": "shapeless", "ing": {"clay_ball": 1, "coal": 1, "copper_ingot": 2}},
-    "mov_275v": {"shape": [" C ", "CRC", " C "], "key": {"C": "copper_ingot", "R": "redstone"}},
-    "bridge_kbu8": {"shape": ["DRD", "R R", "DRD"], "key": {"D": "gold_nugget", "R": "redstone"}},
-    "shottky_sbr30": {"type": "shapeless", "ing": {"copper_ingot": 1, "quartz": 1, "redstone": 1}},
-    "cap_elec_2200uf": {"shape": ["PCP", "C C", "PCP"], "key": {"P": "paper", "C": "copper_ingot"}},
-    "reg_7805": {"shape": ["III", "GSG", "C C"],
-                 "key": {"I": "iron_nugget", "G": "gold_nugget", "S": "sand", "C": "copper_ingot"}},
-    "reg_7812": {"shape": ["III", "GRG", "C C"],
-                 "key": {"I": "iron_nugget", "G": "gold_nugget", "R": "redstone", "C": "copper_ingot"}},
-    "reg_lm317": {"shape": ["I I", "GSG", "CRC"],
-                  "key": {"I": "iron_nugget", "G": "gold_nugget", "S": "sand", "R": "redstone",
-                          "C": "copper_ingot"}},
-    "xfmr_230_12": {"shape": ["CIC", "I I", "CIC"], "key": {"C": "copper_ingot", "I": "iron_ingot"}},
-    "xfmr_230_9": {"shape": ["CIC", "I I", "C C"], "key": {"C": "copper_ingot", "I": "iron_ingot"}},
-    "desolder_braid": {"type": "shapeless", "ing": {"string": 2, "copper_ingot": 1}, "count": 2},
-    "voltmeter": {"shape": ["GCG", "IRI", " C "], "key": {"G": "glass", "C": "copper_ingot", "I": "iron_ingot",
-                                                           "R": "redstone"}},
-    "ammeter": {"shape": ["GCG", "ILI", " C "], "key": {"G": "glass", "C": "copper_ingot", "I": "iron_ingot",
-                                                         "L": "lapis_lazuli"}},
-    "multimeter": {"shape": ["GIG", "CRC", "W I"], "key": {"G": "glass", "I": "iron_ingot", "C": "copper_ingot",
-                                                            "R": "redstone", "W": "clock"}},
-    "oscilloscope": {"shape": ["GIG", "CRC", "R R"], "key": {"G": "glass", "I": "iron_ingot", "C": "copper_ingot",
-                                                             "R": "redstone"}},
-    "wire_cutter": {"shape": ["I I", " S ", " S "], "key": {"I": "iron_ingot", "S": "stick"}},
-    "led_probe": {"shape": ["G", "R", "S"], "key": {"G": "glass", "R": "redstone", "S": "stick"}},
-    "schematic": {"shape": ["PPP", "PRP", "PIP"], "key": {"P": "paper", "R": "redstone", "I": "copper_ingot"}},
-    "empty_circuit": {"shape": ["GRG", "RPR", "GRG"], "key": {"G": "gold_nugget", "R": "redstone", "P": "paper"}},
-    "potentiometer": {"shape": [" R ", "RCR", " I "], "key": {"R": "resin_clump", "C": "copper_ingot",
-                                                               "I": "iron_nugget"}},
-    "cap_100nf": {"type": "shapeless", "ing": {"copper_ingot": 1, "paper": 1}, "count": 3},
-    "cap_100uf": {"shape": ["P", "C", "P"], "key": {"P": "paper", "C": "copper_ingot"}, "count": 2},
-    "cap_1000uf": {"shape": ["PCP"], "key": {"P": "paper", "C": "copper_ingot"}},
-    # --- магниты, катушки, реле и чувствительные резисторы: материал = функция
-    "magnet": {"shape": ["IRI"], "key": {"I": "iron_ingot", "R": "redstone_block"},
-               "note": "сталь намагничивают редстоуном: без этого это просто брусок"},
-    "electromagnet": {"shape": [" C ", "CIC", " C "], "key": {"C": "copper_ingot", "I": "iron_ingot"},
-                      "note": "медь вокруг сердечника — как в реальной катушке"},
-    "inductor_10mh": {"shape": ["S", "I", "S"], "key": {"S": "string", "I": "iron_nugget"},
-                      "count": 2, "note": "витки провода на сердечнике"},
-    "choke_10h": {"shape": ["CCC", "CIC", " C "], "key": {"C": "copper_ingot", "I": "iron_block"},
-                  "note": "большой дроссель: много меди и железный сердечник"},
-    "relay_5v": {"shape": ["CR", "RI", "CG"], "key": {"C": "copper_ingot", "R": "redstone",
-                                                       "I": "iron_ingot", "G": "gold_nugget"},
-                 "note": "катушка + сердечник + золотой контакт"},
-    "reed_switch": {"shape": ["G", "I", "G"], "key": {"G": "glass", "I": "iron_nugget"},
-                    "note": "герметичная колба с двумя контактами"},
-    "photoresistor": {"shape": ["G", "S", "C"], "key": {"G": "glass", "S": "glowstone_dust",
-                                                         "C": "copper_ingot"}, "count": 2,
-                      "note": "сернистый кадмий под стеклом: темнота = большое R"},
-    "thermistor_ntc": {"type": "shapeless", "ing": {"clay_ball": 1, "copper_ingot": 2, "redstone": 1},
-                       "count": 2, "note": "керамический диск с выводами"},
-    "soldering_station": {"shape": ["P P", "PFP", "ICI"],
-                          "key": {"P": "oak_planks", "F": "furnace", "I": "iron_nugget",
-                                  "C": "copper_ingot"},
-                          "note": "столешница + горелка + медь: паять нужно у тепла"},
-    "soldering_iron": {"shape": ["  C", " I ", "S  "],
-                       "key": {"C": "copper_ingot", "I": "iron_nugget", "S": "stick"},
-                       "note": "медное жало, железный стержень, деревянная рукоять"},
-    "solder": {"type": "shapeless", "ing": {"iron_nugget": 2, "flint": 1}, "count": 2,
-               "note": "мягкий металл + абразивная присадка"},
-    "flux": {"type": "shapeless", "ing": {"glowstone_dust": 1, "honey_bottle": 1}, "count": 2,
-             "note": "канифоль со растворителем: без флюса площадка окислится"},
-    # ---- привод (v1.4.0): содержимое обязано совпадать с Recipes.DEFS
-    "supply_220v": {"shape": ["QGQ", "CRC", "IRI"],
-                    "key": {"Q": "quartz_block", "G": "glass", "C": "copper_ingot",
-                            "R": "repeater", "I": "iron_block"},
-                    "note": "кварц и стекло — изоляторы, реле — контактор"},
-    "fuse_slow_10a": {"shape": ["I I", "CBC", "I I"],
-                      "key": {"I": "iron_nugget", "C": "copper_ingot", "B": "clay"},
-                      "note": "керамическая трубка: пусковой ток мотора выдерживает"},
-    "shaft_kinetic": {"shape": ["III"], "key": {"I": "iron_ingot"},
-                      "note": "пруток прокатки: три куска железа"},
-    "wheel_kinetic": {"type": "shapeless", "ing": {"iron_ingot": 2, "copper_ingot": 1,
-                                                   "stick": 1},
-                      "note": "обод, медная втулка, ось"},
-    "motor_220v": {"shape": [" I ", "CRC", " I "],
-                   "key": {"I": "iron_ingot", "C": "copper_ingot", "R": "redstone"},
-                   "note": "заготовка; обмотку мотают эмальпроводом на столе"},
-    "gearbox_3x": {"shape": ["IR", "RI"], "key": {"I": "iron_nugget", "R": "redstone"},
-                   "note": "две шестерни в зацеплении — так и выглядит 1:3"},
-    "flywheel_kinetic": {"shape": ["III", "I I", "III"], "key": {"I": "iron_nugget"},
-                         "note": "массивный диск: 8 кусков железа на обод"},
-    "saw_kinetic": {"shape": [" P ", "PSP", " P "], "key": {"P": "iron_nugget", "S": "stick"},
-                    "note": "диск на оси; зубья наплавляют бронзой"},
-    "drill_kinetic": {"shape": ["I", "S", "I"], "key": {"I": "iron_ingot", "S": "stone"},
-                      "note": "штанга с победитовыми вставками из шлакового корунда"},
-}
+def load_recipes():
+    """Рецепты — из реестра (components[].craft), а не из таблицы этого файла.
+
+    Единственный источник для обеих сторон: Recipes.loadFromRegistry() в плагине
+    читает то же поле. Раньше таблицы были две (эта и DEFS в Java) и разъехались:
+    `bench` в датапаке собирался из paper+repeater и отдавал ×2, а плагин — из
+    плиты-основы и ×1; провода датапак выдавал по 4 штуки, плагин — по 1.
+    """
+    out = {}
+    for comp in COMPONENTS:
+        craft = comp.get("craft")
+        if not isinstance(craft, dict):
+            continue
+        cid = comp["id"]
+        plain = craft.get("shapeless")
+        if isinstance(plain, dict):
+            spec = {"type": "shapeless",
+                    "ing": {str(k): int(v) for k, v in plain.items()},
+                    "count": int(craft.get("count", 1) or 1)}
+        else:
+            spec = {"shape": [str(r) for r in craft.get("pattern", [])],
+                    "key": {str(k): str(v) for k, v in (craft.get("key") or {}).items()},
+                    "count": int(craft.get("count", 1) or 1)}
+        if craft.get("note"):
+            spec["note"] = str(craft["note"])
+        out[cid] = spec
+    return out
 
 
-def resistor_recipes():
-    """Резисторы: медь + «цветной» множитель (код номинала)."""
-    colors = {
-        "resistor_10r": ("brick", 10),
-        "resistor_100r": ("amethyst_shard", 100),
-        "resistor_220r": ("redstone", 220),
-        "resistor_330r": ("lapis_lazuli", 330),
-        "resistor_1k": ("coal", 1000),
-        "resistor_4k7": ("yellow_dye", 4700),
-        "resistor_10k": ("glowstone_dust", 10000),
-        "resistor_100k": ("quartz", 100000),
-    }
-    for cid, (ing, value) in colors.items():
-        RECIPES[cid] = {
-            "type": "shapeless",
-            "ing": {"copper_ingot": 1, ing: 1},
-            "count": max(1, int(1000 // max(1, value ** 0.5) / 10)),
-            "note": "R = %s Ом" % value,
-        }
+RECIPES = load_recipes()
 
 
 def ingredient(v):
-    """Ингредиент в форме, которую понимают и 1.21.7, и 1.21.11: ПРОСТАЯ СТРОКА.
+    """Ингредиент ванильного рецепта: ПРОСТАЯ СТРОКА (или {"tag": ...}).
 
-    Разбор рецепта в ваниле читает ingredient как string|tag|item — объект
-    {"item": "minecraft:stick"}Accepts только как item-объект НОВОЙ схемы, а на
-    1.21.7 это `Not a string: {...}` (реальный лог: 38 «Couldn't parse data
-    file», из них 36 — до релиза v1.7.0, т.е. баг ехал с v1.4)."""
-    if isinstance(v, str):
-        return v if ":" in v else f"minecraft:{v}"
+    Разбор в 1.21.7 не принимает объект {"item": "minecraft:stick"} — отсюда
+    «Not a string» и обманчивое «List is too short: 0» в логе сервера.
+    """
+    if isinstance(v, dict):
+        if "tag" in v:
+            return {"tag": str(v["tag"])}
+        raise ValueError("непонятный ингредиент: %r" % (v,))
+    v = str(v)
     if v.startswith("#"):
         return {"tag": v[1:]}
-    if isinstance(v, dict) and "tag" in v:
-        return v
-    raise ValueError("непонятный ингредиент: %r" % (v,))
+    return v if ":" in v else f"minecraft:{v}"
 
 
 def write_recipe(datapack_dir, comp, spec):
@@ -1124,7 +965,6 @@ def main():
         shutil.rmtree(BUILD)
     os.makedirs(RP, exist_ok=True)
     os.makedirs(DP, exist_ok=True)
-    resistor_recipes()
 
     fmt = SHARED["meta"]["resource_pack_format"]
     desc = {"text": "Electronics — учебная электроника (светодиоды, диоды, схемы). Без модов."}

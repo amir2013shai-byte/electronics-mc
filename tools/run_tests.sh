@@ -65,6 +65,23 @@ fi
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestMovers
 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp "$OUT" TestDynamo
 
+# --- реестр внутри jar обязан совпадать с shared/components.json ------------------
+# Проверяем именно собранный jar, а не два исходника: «забыли обновить копию»
+# выглядит как зелёные тесты и красный релиз у пользователя.
+JAR=$(ls -t plugin/target/Electronics-*.jar 2>/dev/null | head -1)
+if [ -n "$JAR" ]; then
+  NID=$(python3 -c 'import json,io;print(len(json.load(io.open("shared/components.json",encoding="utf-8"))["components"]))')
+  if unzip -p "$JAR" components.json | cmp -s - shared/components.json; then
+    echo "OK    ${JAR##*/}: реестр в jar = shared/components.json ($NID id)"
+  else
+    NJAR=$(unzip -p "$JAR" components.json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["components"]))')
+    echo "FAIL  ${JAR##*/}: реестр в jar ($NJAR id) != shared/components.json ($NID id) — собери заново: (cd plugin && mvn clean package -DskipTests)"
+    exit 1
+  fi
+else
+  echo "пропуск: нет plugin/target/*.jar — собери: (cd plugin && mvn -DskipTests package)"
+fi
+
 # --- ресурспак: сверка ссылок на модели/текстуры (если пак собран) ----------------
 if [ -d build/resourcepack ]; then
   python3 tools/check_pack_refs.py

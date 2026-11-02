@@ -301,6 +301,15 @@ public final class Def {
         };
     }
 
+    /**
+     * Крафт в верстаке — из реестра (shared/components.json, поле craft).
+     * Единый источник для плагина (Recipes) и для датапака (tools/gen_pack.py):
+     * раньше таблицы держались дважды и разъехались — датапак отдавал 4 провода
+     * из крафта, а плагин без датапака — 1.
+     */
+    public java.util.Map<String, Object> craft;
+    public int craftCount = 1;
+
     private static String trim(double v) {
         if (v == Math.rint(v) && Math.abs(v) < 1e9) {
             return String.valueOf((long) v);

@@ -185,6 +185,67 @@ if os.path.isdir(RCP):
 else:
     print("датапак не собран — рецептов не проверялось")
 
+# --- структура craft в реестре: единственный источник крафтов (и для плагина,
+#     и для датапака), значит кривое поле должно падать офлайн, а не в логе ядра.
+craft_bad = []
+n_craft = 0
+for c in comps:
+    cr = c.get("craft")
+    if cr is None:
+        continue
+    n_craft += 1
+    cid = c["id"]
+    if not isinstance(cr, dict):
+        craft_bad.append(f"{cid}: craft не объект")
+        continue
+    cnt = cr.get("count", 1)
+    if not isinstance(cnt, int) or isinstance(cnt, bool) or cnt < 1 or cnt > 64:
+        craft_bad.append(f"{cid}: count={cnt!r} — ждут целое 1..64")
+    plain = cr.get("shapeless")
+    pat = cr.get("pattern")
+    key = cr.get("key")
+    if plain is not None:
+        if not isinstance(plain, dict) or not plain:
+            craft_bad.append(f"{cid}: shapeless должен быть непустым объектом")
+        else:
+            for k2, v in plain.items():
+                if not isinstance(k2, str) or not k2 or " " in k2:
+                    craft_bad.append(f"{cid}: имя ингредиента {k2!r} — ванильный item id без пробелов")
+                if not isinstance(v, int) or isinstance(v, bool) or v < 1 or v > 9:
+                    craft_bad.append(f"{cid}: {k2} x{v!r} — число 1..9")
+        if pat is not None or key is not None:
+            craft_bad.append(f"{cid}: нельзя и shapeless, и pattern одновременно")
+    elif pat is not None:
+        if not isinstance(pat, list) or not (1 <= len(pat) <= 3):
+            craft_bad.append(f"{cid}: pattern должен быть массивом 1..3 строк")
+            continue
+        used = set()
+        for row in pat:
+            if not isinstance(row, str) or len(row) > 3:
+                craft_bad.append(f"{cid}: строка паттерна {row!r} — не длиннее 3 символов")
+            used |= {ch for ch in row if ch != " "}
+        if not isinstance(key, dict) or not key:
+            craft_bad.append(f"{cid}: key должен быть объектом с символами паттерна")
+            continue
+        miss = sorted(used - set(key))
+        if miss:
+            craft_bad.append(f"{cid}: символы {miss} есть в pattern, но нет в key")
+        unused = sorted(set(key) - used)
+        if unused:
+            craft_bad.append(f"{cid}: в key висят без дела {unused}")
+        for k2, v in key.items():
+            if len(str(k2)) != 1:
+                craft_bad.append(f"{cid}: ключ {k2!r} — один символ")
+            if not isinstance(v, str) or " " in v:
+                craft_bad.append(f"{cid}: key[{k2}]={v!r} — ванильный item id строкой")
+    else:
+        craft_bad.append(f"{cid}: в craft нет ни shapeless, ни pattern")
+print(f"реестр: рецептов craft у {n_craft} деталей, кривых {len(craft_bad)}")
+for m in craft_bad[:10]:
+    print("  ПОЗОР:", m)
+if craft_bad:
+    sys.exit(1)
+
 # pack.mcmeta: 1.21.9+ не читает пак без min_format/max_format
 for label, path, lo, hi in (("ресурспак", os.path.join(RP, "pack.mcmeta"), 64, 75),
                             ("датапак", os.path.join(DP, "pack.mcmeta"), 80, 94)):

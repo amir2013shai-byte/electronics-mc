@@ -42,7 +42,7 @@ mutable states" are implemented where the vanilla client actually reads them:
 ## Install
 
 ```
-plugins/Electronics-1.7.1.jar                         # or: cd plugin && mvn -DskipTests package
+plugins/Electronics-1.7.2.jar                         # or: cd plugin && mvn -DskipTests package
 release/electronics-resourcepack.zip                   # resource pack (set resource-pack.url or apply manually)
 release/electronics-recipes-datapack.zip               # optional: 38 recipes — 69 parts are soldered instead
 ```
@@ -546,11 +546,11 @@ generator output, 1695 resolved references and 0 broken links in
   hand-computed 28.9 mA), and the pack checker
   `OK: все 114×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
-* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.1.jar`.
+* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.2.jar`.
 * Live run on Paper 1.21.11 build 132: plugin enables — 114 components, 3390
   model states, 110 own recipes (41 crafting + 69 JEI showcases) + 38 from the
   data pack = 148 in the recipe manager, 3 worksheets;
-  `selftest: true` → 31 PASS / 0 FAIL (log `srv/mc66.log`, zero
+  `selftest: true` → 32 PASS / 0 FAIL (logs `srv/mc66.log`/`mc68.log`, zero
   `Couldn't parse data file` lines), including the in-world sawmill, two scope
   checks — `PASS осциллограф: кадр 83 пикс., строки 4×20 | Upp 12.0 В | f 1.000 Гц`
   and the in-world one, `PASS живой экран осциллографа: TextDisplay над блоком

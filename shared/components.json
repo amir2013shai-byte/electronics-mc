@@ -199,7 +199,14 @@
     "#cfd6db"
    ],
    "stack": false,
-   "solid": false
+   "solid": false,
+   "craft": {
+    "shapeless": {
+     "smooth_quartz_slab": 1,
+     "repeater": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "breadboard",
@@ -218,7 +225,20 @@
     "#636e72"
    ],
    "states": 6,
-   "stack": false
+   "stack": false,
+   "craft": {
+    "pattern": [
+     "HRH",
+     "RRR",
+     "RSR"
+    ],
+    "key": {
+     "H": "hopper",
+     "R": "repeater",
+     "S": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "wire_red",
@@ -237,7 +257,15 @@
    "orientable": true,
    "states": 6,
    "hub": true,
-   "en": "Wire (red)"
+   "en": "Wire (red)",
+   "craft": {
+    "shapeless": {
+     "string": 1,
+     "copper_ingot": 1,
+     "redstone": 1
+    },
+    "count": 4
+   }
   },
   {
    "id": "wire_black",
@@ -256,7 +284,15 @@
    "orientable": true,
    "states": 6,
    "hub": true,
-   "en": "Wire (black)"
+   "en": "Wire (black)",
+   "craft": {
+    "shapeless": {
+     "string": 1,
+     "copper_ingot": 1,
+     "ink_sac": 1
+    },
+    "count": 4
+   }
   },
   {
    "id": "wire_yellow",
@@ -275,7 +311,15 @@
    "orientable": true,
    "states": 6,
    "hub": true,
-   "en": "Wire (yellow)"
+   "en": "Wire (yellow)",
+   "craft": {
+    "shapeless": {
+     "string": 1,
+     "copper_ingot": 1,
+     "yellow_dye": 1
+    },
+    "count": 4
+   }
   },
   {
    "id": "wire_blue",
@@ -294,7 +338,15 @@
    "orientable": true,
    "states": 6,
    "hub": true,
-   "en": "Wire (blue)"
+   "en": "Wire (blue)",
+   "craft": {
+    "shapeless": {
+     "string": 1,
+     "copper_ingot": 1,
+     "lapis_lazuli": 1
+    },
+    "count": 4
+   }
   },
   {
    "id": "battery_3",
@@ -315,7 +367,14 @@
    "r_int": 0.6,
    "orientable": true,
    "states": 6,
-   "en": "Battery 3 V"
+   "en": "Battery 3 V",
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 2,
+     "honeycomb": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "battery_aa",
@@ -336,7 +395,20 @@
    "r_int": 1.5,
    "orientable": true,
    "states": 6,
-   "en": "AA Cell 1.5 V"
+   "en": "AA Cell 1.5 V",
+   "craft": {
+    "pattern": [
+     "I",
+     "R",
+     "G"
+    ],
+    "key": {
+     "G": "gold_nugget",
+     "I": "iron_nugget",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "battery_9",
@@ -357,7 +429,20 @@
    "r_int": 1.2,
    "orientable": true,
    "states": 6,
-   "en": "9 V Battery"
+   "en": "9 V Battery",
+   "craft": {
+    "pattern": [
+     "GGG",
+     "CRC",
+     "GGG"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "battery_lead_12v",
@@ -380,7 +465,22 @@
    "peukert": 1.25,
    "orientable": true,
    "states": 6,
-   "en": "Lead-Acid Battery 12 V 7 Ah"
+   "en": "Lead-Acid Battery 12 V 7 Ah",
+   "craft": {
+    "pattern": [
+     "I I",
+     "PRP",
+     "CWC"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot",
+     "P": "black_concrete",
+     "R": "redstone",
+     "W": "glass_bottle"
+    },
+    "count": 1
+   }
   },
   {
    "id": "power_supply",
@@ -402,7 +502,22 @@
    "r_int": 0.4,
    "tunable": true,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "CGC",
+     "RBR",
+     "IRI"
+    ],
+    "key": {
+     "B": "copper_bulb",
+     "C": "copper_ingot",
+     "G": "glass",
+     "I": "iron_ingot",
+     "R": "repeater"
+    },
+    "count": 1
+   }
   },
   {
    "id": "solar_cell",
@@ -423,7 +538,21 @@
    "r_int": 20.0,
    "stack": false,
    "states": 6,
-   "en": "Solar Cell"
+   "en": "Solar Cell",
+   "craft": {
+    "pattern": [
+     " GG",
+     "QLQ",
+     "GIG"
+    ],
+    "key": {
+     "G": "tinted_glass",
+     "I": "iron_ingot",
+     "L": "lapis_block",
+     "Q": "quartz"
+    },
+    "count": 1
+   }
   },
   {
    "id": "generator",
@@ -444,7 +573,21 @@
    "r_int": 1.0,
    "orientable": true,
    "states": 6,
-   "en": "Clock Generator"
+   "en": "Clock Generator",
+   "craft": {
+    "pattern": [
+     "ICI",
+     "RPR",
+     "ICI"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot",
+     "P": "sticky_piston",
+     "R": "repeater"
+    },
+    "count": 1
+   }
   },
   {
    "id": "ground_bus",
@@ -464,7 +607,20 @@
    "orientable": true,
    "states": 6,
    "hub": true,
-   "en": "Ground Bus"
+   "en": "Ground Bus",
+   "craft": {
+    "pattern": [
+     "CCC",
+     "GRG",
+     "CCC"
+    ],
+    "key": {
+     "C": "copper_block",
+     "G": "lightning_rod",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "resistor_10r",
@@ -489,7 +645,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "coal": 1
+    },
+    "count": 1,
+    "note": "R = 10 Ом"
+   }
   },
   {
    "id": "resistor_100r",
@@ -514,7 +678,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "charcoal": 1
+    },
+    "count": 1,
+    "note": "R = 100 Ом"
+   }
   },
   {
    "id": "resistor_220r",
@@ -539,7 +711,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "nether_brick": 1
+    },
+    "count": 1,
+    "note": "R = 220 Ом"
+   }
   },
   {
    "id": "resistor_330r",
@@ -564,7 +744,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "brick": 1
+    },
+    "count": 1,
+    "note": "R = 330 Ом"
+   }
   },
   {
    "id": "resistor_1k",
@@ -589,7 +777,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "clay": 1
+    },
+    "count": 1,
+    "note": "R = 1000 Ом"
+   }
   },
   {
    "id": "resistor_4k7",
@@ -614,7 +810,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "terracotta": 1
+    },
+    "count": 1,
+    "note": "R = 4700 Ом"
+   }
   },
   {
    "id": "resistor_10k",
@@ -639,7 +843,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "amethyst_shard": 1
+    },
+    "count": 1,
+    "note": "R = 10000 Ом"
+   }
   },
   {
    "id": "resistor_100k",
@@ -664,7 +876,15 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "quartz": 1
+    },
+    "count": 1,
+    "note": "R = 100000 Ом"
+   }
   },
   {
    "id": "potentiometer",
@@ -689,7 +909,20 @@
     255,
     110,
     30
-   ]
+   ],
+   "craft": {
+    "pattern": [
+     " R ",
+     "RCR",
+     " I "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_nugget",
+     "R": "resin_clump"
+    },
+    "count": 1
+   }
   },
   {
    "id": "cap_100nf",
@@ -709,7 +942,14 @@
    "rated_voltage": 25.0,
    "stack": true,
    "states": 6,
-   "en": "Capacitor 100 nF"
+   "en": "Capacitor 100 nF",
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "paper": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "cap_100uf",
@@ -730,7 +970,19 @@
    "polar": true,
    "stack": true,
    "states": 6,
-   "en": "Electrolytic 100 µF"
+   "en": "Electrolytic 100 µF",
+   "craft": {
+    "pattern": [
+     "P",
+     "C",
+     "P"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "P": "paper"
+    },
+    "count": 1
+   }
   },
   {
    "id": "cap_1000uf",
@@ -751,7 +1003,17 @@
    "polar": true,
    "stack": true,
    "en": "Electrolytic 1000 µF",
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "PCP"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "P": "paper"
+    },
+    "count": 1
+   }
   },
   {
    "id": "diode",
@@ -771,7 +1033,17 @@
    "v_rev_max": 40.0,
    "orientable": true,
    "states": 6,
-   "en": "Diode 1N4007"
+   "en": "Diode 1N4007",
+   "craft": {
+    "pattern": [
+     "CR"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "led_red",
@@ -798,7 +1070,20 @@
    ],
    "orientable": true,
    "states": 6,
-   "en": "LED (red)"
+   "en": "LED (red)",
+   "craft": {
+    "pattern": [
+     "G",
+     "R",
+     "C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "led_green",
@@ -825,7 +1110,20 @@
    ],
    "orientable": true,
    "states": 6,
-   "en": "LED (green)"
+   "en": "LED (green)",
+   "craft": {
+    "pattern": [
+     "G",
+     "V",
+     "C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "V": "lime_dye"
+    },
+    "count": 1
+   }
   },
   {
    "id": "led_blue",
@@ -852,7 +1150,20 @@
    ],
    "orientable": true,
    "states": 6,
-   "en": "LED (blue)"
+   "en": "LED (blue)",
+   "craft": {
+    "pattern": [
+     "G",
+     "B",
+     "C"
+    ],
+    "key": {
+     "B": "lapis_lazuli",
+     "C": "copper_ingot",
+     "G": "glass"
+    },
+    "count": 1
+   }
   },
   {
    "id": "led_yellow",
@@ -879,7 +1190,20 @@
    ],
    "orientable": true,
    "states": 6,
-   "en": "LED (yellow)"
+   "en": "LED (yellow)",
+   "craft": {
+    "pattern": [
+     "G",
+     "Y",
+     "C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "Y": "yellow_dye"
+    },
+    "count": 1
+   }
   },
   {
    "id": "led_white",
@@ -906,7 +1230,20 @@
    ],
    "orientable": true,
    "states": 6,
-   "en": "LED (white)"
+   "en": "LED (white)",
+   "craft": {
+    "pattern": [
+     "G",
+     "Q",
+     "C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "Q": "quartz"
+    },
+    "count": 1
+   }
   },
   {
    "id": "lamp",
@@ -933,7 +1270,20 @@
     130
    ],
    "states": 6,
-   "en": "Incandescent Lamp"
+   "en": "Incandescent Lamp",
+   "craft": {
+    "pattern": [
+     " G ",
+     "GCG",
+     " R "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "button",
@@ -951,7 +1301,18 @@
    ],
    "orientable": true,
    "states": 6,
-   "en": "Push Button"
+   "en": "Push Button",
+   "craft": {
+    "pattern": [
+     "R",
+     "S"
+    ],
+    "key": {
+     "R": "redstone",
+     "S": "stone_pressure_plate"
+    },
+    "count": 1
+   }
   },
   {
    "id": "switch_spst",
@@ -970,7 +1331,20 @@
    ],
    "orientable": true,
    "states": 6,
-   "en": "Switch (SPST)"
+   "en": "Switch (SPST)",
+   "craft": {
+    "pattern": [
+     "L",
+     "R",
+     "S"
+    ],
+    "key": {
+     "L": "lever",
+     "R": "redstone",
+     "S": "stone_button"
+    },
+    "count": 1
+   }
   },
   {
    "id": "switch_spdt",
@@ -990,7 +1364,20 @@
    "spdt": true,
    "orientable": true,
    "states": 6,
-   "en": "Switch (SPDT)"
+   "en": "Switch (SPDT)",
+   "craft": {
+    "pattern": [
+     "LL",
+     "RS",
+     "SS"
+    ],
+    "key": {
+     "L": "lever",
+     "R": "redstone",
+     "S": "stone_button"
+    },
+    "count": 1
+   }
   },
   {
    "id": "transistor_npn",
@@ -1009,7 +1396,19 @@
    "beta": 150.0,
    "orientable": true,
    "states": 6,
-   "en": "Transistor NPN (BC547)"
+   "en": "Transistor NPN (BC547)",
+   "craft": {
+    "pattern": [
+     "R R",
+     "GSG"
+    ],
+    "key": {
+     "G": "gold_nugget",
+     "R": "redstone",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "transistor_pnp",
@@ -1028,7 +1427,19 @@
    "beta": 150.0,
    "orientable": true,
    "states": 6,
-   "en": "Transistor PNP (BC557)"
+   "en": "Transistor PNP (BC557)",
+   "craft": {
+    "pattern": [
+     "R R",
+     "ISI"
+    ],
+    "key": {
+     "I": "iron_nugget",
+     "R": "redstone",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "gate_and",
@@ -1047,7 +1458,20 @@
    "logic": "AND",
    "orientable": true,
    "states": 6,
-   "en": "IC AND"
+   "en": "IC AND",
+   "craft": {
+    "pattern": [
+     "RSR",
+     "SCS",
+     "R R"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "R": "redstone",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "gate_or",
@@ -1066,7 +1490,20 @@
    "logic": "OR",
    "orientable": true,
    "states": 6,
-   "en": "IC OR"
+   "en": "IC OR",
+   "craft": {
+    "pattern": [
+     "R R",
+     "SCS",
+     "R R"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "R": "redstone",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "gate_xor",
@@ -1085,7 +1522,20 @@
    "logic": "XOR",
    "orientable": true,
    "states": 6,
-   "en": "IC XOR"
+   "en": "IC XOR",
+   "craft": {
+    "pattern": [
+     "RSR",
+     "SCS",
+     "R R"
+    ],
+    "key": {
+     "C": "gold_nugget",
+     "R": "redstone",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "gate_not",
@@ -1104,7 +1554,19 @@
    "logic": "NOT",
    "orientable": true,
    "states": 6,
-   "en": "IC NOT"
+   "en": "IC NOT",
+   "craft": {
+    "pattern": [
+     " R ",
+     "R R",
+     " C "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "comparator",
@@ -1123,7 +1585,20 @@
    "logic": "CMP",
    "orientable": true,
    "states": 6,
-   "en": "Comparator"
+   "en": "Comparator",
+   "craft": {
+    "pattern": [
+     "AG",
+     " C",
+     "GA"
+    ],
+    "key": {
+     "A": "amethyst_shard",
+     "C": "copper_ingot",
+     "G": "glass"
+    },
+    "count": 1
+   }
   },
   {
    "id": "buzzer",
@@ -1142,7 +1617,20 @@
    "rated_voltage": 5.0,
    "min_current": 0.005,
    "states": 6,
-   "en": "Buzzer"
+   "en": "Buzzer",
+   "craft": {
+    "pattern": [
+     " C ",
+     "CGC",
+     " R "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "R": "redstone_block"
+    },
+    "count": 1
+   }
   },
   {
    "id": "motor",
@@ -1164,7 +1652,20 @@
    "rpm": 1800.0,
    "inertia": 0.0015,
    "states": 6,
-   "en": "Electric Motor"
+   "en": "Electric Motor",
+   "craft": {
+    "pattern": [
+     " C ",
+     "CRC",
+     " I "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "fuse",
@@ -1185,7 +1686,20 @@
    "max_current": 0.1,
    "orientable": true,
    "states": 6,
-   "en": "Fuse 100 mA"
+   "en": "Fuse 100 mA",
+   "craft": {
+    "pattern": [
+     "GC",
+     "CR",
+     "CG"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "voltmeter",
@@ -1205,7 +1719,21 @@
    "internal_resistance": 100000.0,
    "orientable": true,
    "states": 6,
-   "en": "Voltmeter"
+   "en": "Voltmeter",
+   "craft": {
+    "pattern": [
+     "GCG",
+     "IRI",
+     " C "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "I": "iron_ingot",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "oscilloscope",
@@ -1231,7 +1759,21 @@
     220,
     130
    ],
-   "en": "Oscilloscope"
+   "en": "Oscilloscope",
+   "craft": {
+    "pattern": [
+     "GIG",
+     "CRC",
+     "R R"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "I": "iron_ingot",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "ammeter",
@@ -1251,7 +1793,21 @@
    "internal_resistance": 0.5,
    "orientable": true,
    "states": 6,
-   "en": "Ammeter"
+   "en": "Ammeter",
+   "craft": {
+    "pattern": [
+     "GCG",
+     "ILI",
+     " C "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "I": "iron_ingot",
+     "L": "lapis_lazuli"
+    },
+    "count": 1
+   }
   },
   {
    "id": "schematic",
@@ -1270,7 +1826,20 @@
     "#2c3e50"
    ],
    "orientable": true,
-   "states": 2
+   "states": 2,
+   "craft": {
+    "pattern": [
+     "PPP",
+     "PRP",
+     "PIP"
+    ],
+    "key": {
+     "I": "copper_ingot",
+     "P": "paper",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "multimeter",
@@ -1288,7 +1857,22 @@
     "#e74c3c"
    ],
    "states": 6,
-   "en": "Multimeter"
+   "en": "Multimeter",
+   "craft": {
+    "pattern": [
+     "GIG",
+     "CRC",
+     "W I"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "I": "iron_ingot",
+     "R": "redstone",
+     "W": "clock"
+    },
+    "count": 1
+   }
   },
   {
    "id": "wire_cutter",
@@ -1304,7 +1888,19 @@
     "#95a5a6",
     "#e74c3c"
    ],
-   "en": "Wire Cutters"
+   "en": "Wire Cutters",
+   "craft": {
+    "pattern": [
+     "I I",
+     " S ",
+     " S "
+    ],
+    "key": {
+     "I": "iron_ingot",
+     "S": "stick"
+    },
+    "count": 1
+   }
   },
   {
    "id": "led_probe",
@@ -1321,7 +1917,20 @@
     "#e74c3c"
    ],
    "states": 6,
-   "en": "LED Test Probe"
+   "en": "LED Test Probe",
+   "craft": {
+    "pattern": [
+     "G",
+     "R",
+     "S"
+    ],
+    "key": {
+     "G": "glass",
+     "R": "redstone",
+     "S": "stick"
+    },
+    "count": 1
+   }
   },
   {
    "id": "empty_circuit",
@@ -1338,7 +1947,20 @@
     "#a9dfbf",
     "#f7dc6f"
    ],
-   "en": "Blank Circuit Board"
+   "en": "Blank Circuit Board",
+   "craft": {
+    "pattern": [
+     "GRG",
+     "RPR",
+     "GRG"
+    ],
+    "key": {
+     "G": "gold_nugget",
+     "P": "paper",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "magnet",
@@ -1358,7 +1980,18 @@
    ],
    "stack": true,
    "states": 6,
-   "field_mt": 1.4
+   "field_mt": 1.4,
+   "craft": {
+    "pattern": [
+     "IRI"
+    ],
+    "key": {
+     "I": "iron_ingot",
+     "R": "redstone_block"
+    },
+    "count": 1,
+    "note": "сталь намагничивают редстоуном: без этого это просто брусок"
+   }
   },
   {
    "id": "electromagnet",
@@ -1382,7 +2015,20 @@
    "rated_voltage": 12.0,
    "rated_power": 1.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     " C ",
+     "CIC",
+     " C "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot"
+    },
+    "count": 1,
+    "note": "медь вокруг сердечника — как в реальной катушке"
+   }
   },
   {
    "id": "inductor_10mh",
@@ -1403,7 +2049,20 @@
    "inductance": 0.01,
    "rated_power": 1.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "S",
+     "I",
+     "S"
+    ],
+    "key": {
+     "I": "iron_nugget",
+     "S": "string"
+    },
+    "count": 1,
+    "note": "витки провода на сердечнике"
+   }
   },
   {
    "id": "choke_10h",
@@ -1424,7 +2083,20 @@
    "inductance": 10.0,
    "rated_power": 2.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "CCC",
+     "CIC",
+     " C "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_block"
+    },
+    "count": 1,
+    "note": "большой дроссель: много меди и железный сердечник"
+   }
   },
   {
    "id": "relay_5v",
@@ -1449,7 +2121,22 @@
    "release_ma": 8.0,
    "rated_power": 0.4,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "CR",
+     "RI",
+     "CG"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "I": "iron_ingot",
+     "R": "redstone"
+    },
+    "count": 1,
+    "note": "катушка + сердечник + золотой контакт"
+   }
   },
   {
    "id": "reed_switch",
@@ -1469,7 +2156,20 @@
    "operate_mt": 0.7,
    "orientable": true,
    "stack": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "G",
+     "I",
+     "G"
+    ],
+    "key": {
+     "G": "glass",
+     "I": "iron_nugget"
+    },
+    "count": 1,
+    "note": "герметичная колба с двумя контактами"
+   }
   },
   {
    "id": "photoresistor",
@@ -1489,7 +2189,21 @@
    "resistance": 100000.0,
    "light_dependent": true,
    "rated_power": 0.125,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "G",
+     "S",
+     "C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "S": "glowstone_dust"
+    },
+    "count": 1,
+    "note": "сернистый кадмий под стеклом: темнота = большое R"
+   }
   },
   {
    "id": "thermistor_ntc",
@@ -1510,7 +2224,16 @@
    "b_constant": 3950.0,
    "self_heat": 40.0,
    "rated_power": 0.25,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "shapeless": {
+     "clay_ball": 1,
+     "copper_ingot": 2,
+     "redstone": 1
+    },
+    "count": 1,
+    "note": "керамический диск с выводами"
+   }
   },
   {
    "id": "soldering_station",
@@ -1531,7 +2254,22 @@
    ],
    "stack": false,
    "solid": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "pattern": [
+     "P P",
+     "PFP",
+     "ICI"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "F": "furnace",
+     "I": "iron_nugget",
+     "P": "oak_planks"
+    },
+    "count": 1,
+    "note": "столешница + горелка + медь: паять нужно у тепла"
+   }
   },
   {
    "id": "soldering_iron",
@@ -1550,7 +2288,21 @@
     "#f5f5f5"
    ],
    "stack": false,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "pattern": [
+     "  C",
+     " I ",
+     "S  "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_nugget",
+     "S": "stick"
+    },
+    "count": 1,
+    "note": "медное жало, железный стержень, деревянная рукоять"
+   }
   },
   {
    "id": "solder",
@@ -1569,7 +2321,15 @@
     "#7f8c8d"
    ],
    "stack": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "shapeless": {
+     "iron_nugget": 2,
+     "flint": 1
+    },
+    "count": 2,
+    "note": "мягкий металл + абразивная присадка"
+   }
   },
   {
    "id": "flux",
@@ -1588,7 +2348,15 @@
     "#f7dc6f"
    ],
    "stack": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "shapeless": {
+     "glowstone_dust": 1,
+     "honey_bottle": 1
+    },
+    "count": 2,
+    "note": "канифоль со растворителем: без флюса площадка окислится"
+   }
   },
   {
    "id": "fuse_cartridge_1a",
@@ -1611,7 +2379,20 @@
    "blow_i2t": 3.0,
    "rated_voltage": 250.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "I I",
+     "CGC",
+     "I I"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "I": "iron_nugget"
+    },
+    "count": 1
+   }
   },
   {
    "id": "fuse_cartridge_5a",
@@ -1634,7 +2415,19 @@
    "blow_i2t": 45.0,
    "rated_voltage": 250.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "I I",
+     "CCC",
+     "I I"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_nugget"
+    },
+    "count": 1
+   }
   },
   {
    "id": "fuse_slow_2a",
@@ -1657,7 +2450,20 @@
    "blow_i2t": 22.0,
    "rated_voltage": 250.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "I I",
+     "CSC",
+     "I I"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_nugget",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "ptc_500ma",
@@ -1682,7 +2488,15 @@
    "thermal_k": 12.0,
    "heat_j": 0.15,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "shapeless": {
+     "clay_ball": 1,
+     "coal": 1,
+     "copper_ingot": 2
+    },
+    "count": 1
+   }
   },
   {
    "id": "mov_275v",
@@ -1706,7 +2520,19 @@
    "energy_j": 12.0,
    "rated_voltage": 275.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "pattern": [
+     " C ",
+     "CRC",
+     " C "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "bridge_kbu8",
@@ -1730,7 +2556,19 @@
    "v_reverse_max": 800.0,
    "rated_voltage": 800.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "pattern": [
+     "DRD",
+     "R R",
+     "DRD"
+    ],
+    "key": {
+     "D": "gold_nugget",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "shottky_sbr30",
@@ -1753,7 +2591,15 @@
    "max_current": 3.0,
    "rated_voltage": 30.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 1,
+     "quartz": 1,
+     "redstone": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "cap_elec_2200uf",
@@ -1775,7 +2621,19 @@
    "polar": true,
    "resistance": 8000000.0,
    "stack": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "PCP",
+     "C C",
+     "PCP"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "P": "paper"
+    },
+    "count": 1
+   }
   },
   {
    "id": "reg_7805",
@@ -1804,7 +2662,21 @@
    "rated_voltage": 35.0,
    "rated_power": 2.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "pattern": [
+     "III",
+     "GSG",
+     "C C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "I": "iron_nugget",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "reg_7812",
@@ -1833,7 +2705,21 @@
    "rated_voltage": 35.0,
    "rated_power": 2.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "pattern": [
+     "III",
+     "GRG",
+     "C C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "I": "iron_nugget",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "reg_lm317",
@@ -1865,7 +2751,22 @@
    "rated_voltage": 40.0,
    "rated_power": 2.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "pattern": [
+     "I I",
+     "GSG",
+     "CRC"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "I": "iron_nugget",
+     "R": "redstone",
+     "S": "sand"
+    },
+    "count": 1
+   }
   },
   {
    "id": "xfmr_230_12",
@@ -1891,7 +2792,19 @@
    "rated_power": 10.0,
    "rated_voltage": 230.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "pattern": [
+     "CIC",
+     "I I",
+     "CIC"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot"
+    },
+    "count": 1
+   }
   },
   {
    "id": "xfmr_230_9",
@@ -1917,7 +2830,19 @@
    "rated_power": 6.0,
    "rated_voltage": 230.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "pattern": [
+     "CIC",
+     "I I",
+     "C C"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot"
+    },
+    "count": 1
+   }
   },
   {
    "id": "desolder_braid",
@@ -1936,7 +2861,14 @@
     "#7f8c8d"
    ],
    "stack": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "shapeless": {
+     "string": 2,
+     "copper_ingot": 1
+    },
+    "count": 2
+   }
   },
   {
    "id": "source_ac",
@@ -1960,7 +2892,21 @@
    "rated_voltage": 24.0,
    "tunable": true,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "GCG",
+     "RIR",
+     "G G"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "I": "iron_ingot",
+     "R": "redstone"
+    },
+    "count": 1
+   }
   },
   {
    "id": "raw_copper_chunk",
@@ -1979,7 +2925,14 @@
     "#5d4037"
    ],
    "stack": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "shapeless": {
+     "copper_ingot": 2,
+     "calcite": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "raw_tin_chunk",
@@ -1998,7 +2951,15 @@
     "#808b96"
    ],
    "stack": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "shapeless": {
+     "iron_nugget": 4,
+     "quartz": 1,
+     "calcite": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "raw_zinc_chunk",
@@ -2017,7 +2978,16 @@
     "#616a6b"
    ],
    "stack": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "shapeless": {
+     "iron_nugget": 2,
+     "coal": 1,
+     "gunpowder": 1,
+     "calcite": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "ingot_copper",
@@ -2094,7 +3064,13 @@
    "orientable": true,
    "states": 6,
    "hub": true,
-   "resistance": 0.03
+   "resistance": 0.03,
+   "craft": {
+    "shapeless": {
+     "string": 2
+    },
+    "count": 1
+   }
   },
   {
    "id": "wire_tinned",
@@ -2115,7 +3091,13 @@
    "orientable": true,
    "states": 6,
    "hub": true,
-   "resistance": 0.01
+   "resistance": 0.01,
+   "craft": {
+    "shapeless": {
+     "sand": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "geoprobe",
@@ -2134,7 +3116,20 @@
     "#e67e22"
    ],
    "stack": false,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "pattern": [
+     "Q",
+     "I",
+     "S"
+    ],
+    "key": {
+     "I": "iron_ingot",
+     "Q": "quartz",
+     "S": "stick"
+    },
+    "count": 1
+   }
   },
   {
    "id": "wire_stripper",
@@ -2153,7 +3148,20 @@
     "#f5f5f5"
    ],
    "stack": false,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "pattern": [
+     "SI",
+     "CF"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "F": "flint",
+     "I": "iron_ingot",
+     "S": "shears"
+    },
+    "count": 1
+   }
   },
   {
    "id": "battery_zinc",
@@ -2175,7 +3183,14 @@
    "r_int": 3.5,
    "rated_voltage": 1.6,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "shapeless": {
+     "coal": 1,
+     "string": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "mcu_atmega328",
@@ -2200,7 +3215,14 @@
    "heat_j": 3.0,
    "thermal_k": 60.0,
    "states": 6,
-   "orientable": true
+   "orientable": true,
+   "craft": {
+    "shapeless": {
+     "quartz": 1,
+     "gold_nugget": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "programmer_usb",
@@ -2221,7 +3243,20 @@
    ],
    "stack": false,
    "solid": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "pattern": [
+     "IG",
+     "CR"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "gold_nugget",
+     "I": "iron_nugget",
+     "R": "repeater"
+    },
+    "count": 1
+   }
   },
   {
    "id": "crystal_16mhz",
@@ -2240,7 +3275,14 @@
     "#7f8c8d"
    ],
    "stack": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "shapeless": {
+     "quartz": 2,
+     "gold_nugget": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "crucible_station",
@@ -2261,7 +3303,21 @@
    ],
    "stack": false,
    "solid": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "pattern": [
+     "B B",
+     "BLB",
+     "IFI"
+    ],
+    "key": {
+     "B": "bricks",
+     "F": "furnace",
+     "I": "iron_ingot",
+     "L": "lava_bucket"
+    },
+    "count": 1
+   }
   },
   {
    "id": "mill_station",
@@ -2282,7 +3338,21 @@
    ],
    "stack": false,
    "solid": true,
-   "states": 1
+   "states": 1,
+   "craft": {
+    "pattern": [
+     "IRI",
+     "CPC",
+     "IRI"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot",
+     "P": "piston",
+     "R": "redstone_block"
+    },
+    "count": 1
+   }
   },
   {
    "id": "ingot_bronze",
@@ -2382,7 +3452,13 @@
    "i_limit": 5.0,
    "orientable": true,
    "states": 6,
-   "pins": 2
+   "pins": 2,
+   "craft": {
+    "shapeless": {
+     "gold_nugget": 1
+    },
+    "count": 1
+   }
   },
   {
    "id": "supply_220v",
@@ -2403,7 +3479,23 @@
    "voltage": 220.0,
    "r_int": 6.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "QGQ",
+     "CRC",
+     "IRI"
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "G": "glass",
+     "I": "iron_block",
+     "Q": "quartz_block",
+     "R": "repeater"
+    },
+    "count": 1,
+    "note": "кварц и стекло — изоляторы, реле — контактор"
+   }
   },
   {
    "id": "motor_220v",
@@ -2429,7 +3521,21 @@
    "inertia": 0.02,
    "mass": 9.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     " I ",
+     "CRC",
+     " I "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot",
+     "R": "redstone"
+    },
+    "count": 1,
+    "note": "заготовка; обмотку мотают эмальпроводом на столе"
+   }
   },
   {
    "id": "fuse_slow_10a",
@@ -2451,7 +3557,21 @@
    "max_current": 10.0,
    "blow_i2t": 300.0,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "I I",
+     "CBC",
+     "I I"
+    ],
+    "key": {
+     "B": "clay",
+     "C": "copper_ingot",
+     "I": "iron_nugget"
+    },
+    "count": 1,
+    "note": "керамическая трубка: пусковой ток мотора выдерживает"
+   }
   },
   {
    "id": "shaft_kinetic",
@@ -2474,7 +3594,17 @@
    "mass": 4.0,
    "radius": 0.05,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "III"
+    ],
+    "key": {
+     "I": "iron_ingot"
+    },
+    "count": 1,
+    "note": "пруток прокатки: три куска железа"
+   }
   },
   {
    "id": "gearbox_3x",
@@ -2498,7 +3628,19 @@
    "mass": 6.0,
    "radius": 0.2,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "IR",
+     "RI"
+    ],
+    "key": {
+     "I": "iron_nugget",
+     "R": "redstone"
+    },
+    "count": 1,
+    "note": "две шестерни в зацеплении — так и выглядит 1:3"
+   }
   },
   {
    "id": "flywheel_kinetic",
@@ -2520,7 +3662,19 @@
    "mass": 20.0,
    "radius": 0.25,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "III",
+     "I I",
+     "III"
+    ],
+    "key": {
+     "I": "iron_nugget"
+    },
+    "count": 1,
+    "note": "массивный диск: 8 кусков железа на обод"
+   }
   },
   {
    "id": "wheel_kinetic",
@@ -2544,7 +3698,16 @@
    "mass": 8.0,
    "inertia": 0.02,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "shapeless": {
+     "iron_ingot": 2,
+     "copper_ingot": 1,
+     "stick": 1
+    },
+    "count": 1,
+    "note": "обод, медная втулка, ось"
+   }
   },
   {
    "id": "saw_kinetic",
@@ -2566,7 +3729,20 @@
    "mass": 10.0,
    "radius": 0.35,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     " P ",
+     "PSP",
+     " P "
+    ],
+    "key": {
+     "P": "iron_nugget",
+     "S": "stick"
+    },
+    "count": 1,
+    "note": "диск на оси; зубья наплавляют бронзой"
+   }
   },
   {
    "id": "drill_kinetic",
@@ -2588,7 +3764,20 @@
    "mass": 14.0,
    "radius": 0.1,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "I",
+     "S",
+     "I"
+    ],
+    "key": {
+     "I": "iron_ingot",
+     "S": "stone"
+    },
+    "count": 1,
+    "note": "штанга с победитовыми вставками из шлакового корунда"
+   }
   },
   {
    "id": "crank_hand",
@@ -2612,7 +3801,19 @@
    "mass": 3.0,
    "radius": 0.2,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "II",
+     " I",
+     " S"
+    ],
+    "key": {
+     "I": "iron_ingot",
+     "S": "stick"
+    },
+    "count": 1
+   }
   },
   {
    "id": "wheel_water",
@@ -2636,7 +3837,19 @@
    "mass": 25.0,
    "radius": 0.5,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "P P",
+     "PWP",
+     "P P"
+    ],
+    "key": {
+     "P": "spruce_planks",
+     "W": "iron_bars"
+    },
+    "count": 1
+   }
   },
   {
    "id": "dynamo_12v",
@@ -2663,7 +3876,21 @@
    "mass": 8.0,
    "polar": true,
    "orientable": true,
-   "states": 6
+   "states": 6,
+   "craft": {
+    "pattern": [
+     "ICI",
+     "CWC",
+     " R "
+    ],
+    "key": {
+     "C": "copper_ingot",
+     "I": "iron_ingot",
+     "R": "redstone",
+     "W": "gold_block"
+    },
+    "count": 1
+   }
   }
  ]
 }

@@ -6,7 +6,7 @@
 
   <groupId>me.arena</groupId>
   <artifactId>electronics</artifactId>
-  <version>1.7.1</version>
+  <version>1.7.2</version>
   <packaging>jar</packaging>
   <name>Electronics</name>
   <description>Учебная электроника для Spigot 1.21.11 без клиентских модов</description>
@@ -33,6 +33,18 @@
     <resources>
       <resource>
         <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+      </resource>
+      <!-- Реестр имеет ОДИН дом: shared/components.json. Раньше его копировали
+           в src/main/resources руками (шаг чек-листа в docs/adding-parts.md),
+           и ничто не проверяло, что копию не забыли обновить: забывает копию —
+           и jar молча собирает старый реестр, а ресурспак и датапак — новые. -->
+      <resource>
+        <directory>../shared</directory>
+        <targetPath>.</targetPath>
+        <includes>
+          <include>components.json</include>
+        </includes>
         <filtering>false</filtering>
       </resource>
     </resources>

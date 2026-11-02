@@ -21,7 +21,7 @@
 4. **Крафт реальный и трудный**: паяется на столе (`meta.soldered`) или делается на
    станке (`Metallurgy`), ванильный рецепт — только из ванильных материалов.
 5. **JEI**: для спаечных деталей — «витрина», для ванильных крафтов — обычный
-   рецепт; обе таблицы обязаны совпадать с `Recipes.DEFS`.
+   рецепт; оба берутся из одного поля реестра — `components[].craft`.
 6. **Каталог**: `/elec show` умеет объяснить, что это и зачем; у `kind` или у id
    есть текст, иначе `selftest` ругнётся.
 7. **`selftest`**: строка PASS с настоящими числами (амперы, вольты, градусы),
@@ -38,7 +38,9 @@
 
 ```
 shared/components.json                      ← единственный источник
-plugin/src/main/resources/components.json   ← копия один-в-один (её читает плагин)
+shared/components.json                        ← единственный реестр: его читает
+                                                  и плагин (pom кладёт файл в jar), и
+                                                  генератор паков
 tools/gen_pack.py                           ← читает shared/, генерит пак и датапак
 ```
 
@@ -49,9 +51,11 @@ tools/gen_pack.py                           ← читает shared/, генер
 префиксной суммой (см. §3), поэтому **новые id дописывают в конец**, а не
 вставляют в середину.
 
-`tools/gen_pack.py` в конце сверяет: «рецепт не задан для …» — если id есть в
-`meta.soldered`, он обязан быть и в таблице `RECIPES` (зеркало `Recipes.DEFS`),
-иначе генератор предупреждает. Исключения перечислены в `BY_DESIGN`.
+`tools/check_pack_refs.py` сверяет структуру `craft` (pattern ≤ 3×3, каждый
+символ паттерна описан в `key`, `count` 1..64, имена — ванильные item id), а
+`tools/gen_pack.py` предупреждает: «рецепт не задан для …» — если id есть в
+`meta.soldered`, у него обязан быть `craft` (иначе в JEI нечего показать).
+Исключения перечислены в `BY_DESIGN`.
 
 ---
 
@@ -83,7 +87,9 @@ tools/gen_pack.py                           ← читает shared/, генер
 `TRANSISTOR/POT/GATE` = 3, `SWITCH` = 2 (3 если `spdt`), остальные 2.
 
 После правки JSON обязательно: `python3 tools/gen_pack.py` (пересобрать пак) и
-`cp shared/components.json plugin/src/main/resources/components.json`
+`shared/components.json` больше не копируют: `plugin/pom.xml` берёт его прямо из
+`../../shared` (resource `../../shared` → `components.json` в корне jar). Копии, которую
+можно забыть обновить, в репозитории нет вовсе.
 (иначе плагин и пак разойдутся — selftest это ловит, но лучше не доводить).
 
 ---
@@ -274,10 +280,21 @@ mcuPinI/mcuHalt`) и **не сохраняются**, если это скоро
 
 ### 5b. Станки
 
-`Recipes.DEFS` ⇄ `tools/gen_pack.py::RECIPES` — **зеркало**: первое регистрирует
-рецепт на сервере, второе кладёт его в датапак (иначе JEI покажет одно, а
-соберётся другое). Формат: `Shaped(String[] pattern, map("B", Material.X, …))`
-или `Shapeless(List.of(...))`; `map()` принимает по одному символу.
+Рецепт живёт **один раз** — в реестре, и из него растут обе стороны:
+`Recipes.loadFromRegistry()` регистрирует крафт на сервере, а
+`tools/gen_pack.py::load_recipes()` кладёт его в датапак. Формат поля:
+
+```json
+"craft": {"shapeless": {"copper_ingot": 1, "honeycomb": 1}, "count": 1}
+"craft": {"pattern": ["GGG", "CRC", "GGG"],
+          "key": {"G": "gold_nugget", "C": "copper_ingot", "R": "redstone"},
+          "count": 1}
+```
+
+Имена — **ванильные item id** (строчные, без `minecraft:`): плагин разрешает их
+через `Registry.ITEM`, генератор подставляет в JSON датапака как есть. `count` —
+сколько предметов отдаёт крафт (одинаково и в плагине, и в паке с v1.7.2).
+Факультативный `note` — пояснение для человека в реестре.
 Ванильные `Material` — единственное, что может быть там ингредиентом.
 
 Станки (`SolderGui`, `MetalGui`) работают поверх: игрок держит материалы в
@@ -307,7 +324,7 @@ GUI, для `selftest` и для офлайн-теста; «списать/вы�
 (пайка: 61 витрина для JEI, пропущено 7, плавка 3)` — «пропущено» это id без
 ванильного крафта (слитки, сплавы, шлак, эмальпровод): их делают станки, и
 это норма; но если там оказался id, который **должен** крафтиться, ты
-забыл строку в `Recipes.DEFS` + `RECIPES`.
+забыл поле `craft` в реестре.
 
 ---
 
@@ -432,7 +449,7 @@ bash tools/push.sh v1.3.2  # main (+ тег, релиз и ассеты, есл�
 |---|---|
 | `cannot find symbol Material.SULPHUR` | в 1.21.11 нет — `Material.GUNPOWDER` |
 | `SmokingRecipe` не регистрируется | это интерфейс; бери `FurnaceRecipe` |
-| JEI показывает крафт, а собрать нельзя (или наоборот) | `Recipes.DEFS` ≠ `gen_pack.RECIPES`: правь оба |
+| JEI показывает крафт, а собрать нельзя (или наоборот) | на v1.7.1 так и было: `bench` в датапаке собирался из бумаги и отдавал ×2, а плагин — из плиты-основы и ×1; с v1.7.2 источник один (`craft`), разъехаться нечему |
 | «рецепт не задан для …» в генераторе пака | id ни ванильный, ни спаечный → заведи рецепт или добавь в `BY_DESIGN` |
 | деталь есть, но стакается/не стакается не так | `stack` в реестре; `solid` — для станков |
 | предмет «невидимка» (белый куб) | нет `items/<id>.json`/модели: пак не перегенерирован или срез индексов съехал из-за вставки в середину реестра |
@@ -458,11 +475,11 @@ bash tools/push.sh v1.3.2  # main (+ тег, релиз и ассеты, есл�
 
 ```
 [ ] shared/components.json: запись ДОПИСАНА В КОНЕЦ, поля заданы
-[ ] cp shared/components.json plugin/src/main/resources/components.json
+[ ] реестр правится в одном месте: shared/components.json (копий нет)
 [ ] kind/shape/states/pins выбраны; hub/polar/solid/stack по смыслу
 [ ] электрика: есть модель в Simulation (case) или достаточно резистора/диода
 [ ] CompInstance: поля состояния; Persistence: если надо сохранить — короткий ключ
-[ ] Recipes.DEFS ⇄ gen_pack.RECIPES (одинаково), meta.soldered (если паяется)
+[ ] craft в реестре (или сознательное отсутствие) + meta.soldered, если паяется
 [ ] Soldering: OUR_INGREDIENTS / NEEDS_FLUX / solderCost — по ситуации
 [ ] станок: Metallurgy.put(...) + подсказка (missing/outputText/note)
 [ ] CatalogGui.WHAT или WHAT_ID (иначе selftest ругнётся)
@@ -490,8 +507,9 @@ bash tools/push.sh v1.3.2  # main (+ тег, релиз и ассеты, есл�
 3. **Электрика**: шунту ничего не добавляли — RESISTOR уже считается как
    `G = 1/R`, и это ровно то, что нужно шунту; эмальпровод — WIRE с
    `resistance` (в отличие от «идеального» `wire_red`).
-4. **Крафт**: `Recipes.DEFS` += 7 (2 станка `Shaped`, 3 концентрата
-   `Shapeless`, болванка шунта) = зеркало в `RECIPES`;
+4. **Крафт**: 7 записей в `craft` реестра (2 станка `pattern`, 3 концентрата
+   `shapeless`, болванка шунта); тогда зеркала в коде не было — таблицы держали
+   дважды, с v1.7.2 достаточно одного поля;
    `Soldering.OUR_INGREDIENTS += resistor_shunt_0r01 ← ingot_brass ×1`.
 5. **Станки**: `Metallurgy` (7 операций тигля + 3 стана), `MetalGui` (окно
    операций с «есть/нужно»), `Events`: `case STATION` ветвит стол и станок по
@@ -521,7 +539,8 @@ bash tools/push.sh v1.3.2  # main (+ тег, релиз и ассеты, есл�
    `flywheel_kinetic` `inertia: 0.4 mass: 20`, `wheel_kinetic` `ratio: 8
    radius: 0.15`, `saw_kinetic`, `drill_kinetic`). `meta.soldered` 61 → 66,
    `state_model_count` 2886 → 3210. **Важно:** `shared/components.json` и
-   `plugin/src/main/resources/components.json` правятся одинаково.
+   `shared/components.json` — единственный файл; `bash tools/run_tests.sh` сверяет,
+   что именно он попал в собранный jar.
 3. **Пак**: 9 форм в `gen_pack.py` (`KINETIC_ITEM` + 9 item-моделей), 9 × 6 = 54
    новых визуальных состояний → +324 индекса (2886 → 3210), всего 654 item-модели
    и 2376 файлов пака, 36 рецептов датапака, листы превью `sheets.py`. С v1.5.0
