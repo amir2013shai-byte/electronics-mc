@@ -581,7 +581,7 @@ boiling, and the meter shows what actually went into the load.
 `no common "−": it passes current, but there is no cut-off to measure`; a bank
 of two cells (25.3 V at the terminals) — `1 cut-off`; the meter on 10 Ω —
 `1.327 Wh (15.9 W, 2 imp. of 1600/kWh)`, and with a broken neutral it says
-`voltage sensor not connected: the meter will count 0 Wh`. Whole run: 34 PASS,
+`voltage sensor not connected: the meter will count 0 Wh`. Whole run: 35 PASS,
 0 FAIL.
 
 **What the model honestly cannot do.** The controller does not know the bank's

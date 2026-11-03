@@ -79,6 +79,15 @@ public final class ElectronicsPlugin extends JavaPlugin {
             }
         }, 40L, 40L);
 
+        // Пак, который качают клиенты, обязан совпадать с конфигом: иначе
+        // «плата» и все детали в мире становятся одного цвета, и молча.
+        PackAudit audit = PackAudit.of(getDataFolder(), items().baseMaterial().name());
+        if (audit.ok()) {
+            getLogger().info(audit.line());
+        } else {
+            getLogger().warning(audit.line());
+        }
+
         events = new Events(this);
         getServer().getPluginManager().registerEvents(events, this);
         ElecCommand elecCmd = new ElecCommand(this);

@@ -1728,6 +1728,23 @@ public final class ElecCommand implements CommandExecutor, TabCompleter {
                 + "&7каталог: &f" + me.arena.electronics.registry.Components.size()
                 + " &7предметов, описаний не хватает у &f" + missing));
 
+        // (12и) ресурспак рядом с плагином: тот же аудит, что и в логе при
+        // включении (см. PackAudit). Ловит «все блоки с одной текстурой» за
+        // две возможные причины: пак не туда положен, и пак перекрашивает не
+        // тот блок, что кладёт blocks.base.
+        {
+            me.arena.electronics.PackAudit audit = me.arena.electronics.PackAudit.of(
+                    plugin.getDataFolder(), plugin.items().baseMaterial().name());
+            boolean present = audit.present;
+            s.sendMessage(Items.color(((present && audit.ok()) ? "&aPASS " : "&cFAIL ")
+                    + "&7" + audit.line()
+                    + (present && audit.sha1 != null && !"—".equals(audit.sha1)
+                    ? " &8(sha1 в config.yml: "
+                    + (plugin.config().resourcePackHash.isEmpty() ? "пусто"
+                            : plugin.config().resourcePackHash)
+                    + ")" : "")));
+        }
+
         // (12з) солнце, реле-регулятор и счётчик. У схемы в редакторе блоков нет,
         // поэтому панель там освещена паспортно (см. Simulation.sunFactor): проверка
         // не зависит от часов мира и погоды. Тень в игре работает по геометрии.
