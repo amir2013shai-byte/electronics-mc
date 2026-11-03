@@ -101,7 +101,7 @@ TB_CHECKS=${TB_CHECKS:-0}
 # FAIL/ПОЗОР и число «ALL OK»-сюит, плюс rc самого скрипта.
 TESTS_LOG=$(mktemp)
 if bash tools/run_tests.sh > "$TESTS_LOG" 2>&1; then TESTS_RC=0; else TESTS_RC=$?; fi
-OFFLINE="rc=$TESTS_RC, $(grep -cE '^OK  ' "$TESTS_LOG") строк OK, $(grep -cE '^(FAIL|ПОЗОР)' "$TESTS_LOG") провалов, $(grep -c 'ALL OK' "$TESTS_LOG") сюит зелёные"
+OFFLINE="rc=$TESTS_RC, OK-строк: $(grep -cE '^OK  ' "$TESTS_LOG"), провалов: $(grep -cE '^(FAIL|ПОЗОР)' "$TESTS_LOG"), зелёных сюит: $(grep -c 'ALL OK' "$TESTS_LOG")"
 
 REG=$(python3 -c 'import json,io;d=json.load(io.open("shared/components.json",encoding="utf-8"));m=d["meta"];print(len(d["components"]), len(m["soldered"]), m["state_model_count"])' 2>/dev/null || echo "0 0 0")
 COMPONENTS=${REG%% *}; REGREST=${REG#* }; SOLDERED=${REGREST%% *}; STATES=${REGREST##* }
