@@ -11,7 +11,14 @@ for j in /usr/lib/jvm/java-21-openjdk-amd64/bin /usr/lib/jvm/*/bin "$JAVA_HOME/b
   ver=$("$j/javac" -version 2>&1 | sed -E 's/[^0-9]*([0-9]+).*/\1/')
   if [ "${ver:-0}" -ge 21 ]; then export PATH="$j:$PATH"; break; fi
 done
-javac -version >/dev/null 2>&1 || { echo "нет javac 21+: sudo apt-get install -y --no-install-recommends openjdk-21-jdk-headless" >&2; exit 1; }
+# Проверка именно «21+», а не «javac вообще есть»: в песочнице после отката
+# обычно живёт только JDK 11, и молча компилировать им — значит получить сто
+# ошибок «class, interface, or enum expected» в файле, который в порядке.
+JV=$(javac -version 2>&1 | sed -E 's/[^0-9]*([0-9]+).*/\1/'); JV=${JV:-0}
+if [ "${JV:-0}" -lt 21 ]; then
+  echo "нет javac 21+ (нашли только ${JV}): sudo apt-get install -y --no-install-recommends openjdk-21-jdk-headless" >&2
+  exit 1
+fi
 
 # --- classpath: spigot-api + joml -------------------------------------------------
 # Ищем в maven-репозиториях по маске (имена snapshot-файлов содержат дату сборки,

@@ -55,6 +55,17 @@ def base_block_name():
     return m.group(1).lower() if m else "smooth_quartz_slab"
 
 
+PLATE = os.environ.get("ELECTRONICS_PLATE", "model").strip().lower()
+ATLAS = os.environ.get("ELECTRONICS_ATLAS", "merge").strip().lower()
+# четыре источника ванильного atlases/blocks.json (1.21.11): в merge-режиме мы их
+# перечисляем своими руками, потому что файл либо дополняет ванильный список, либо
+# заменяет его — а при замене без них во всём мире исчезают текстуры блоков.
+VANILLA_ATLAS_SOURCES = {
+    ("minecraft:directory", "block", "block/"),
+    ("minecraft:directory", "entity/conduit", "entity/conduit/"),
+    ("minecraft:single", "minecraft:entity/bell/bell_body", None),
+    ("minecraft:single", "minecraft:entity/enchanting_table_book", None),
+}
 BASE = base_block_name()
 BOARD_MODELS = ([f"models/block/{BASE}.json", f"models/block/{BASE}_top.json"]
                 if BASE.endswith("_slab") else [f"models/block/{BASE}.json"])
@@ -62,7 +73,7 @@ if BASE == "smooth_quartz_slab":
     # этот файл возвращает ванильному полублоку его собственный вид в инвентаре
     BOARD_MODELS.append(f"models/item/{BASE}.json")
 ALLOWED_MC_DIRS = ("textures/block/quartz_block_",)
-ALLOWED_MC_FILES = {"atlases/blocks.json"} | set(BOARD_MODELS)
+ALLOWED_MC_FILES = {"atlases/blocks.json"} | (set(BOARD_MODELS) if PLATE != "none" else set())
 stomp = []
 quartz_stomped = 0
 mc_root = os.path.join(RP, "assets", "minecraft")
@@ -78,7 +89,13 @@ for sub, _, files in os.walk(mc_root):
 atlas = os.path.join(mc_root, "atlases", "blocks.json")
 if os.path.isfile(atlas):
     srcs = json.load(open(atlas, encoding="utf-8")).get("sources", [])
-    alien = [x for x in srcs if not str(x.get("source", "")).startswith("electronics/")]
+    def key(x):
+        return (str(x.get("type")), str(x.get("source") or x.get("resource")), str(x.get("prefix")) if x.get("prefix") else None)
+    allowed_extra = VANILLA_ATLAS_SOURCES if ATLAS == "merge" else set()
+    alien = [x for x in srcs
+             if not str(x.get("source", "")).startswith("electronics/")
+             and not str(x.get("resource", "")).startswith("electronics/")
+             and key(x) not in allowed_extra]
     if alien:
         print("ПОЗОР: atlases/blocks.json претендует на чужие папки (заменил бы ванильный список):", alien)
         sys.exit(1)
@@ -100,6 +117,8 @@ for _rel in BOARD_MODELS:
         EXPECT_PARENT[_rel] = "minecraft:block/cube_bottom_top"
 
 board_errors = []
+if PLATE == "none":
+    BOARD_MODELS = []          # диагностический пак: чужих файлов нет вовсе, и требовать нечего
 for rel in BOARD_MODELS:
     path = os.path.join(mc_root, rel)
     if not os.path.isfile(path):

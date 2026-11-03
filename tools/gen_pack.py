@@ -24,6 +24,21 @@ RP = os.path.join(BUILD, "resourcepack")
 DP = os.path.join(BUILD, "datapack")
 NS = "electronics"
 STATE_NAMES = ["off", "dim", "on", "burnt", "rev", "closed"]
+# Ванильный assets/minecraft/atlases/blocks.json (1.21.11) — четыре источника.
+# Наш файл обязан их перечислять: atlases/*.json либо дополняет ванильный список,
+# либо заменяет его (зависит от клиента), а при замене без этих строк во всём мире
+# исчезают текстуры блоков. ELECTRONICS_ATLAS=ours выключает это (только свои
+# источники — ровно как было до 1.7.4) и нужно лишь для диагностики паков.
+VANILLA_ATLAS_SOURCES = [
+    {"type": "minecraft:directory", "prefix": "block/", "source": "block"},
+    {"type": "minecraft:directory", "prefix": "entity/conduit/", "source": "entity/conduit"},
+    {"type": "minecraft:single", "resource": "minecraft:entity/bell/bell_body"},
+    {"type": "minecraft:single", "resource": "minecraft:entity/enchanting_table_book"},
+]
+# ELECTRONICS_PLATE=none — не класть в пак ничего чужого вообще (плата остаётся
+# ванильным блоком). Режим сравнения: им собран пак v1.7.3.
+PLATE_MODE = os.environ.get("ELECTRONICS_PLATE", "model").strip().lower()
+ATLAS_MODE = os.environ.get("ELECTRONICS_ATLAS", "merge").strip().lower()
 # Каталог, куда человек кладёт СВОИ текстуры (см. users_textures/README.md —
 # его генерирует tools/user_tags.py, поэтому список тегов не может устареть).
 # Путь можно переопределить переменной ELECTRONICS_USER_TEXTURES (тесты, CI).
@@ -1165,13 +1180,15 @@ def main():
 
     # атлас: обязательно для 1.21.9+
     atlases = dir_of("assets", "minecraft", "atlases")
+    our_sources = [
+        {"type": "directory", "source": f"{NS}/item", "prefix": f"{NS}:item/"},
+        {"type": "directory", "source": f"{NS}/block", "prefix": f"{NS}:block/"},
+    ]
+    sources = (list(VANILLA_ATLAS_SOURCES) if ATLAS_MODE == "merge" else []) + our_sources
     with open(os.path.join(atlases, "blocks.json"), "w", encoding="utf-8") as f:
-        json.dump({
-            "sources": [
-                {"type": "directory", "source": f"{NS}/item", "prefix": f"{NS}:item/"},
-        {"type": "directory", "source": f"{NS}/block", "prefix": f"{NS}:block/"}
-            ]
-        }, f, indent=1)
+        json.dump({"sources": sources}, f, indent=1)
+    print("  атлас: %d источника (ванильных %d, наших %d)"
+          % (len(sources), len(sources) - len(our_sources), len(our_sources)))
 
     # Тема блока-основы: см. комментарий у draw_board(). Перекрашивается МОДЕЛЬ
     # полублока, а не общая текстура кварца, — так плата остаётся платой и в
@@ -1189,34 +1206,39 @@ def main():
             from_user.append(face)
         # USER_USED помечает сам load_user: имена board_*/host_* пользовательские,
         # их отчёт «не использовано» не потеряет и не схлопнет с quartz_block_*.
+        # Текстуры живут у нас в namespace и пишутся при любом режиме.
         (load_user(custom, 16) if custom else draw_board(face)).save(
             out("assets", NS, "textures", "block", "board_" + face + ".png"))
     tex_ref = {f: f"{NS}:block/board_{f}" for f in ("top", "side", "bottom")}
-    if base_name.endswith("_slab"):
-        # у полублока два файла модели: нижний и верхний (двойной полублок и
-        # полный блок смотрят в block/smooth_quartz — их не трогаем)
-        for suffix, parent in (("", "minecraft:block/slab"), ("_top", "minecraft:block/slab_top")):
-            with open(out("assets", "minecraft", "models", "block", base_name + suffix + ".json"),
-                      "w", encoding="utf-8") as f:
-                json.dump({"parent": parent, "textures": tex_ref}, f, indent=1)
+    if PLATE_MODE == "none":
+        print("  фон платы: ELECTRONICS_PLATE=none — в assets/minecraft не кладём ничего"
+              " (плата = ванильный блок, как в v1.7.3)")
     else:
-        with open(out("assets", "minecraft", "models", "block", base_name + ".json"),
-                  "w", encoding="utf-8") as f:
-            json.dump({"parent": "minecraft:block/cube_bottom_top", "textures": tex_ref},
-                      f, indent=1)
-    if base_name == "smooth_quartz_slab":
-        # Предмет «гладкий кварцевый полублок» выглядит как блок, потому что
-        # своего models/item/smooth_quartz_slab.json в ванилле нет. Возвращаем
-        # ему ванильный вид — теми же ссылками на ванильные текстуры, которые
-        # стоят в его же модели блока (мы их НЕ перекрываем): стопка ступеней
-        # в инвентаре не должна превращаться в плату.
-        q = "minecraft:block/quartz_block_bottom"
-        with open(out("assets", "minecraft", "models", "item", base_name + ".json"),
-                  "w", encoding="utf-8") as f:
-            json.dump({"parent": "minecraft:block/slab",
-                       "textures": {"bottom": q, "side": q, "top": q}}, f, indent=1)
-    print("  фон платы: модель assets/minecraft/models/block/%s.json -> %s:textures/block/board_*.png%s"
-          % (base_name, NS, ("  (свой рисунок: " + ", ".join(from_user) + ")") if from_user else ""))
+        if base_name.endswith("_slab"):
+            # у полублока два файла модели: нижний и верхний (двойной полублок и
+            # полный блок смотрят в block/smooth_quartz — их не трогаем)
+            for suffix, parent in (("", "minecraft:block/slab"), ("_top", "minecraft:block/slab_top")):
+                with open(out("assets", "minecraft", "models", "block", base_name + suffix + ".json"),
+                          "w", encoding="utf-8") as f:
+                    json.dump({"parent": parent, "textures": tex_ref}, f, indent=1)
+        else:
+            with open(out("assets", "minecraft", "models", "block", base_name + ".json"),
+                      "w", encoding="utf-8") as f:
+                json.dump({"parent": "minecraft:block/cube_bottom_top", "textures": tex_ref},
+                          f, indent=1)
+        if base_name == "smooth_quartz_slab":
+            # Предмет «гладкий кварцевый полублок» выглядит как блок, потому что
+            # своего models/item/smooth_quartz_slab.json в ванилле нет. Возвращаем
+            # ему ванильный вид — теми же ссылками на ванильные текстуры, которые
+            # стоят в его же модели блока (мы их НЕ перекрываем): стопка ступеней
+            # в инвентаре не должна превращаться в плату.
+            q = "minecraft:block/quartz_block_bottom"
+            with open(out("assets", "minecraft", "models", "item", base_name + ".json"),
+                      "w", encoding="utf-8") as f:
+                json.dump({"parent": "minecraft:block/slab",
+                           "textures": {"bottom": q, "side": q, "top": q}}, f, indent=1)
+        print("  фон платы: модель assets/minecraft/models/block/%s.json -> %s:textures/block/board_*.png%s"
+              % (base_name, NS, ("  (свой рисунок: " + ", ".join(from_user) + ")") if from_user else ""))
 
     with open(os.path.join(lang_dir, "ru_ru.json"), "w", encoding="utf-8") as f:
         json.dump(ru, f, ensure_ascii=False, indent=1)
