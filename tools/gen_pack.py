@@ -12,7 +12,7 @@
            build/datapack/**,  build/datapack.zip
 """
 
-import json, math, os, shutil, zipfile, sys
+import json, math, os, re, shutil, zipfile, sys
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -51,7 +51,8 @@ def user_candidates(cid, state=None, face="top"):
 
 def user_tag_names():
     """Все имена, которые генератор способен подхватить — для подсказки об опечатке."""
-    names = {"host_top", "host_side", "host_bottom"}
+    names = {"host_top", "host_side", "host_bottom",
+               "board_top", "board_side", "board_bottom"}
     for comp in COMPONENTS:
         cid = comp["id"]
         for st in range(int(comp.get("states", 1))):
@@ -960,6 +961,84 @@ def mcmeta(description, lo, hi):
                      "max_format": hi}}
 
 
+# ---------------------------------------------------------------------------- плата
+#
+# Блок-основа (config.yml: blocks.base) — ванильный блок, и весь вопрос в том,
+# КАК его перекрасить. Два крайних ответа уже проверены:
+#
+#   1. положить свои textures/block/quartz_block_{top,side,bottom}.png (v1.7.2).
+#      Их разделяет ВЕСЬ кварц: у гладкого кварца своей текстуры нет, модель
+#      гладкого полублока смотрит в block/quartz_block_bottom. Итог — зелёные
+#      стены, пол и ступени в мире игрока.
+#   2. не перекрашивать ничего (v1.7.3). Кварц счастлив, но «плата» в мире
+#      выглядит куском кварца, и это уже жалоба от того же пользователя.
+#
+# Значит перекрашиваем не текстуру, а МОДЕЛЬ: у гладкого полублока есть свои
+# файлы models/block/smooth_quartz_slab.json и ..._slab_top.json, на которые не
+# смотрит больше никто (полный блок и двойной полублок используют
+# block/smooth_quartz, а лестницы — свою cube_column). Ссылка на текстуру —
+# electronics:textures/block/board_*.png, то есть чужие пиксели мы не трогаем
+# вообще. Ванильный же полублок в инвентаре остаётся полублоком: у блока нет
+# models/item/smooth_quartz_slab.json (предмет берёт модель блока), поэтому мы
+# заводим его сами, с ванильными же ссылками на текстуры. Наши детали к этому
+# файлу не причём: у них стоит компонент minecraft:item_model.
+
+def base_block_name():
+    """Материал-основа из default-конфига плагина (или из ELECTRONICS_BASE_BLOCK).
+
+    Пак печатает модель ровно под тот блок, который кладёт плагин: молча
+    перекрашивать «какой-то другой» блок хуже, чем не перекрашивать ничего.
+    """
+    env = os.environ.get("ELECTRONICS_BASE_BLOCK")
+    if env:
+        return env.strip().lower()
+    path = os.path.join(ROOT, "plugin", "src", "main", "resources", "config.yml")
+    try:
+        with open(path, encoding="utf-8") as f:
+            txt = f.read()
+    except OSError:
+        return "smooth_quartz_slab"
+    m = re.search(r"^blocks:[ \t]*\n(?:^[ \t].*\n)*?[ \t]+base:[ \t]*([A-Z0-9_]+)",
+                  txt, re.M)
+    return m.group(1).lower() if m else "smooth_quartz_slab"
+
+
+def draw_board(face):
+    """16x16 текстолита для платы: маска, дорожки, площадки, шёлкотесь.
+
+    Лицевая сторона намеренно спокойная: на ней стоят детали, и пёстрый фон
+    съел бы их силуэты. Профиль — золочёная гребёнка контактов, как у карты
+    расширения: она читается с любого ракурса и объясняет, что это плата.
+    """
+    mask = hex2rgb("#2e6b47")
+    dark, light = shade(mask, 0.70), shade(mask, 1.14)
+    gold = hex2rgb("#d8b04a")
+    silk = hex2rgb("#dfe6e2")
+    img = Image.new("RGBA", (16, 16), mask + (255,))
+    d = ImageDraw.Draw(img)
+    if face == "top":
+        for y in (4, 9, 12):
+            d.line([1, y, 14, y], fill=light + (255,))
+        for (x, y) in ((2, 2), (13, 2), (2, 13), (13, 13)):
+            d.rectangle([x - 1, y - 1, x + 1, y + 1], fill=gold + (255,))
+        for x in range(3, 14, 2):
+            d.point([x, 1], fill=silk + (255,))
+            d.point([x, 14], fill=silk + (255,))
+    elif face == "side":
+        d.rectangle([0, 0, 15, 3], fill=dark + (255,))
+        d.line([0, 9, 15, 9], fill=light + (255,))
+        for x in range(1, 16, 2):
+            d.rectangle([x, 10, x, 14], fill=gold + (255,))
+    else:
+        img = Image.new("RGBA", (16, 16), dark + (255,))
+        d = ImageDraw.Draw(img)
+        for (x, y) in ((3, 4), (8, 7), (12, 11), (5, 12), (10, 2)):
+            d.point([x, y], fill=shade(mask, 1.25) + (255,))
+            d.point([x + 1, y + 1], fill=shade(mask, 0.55) + (255,))
+    d.rectangle([0, 0, 15, 15], outline=shade(mask, 0.6) + (255,))
+    return mc_texture(img, "board_" + face, colors=20, grain=5, rim=False)
+
+
 def main():
     if os.path.isdir(BUILD):
         shutil.rmtree(BUILD)
@@ -1089,35 +1168,55 @@ def main():
     with open(os.path.join(atlases, "blocks.json"), "w", encoding="utf-8") as f:
         json.dump({
             "sources": [
-                {"type": "directory", "source": f"{NS}/item", "prefix": f"{NS}:item/"}
+                {"type": "directory", "source": f"{NS}/item", "prefix": f"{NS}:item/"},
+        {"type": "directory", "source": f"{NS}/block", "prefix": f"{NS}:block/"}
             ]
         }, f, indent=1)
 
-    # Тема блока-основы (гладкий кварцевый полублок = «плата»).
+    # Тема блока-основы: см. комментарий у draw_board(). Перекрашивается МОДЕЛЬ
+    # полублока, а не общая текстура кварца, — так плата остаётся платой и в
+    # мире, где игрок построил из кварца что-то своё.
     #
-    # Раньше сюда вписывались свои quartz_block_{top,side,bottom}.png всегда —
-    # и пак перекрашивал весь кварц в мире: постройка из кварца или ступеней
-    # становилась зелёной платой. Это перекрёсток двух чужих интересов: любой
-    # пак, который хочет ту же текстуру, теряет её, а игрок теряет свой дом.
-    # Поэтому теперь по умолчанию в assets/minecraft не летит ничего: кварц
-    # остаётся кварцем, а плата отличается набором деталей на ней.
-    #
-    # Зелёный фон включается одним явным действием — положить host_top.png /
-    # host_side.png / host_bottom.png (16x16) в users_textures/. Кто захотел
-    # вид «платы» во всём мире, тот на это подписался сам; остальные — нет.
-    host = {f"quartz_block_{f}": user_png([f"host_{f}.png"]) for f in ("top", "side", "bottom")}
-    given = sorted(k for k, v in host.items() if v)
-    if given:
-        tb = dir_of("assets", "minecraft", "textures", "block")
-        for fname in given:
-            load_user(host[fname], 16).save(os.path.join(tb, fname + ".png"))
-        print("  фон платы: перекрашиваем кварц по " + ", ".join(
-            "users_textures/" + f.replace("quartz_block_", "host_").replace("_block", "")
-            for f in given) + "  (это перекроет кварц во всём мире — вы это выбрали)")
-    # USER_USED тут не трогаем: _read_user_png уже записал host_*.png, а имена
-    # quartz_block_*.png — не пользовательские, они сбили бы отчёт «не использованы».
+    # Свой рисунок кладут в users_textures/board_{top,side,bottom}.png; старые
+    # имена host_* тоже принимаются: до 1.7.3 это был единственный способ
+    # задать вид платы — и одновременно единственный способ перекрасить весь
+    # кварц, что и стало ошибкой.
+    base_name = base_block_name()
+    from_user = []
+    for face in ("top", "side", "bottom"):
+        custom = user_png([f"board_{face}.png", f"host_{face}.png"])
+        if custom:
+            from_user.append(face)
+        # USER_USED помечает сам load_user: имена board_*/host_* пользовательские,
+        # их отчёт «не использовано» не потеряет и не схлопнет с quartz_block_*.
+        (load_user(custom, 16) if custom else draw_board(face)).save(
+            out("assets", NS, "textures", "block", "board_" + face + ".png"))
+    tex_ref = {f: f"{NS}:block/board_{f}" for f in ("top", "side", "bottom")}
+    if base_name.endswith("_slab"):
+        # у полублока два файла модели: нижний и верхний (двойной полублок и
+        # полный блок смотрят в block/smooth_quartz — их не трогаем)
+        for suffix, parent in (("", "minecraft:block/slab"), ("_top", "minecraft:block/slab_top")):
+            with open(out("assets", "minecraft", "models", "block", base_name + suffix + ".json"),
+                      "w", encoding="utf-8") as f:
+                json.dump({"parent": parent, "textures": tex_ref}, f, indent=1)
     else:
-        print("  фон платы: host_top/side/bottom.png не найдены — ванильные текстуры не трогаем")
+        with open(out("assets", "minecraft", "models", "block", base_name + ".json"),
+                  "w", encoding="utf-8") as f:
+            json.dump({"parent": "minecraft:block/cube_bottom_top", "textures": tex_ref},
+                      f, indent=1)
+    if base_name == "smooth_quartz_slab":
+        # Предмет «гладкий кварцевый полублок» выглядит как блок, потому что
+        # своего models/item/smooth_quartz_slab.json в ванилле нет. Возвращаем
+        # ему ванильный вид — теми же ссылками на ванильные текстуры, которые
+        # стоят в его же модели блока (мы их НЕ перекрываем): стопка ступеней
+        # в инвентаре не должна превращаться в плату.
+        q = "minecraft:block/quartz_block_bottom"
+        with open(out("assets", "minecraft", "models", "item", base_name + ".json"),
+                  "w", encoding="utf-8") as f:
+            json.dump({"parent": "minecraft:block/slab",
+                       "textures": {"bottom": q, "side": q, "top": q}}, f, indent=1)
+    print("  фон платы: модель assets/minecraft/models/block/%s.json -> %s:textures/block/board_*.png%s"
+          % (base_name, NS, ("  (свой рисунок: " + ", ".join(from_user) + ")") if from_user else ""))
 
     with open(os.path.join(lang_dir, "ru_ru.json"), "w", encoding="utf-8") as f:
         json.dump(ru, f, ensure_ascii=False, indent=1)

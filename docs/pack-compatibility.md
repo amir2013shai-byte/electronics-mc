@@ -58,17 +58,25 @@ build/resourcepack/
 ├── pack.mcmeta                       # 64..75: pack_format + supported_formats + min/max
 ├── pack.png                          # иконка (генерируется: плата + LED)
 ├── pack.png
-├── assets/minecraft/atlases/blocks.json     # «шейте мои текстуры» — единственный чужой путь
+├── assets/minecraft/atlases/blocks.json     # «шейте мои текстуры»: два источника — item и block
+├── assets/minecraft/models/block/smooth_quartz_slab{_top}.json  # вид платы — модель, не текстура
+├── assets/minecraft/models/item/smooth_quartz_slab.json       # …а предмет остаётся полублоком
 ├── assets/electronics/lang/{ru_ru,en_us}.json
 ├── assets/electronics/items/<id>[_<state>].json          # 702: 117 базовых + адрес каждого состояния
 ├── assets/electronics/models/item/<id>[_<state>].json    # 702: модель + display-трансформы
 └── assets/electronics/textures/item/<id>_<state>_{top,side,bottom}.png  # 1749 текстур 32×32 (или то, что положили в users_textures/)
 
-До v1.7.3 в дереве был ещё `assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png`:
-im платили «зелёную плату» под деталями, и он же перекрашивал весь кварц мира. Теперь
-эти три файла появляются только если пользователь сам положил `host_{top,side,bottom}.png`
-в `users_textures/` (см. `users_textures/README.md`); `tools/gen_pack.py` печатает, какая
-ветка сработала — «перекрашиваем кварц по …» или «ванильные текстуры не трогаем».
+До v1.7.3 вместо трёх файлов моделей в дереве лежали `assets/minecraft/textures/block/quartz_block_{side,top,bottom}.png`:
+ими платили «зелёную плату» под деталями, и ими же перекрашивали весь кварц мира (у
+гладкого кварца своей текстуры нет). В v1.7.3 их убрали совсем — и плата стала куском
+кварца, за что через неделю прилетело второй раз. С v1.7.4 цвет платы берётся из её же
+модели: `models/block/smooth_quartz_slab{_top}.json` → `electronics:textures/block/board_*.png`,
+`models/item/smooth_quartz_slab.json` возвращает ванильному полублоку его вид в инвентаре.
+Свой рисунок платы кладут в `users_textures/board_{top,side,bottom}.png` (старые `host_*`
+приняты как алиасы — см. `users_textures/README.md`); `tools/gen_pack.py` печатает, какая
+ветка сработала. Все три файла моделей обязательны: без любого из них
+`tools/check_pack_refs.py` рвёт сборку, а `tools/test_pack.py` держит по каждой поломке
+посаженный кейс.
 ```
 
 Про чужой namespace — два факта, и держим мы их в голове по-разному:
@@ -90,7 +98,7 @@ im платили «зелёную плату» под деталями, и он
 `blocks` через наш же источник `electronics/item`, поэтому каждая модель
 одноатласная ✓.
 
-Всего 3158 файлов, zip ≈ 2.8 МБ (`build/electronics-resourcepack.zip`).
+Всего 3164 файла, zip ≈ 2.8 МБ (`build/electronics-resourcepack.zip`).
 Состояние модели = `baseModelIndex + state·6 + orientation` — та же арифметика
 в `registry/Components.java` (плагин) и в `tools/gen_pack.py` (пак); индекс
 можно посмотреть командой `/elec model <id> <состояние> <ориентация>`.

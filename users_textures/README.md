@@ -69,23 +69,31 @@
 
 ### Блок-основа («плата»)
 
-Компоненты стоят на ванильном `minecraft:smooth_quartz_slab`; наш пак
-перекрашивает его текстуры (`quartz_block_top/side/bottom`) в зелёную плату.
-Если хотите свою — теги:
+Компоненты стоят на ванильном `minecraft:smooth_quartz_slab` (его задаёт
+`blocks.base` в config.yml). Вид платы пак задаёт СВОЕЙ моделью этого
+полублока и своими текстурами `electronics/textures/block/board_*.png` —
+общие кварцевые текстуры не перекрываются, поэтому соседний кварц, ступени
+и плитки остаются ванильными. Хотите свою текстуру платы — теги:
 
 | файл | размер | что это |
 |---|---|---|
-| `users_textures/host_top.png` | 16×16 | верх «платы»-основы |
-| `users_textures/host_side.png` | 16×16 | боковина «платы» |
-| `users_textures/host_bottom.png` | 16×16 | низ «платы» |
+| `users_textures/board_top.png` | 16×16 | верх «платы»-основы |
+| `users_textures/board_side.png` | 16×16 | боковина «платы» |
+| `users_textures/board_bottom.png` | 16×16 | низ «платы» |
+| `users_textures/host_top.png` | 16×16 | то же, что board_top.png (старое имя) |
+| `users_textures/host_side.png` | 16×16 | то же, что board_side.png (старое имя) |
+| `users_textures/host_bottom.png` | 16×16 | то же, что board_bottom.png (старое имя) |
 
 ## Ванильные текстуры и из чего что сделано
 
 Наши детали — не перекраска ванильных предметов: их рисует генератор по
 `shape`/`size`/`palette`. Ванильное в паке только то, на что деталь опирается:
 
-* **блок-основа** — `minecraft:smooth_quartz_slab`, её PNG в ваниле —
-  `quartz_block_top/side/bottom` (мы их перезаписываем; теги `host_*` выше);
+* **блок-основа** — `minecraft:smooth_quartz_slab`: мы перекрашиваем его
+  моделью (`assets/minecraft/models/block/smooth_quartz_slab{_top}.json` на
+  `electronics:textures/block/board_*`), а его текстуры `quartz_block_*`
+  оставаются ванильными — иначе зелёной стала бы каждая кварцевая стена;
+  теги `board_*` (и старые `host_*`) выше;
 * **ингредиенты рецепта** — обычные ванильные предметы, они перечислены у
   каждого компонента в таблице ниже. Где у предмета текстура: ванильная модель
   `minecraft/models/item/<name>.json` почти всегда `minecraft:item/generated`

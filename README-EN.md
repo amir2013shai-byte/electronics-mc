@@ -17,7 +17,7 @@ brightness, burnt parts. No client mod.
 | Data pack format (recipes) | **80 … 94**: `pack_format` 80 + `min_format`/`max_format` 80/94 |
 | Client mod | not required |
 | Components | 114 ids (69 soldered parts + ore & alloy chain + microcontroller + four stations + nine drive parts + hand crank & water wheel + dynamo + lead-acid battery), RU + EN names |
-| Built pack | 3158 files: 1749 item textures, 702 models (117 × 6), 702 `items/*.json` (117 base + one per state address), no foreign textures by default |
+| Built pack | 3164 files: 1749 item textures + 3 board textures, 702 models (117 × 6), 702 `items/*.json` (117 base + one per state address), 3 model overrides for the plate; no foreign textures |
 | Resource-pack model states | **3390** = 565 visual states × 6 orientations |
 
 ## Why the "modify the player" trick became a state-model registry
@@ -42,7 +42,7 @@ mutable states" are implemented where the vanilla client actually reads them:
 ## Install
 
 ```
-plugins/Electronics-1.7.3.jar                         # or: cd plugin && mvn -DskipTests package
+plugins/Electronics-1.7.4.jar                         # or: cd plugin && mvn -DskipTests package
 release/electronics-resourcepack.zip                   # resource pack (set resource-pack.url or apply manually)
 release/electronics-recipes-datapack.zip               # optional: 38 recipes — 69 parts are soldered instead
 ```
@@ -291,9 +291,10 @@ No, and the pack build proves it rather than promises it:
 Since v1.7.3 the pack ships **no** texture in a foreign namespace. It used to
 always write `quartz_block_side/top/bottom` so that the base slab looked like a
 green PCB — which repainted every quartz block in the world (real user report:
-"my quartz staircase turned into a green board"). Green paint is opt-in now:
-drop `host_top/side/bottom.png` into `users_textures/`, which is the only way to
-get the old look back.
+"my quartz staircase turned into a green board"). Dropping those files, though,
+made the plate itself a lump of quartz — the second complaint. So since v1.7.4
+the plate is repainted by overriding the slab's **model**, not its shared
+texture (see below); `host_*.png` still opts into painting quartz everywhere.
 
 `blocks.base` still decides which block is the plate, and it shows how you
 *could* break a jukebox: set
@@ -591,6 +592,39 @@ point after placement: two solver passes on a 0.05 Ω source add `Isc·r ≈ 0.1
 per tick. Labels and ampere-hours are unaffected, but selftest walls that care
 about state run 400 steps, not 60.
 
+## The plate: repainting the base block without stealing a texture (v1.7.4)
+
+Two extremes were tried and both were wrong. v1.7.2 shipped
+`assets/minecraft/textures/block/quartz_block_{top,side,bottom}.png` so that the
+base block read as a green PCB — smooth quartz has no texture of its own, so
+*every* quartz block in the world became a board. v1.7.3 removed all foreign
+files, and the plate became a piece of quartz. The fight was over one texture
+shared with neighbouring blocks, so we stopped touching textures.
+
+Instead the pack now overrides the *models* that only the base slab uses:
+`assets/minecraft/models/block/smooth_quartz_slab.json` (parent
+`minecraft:block/slab`) and `..._slab_top.json` (parent `minecraft:block/slab_top`)
+point their `top`/`side`/`bottom` at our own
+`assets/electronics/textures/block/board_*.png` (16×16 PCB: solder mask, traces,
+gold pads, silkscreen, same `mc_texture()` finishing pass as the parts). Those
+sprites are declared as a second source in `atlases/blocks.json` — without it
+1.21.9+ never stitches them and the block renders as "missing texture". A third
+file, `assets/minecraft/models/item/smooth_quartz_slab.json` (vanilla has none:
+a block item borrows the block model), puts a stack of slabs back to looking
+like slabs in the inventory; our parts are unaffected since they carry a
+`minecraft:item_model` component.
+
+`check_pack_refs.py` allows exactly these three foreign paths and now *requires*
+them: lose one and the build fails with "плата не перекрашена". `tools/test_pack.py`
+(15 checks) plants every breakage to prove the guard works — a wrong `parent`, a
+reference to a foreign or missing texture, an atlas without the `electronics/block`
+source, a foreign texture/model/`items/` file, and a pack built for another
+`blocks.base`. Own board skin: `users_textures/board_{top,side,bottom}.png`
+(`host_*` names still accepted as aliases). Changing `blocks.base` means
+rebuilding the pack for your block: `ELECTRONICS_BASE_BLOCK=<BLOCK> python3
+tools/gen_pack.py` — otherwise the build stops instead of silently painting the
+wrong block.
+
 ## Checks actually run
 
 * `bash tools/run_tests.sh` → MNA solver `ALL OK` (16 checks), kinetics
@@ -600,7 +634,7 @@ about state run 400 steps, not 60.
   hand-computed 28.9 mA), and the pack checker
   `OK: все 114×6 ссылок на модели и текстуры разрешаются` (also standalone:
   `python3 tools/check_pack_refs.py`).
-* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.3.jar`.
+* `mvn -DskipTests package` → `BUILD SUCCESS`, `target/Electronics-1.7.4.jar`.
 * Live run on Paper 1.21.11 build 132: plugin enables — 114 components, 3390
   model states, 110 own recipes (41 crafting + 69 JEI showcases) + 38 from the
   data pack = 148 in the recipe manager, 3 worksheets;

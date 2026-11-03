@@ -6,11 +6,14 @@
 items/models-файл есть в собранном паке и что индексы ModelState совпадают
 с срезами в gen_pack.
 """
-import json, os, sys
+import json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RP = os.path.join(ROOT, "build", "resourcepack")
+# Каталог собранного пака. Переменная нужна tools/test_pack.py: она кладёт
+# поломку в копию пака и требует, чтобы этот чекер на неё отреагировал.
+RP = os.environ.get("ELECTRONICS_PACK_DIR") or os.path.join(ROOT, "build", "resourcepack")
 SUFFIX = ["", "_dim", "_on", "_burnt", "_rev", "_closed"]
+NS = "electronics"   # то же, что в gen_pack.py и в plugin.yml
 if not os.path.isdir(RP):
     sys.exit("пак не собран: сначала python3 tools/gen_pack.py (ждал "
              + os.path.relpath(RP, ROOT) + ")")
@@ -30,8 +33,36 @@ comps = DOC["components"]
 #     Текстуры кварца (textures/block/quartz_block_*) появляются в паке ТОЛЬКО
 #     если человек сам принёс users_textures/host_*.png — тогда это его выбор,
 #     и guard ниже его пропускает.
+#
+#     Единственное исключение, которое ПЛАТА: вид блока-основы задаётся моделью
+#     этого блока (см. draw_board в gen_pack.py), а не общей текстурой, — иначе
+#     перекраска уезжала бы на весь кварц. Разрешены ровно те файлы моделей,
+#     которые соответствуют blocks.base, и отсутствие любого из них — ошибка:
+#     без них плата в мире снова выглядит как ванильный блок.
+def base_block_name():
+    """Читает blocks.base из default-конфига — то же, что и gen_pack.py."""
+    env = os.environ.get("ELECTRONICS_BASE_BLOCK")
+    if env:
+        return env.strip().lower()
+    try:
+        with open(os.path.join(ROOT, "plugin", "src", "main", "resources", "config.yml"),
+                  encoding="utf-8") as f:
+            txt = f.read()
+    except OSError:
+        return "smooth_quartz_slab"
+    m = re.search(r"^blocks:[ \t]*\n(?:^[ \t].*\n)*?[ \t]+base:[ \t]*([A-Z0-9_]+)",
+                  txt, re.M)
+    return m.group(1).lower() if m else "smooth_quartz_slab"
+
+
+BASE = base_block_name()
+BOARD_MODELS = ([f"models/block/{BASE}.json", f"models/block/{BASE}_top.json"]
+                if BASE.endswith("_slab") else [f"models/block/{BASE}.json"])
+if BASE == "smooth_quartz_slab":
+    # этот файл возвращает ванильному полублоку его собственный вид в инвентаре
+    BOARD_MODELS.append(f"models/item/{BASE}.json")
 ALLOWED_MC_DIRS = ("textures/block/quartz_block_",)
-ALLOWED_MC_FILES = {"atlases/blocks.json"}
+ALLOWED_MC_FILES = {"atlases/blocks.json"} | set(BOARD_MODELS)
 stomp = []
 quartz_stomped = 0
 mc_root = os.path.join(RP, "assets", "minecraft")
@@ -44,9 +75,6 @@ for sub, _, files in os.walk(mc_root):
             quartz_stomped += 1
             continue
         stomp.append(rel)
-if stomp:
-    print("ПОЗОР: пак перекрывает ванильные ресурсы:", stomp[:8])
-    sys.exit(1)
 atlas = os.path.join(mc_root, "atlases", "blocks.json")
 if os.path.isfile(atlas):
     srcs = json.load(open(atlas, encoding="utf-8")).get("sources", [])
@@ -54,9 +82,73 @@ if os.path.isfile(atlas):
     if alien:
         print("ПОЗОР: atlases/blocks.json претендует на чужие папки (заменил бы ванильный список):", alien)
         sys.exit(1)
-print("ванильные определения не перекрываем: в assets/minecraft только атлас-источник",
+
+# Плата: модели на месте, ссылаются на НАШИ текстуры, и эти текстуры есть в паке.
+# Именно этого не было в 1.7.2 (там пак крал общую текстуру кварца) и в 1.7.3
+# (там модели не было вовсе, и «плата» стала куском кварца). Проверка идёт
+# РАНЬШЕ списка чужих файлов: «у вас модель не того блока» — конкретнее, чем
+# «у вас лишний файл», и это тот случай, когда человек поменял blocks.base, а
+# пак пересобрать забыл.
+EXPECT_PARENT = {}
+for _rel in BOARD_MODELS:
+    if _rel.startswith("models/item/"):
+        continue                      # он наоборот возвращает ванильный вид
+    if BASE.endswith("_slab"):
+        EXPECT_PARENT[_rel] = "minecraft:block/slab_top" if _rel.endswith("_top.json") \
+            else "minecraft:block/slab"
+    else:
+        EXPECT_PARENT[_rel] = "minecraft:block/cube_bottom_top"
+
+board_errors = []
+for rel in BOARD_MODELS:
+    path = os.path.join(mc_root, rel)
+    if not os.path.isfile(path):
+        have = sorted(os.listdir(os.path.join(mc_root, "models", "block"))) \
+            if os.path.isdir(os.path.join(mc_root, "models", "block")) else []
+        hint = ("  в паке лежат модели для другого блока: %s — блокировка платы задаётся "
+                "моделью именно того блока, что стоит в blocks.base; пересоберите пак"
+                % ", ".join(have[:3])) if have else ""
+        board_errors.append(f"нет {rel} — плата не перекрашена, в мире это ванильный блок." + hint)
+        continue
+    m = json.load(open(path, encoding="utf-8"))
+    if rel.startswith("models/item/"):
+        continue   # он обязан смотреть в ванильные текстуры, а не в наши
+    tex = m.get("textures") or {}
+    for face in ("top", "side", "bottom"):
+        ref = str(tex.get(face, ""))
+        if not ref.startswith(NS + ":"):
+            board_errors.append(f"{rel}: грань {face} -> {ref!r}; чужую текстуру "
+                                "перекрашивать нельзя, ждём %s:block/board_%s" % (NS, face))
+            continue
+        ns2, _, rest = ref.partition(":")   # спрайт A:B/C -> assets/A/textures/B/C.png
+        png = os.path.join(RP, "assets", ns2, "textures", *rest.split("/")) + ".png"
+        if not os.path.isfile(png):
+            board_errors.append(f"{rel}: нет текстуры {ref}")
+    want = EXPECT_PARENT.get(rel)
+    par = str(m.get("parent", ""))
+    if want and par != want:
+        board_errors.append(f"{rel}: parent {par!r}, ждали {want!r} — геометрия полублока "
+                            "важна: на «кубе» плата выше клетки, а детали на ней (плагин "
+                            "расставлены по половине блока) поедут)")
+if os.path.isdir(os.path.join(RP, "assets", NS, "textures", "block")):
+    srcs = (json.load(open(atlas, encoding="utf-8")).get("sources", [])
+            if os.path.isfile(atlas) else [])
+    if not any(str(x.get("source", "")) == NS + "/block" for x in srcs):
+        board_errors.append(f"atlases/blocks.json: нет источника {NS}/block — спрайты платы "
+                            "не попадут в атлас, и блок будет в «пропавшую текстуру»")
+if board_errors:
+    print("ПОЗОР: плата перекрашена неверно:")
+    for e in board_errors:
+        print("  -", e)
+    sys.exit(1)
+if stomp:
+    print("ПОЗОР: пак перекрывает ванильные ресурсы:", stomp[:8])
+    sys.exit(1)
+print(f"ванильные определения не перекрываем: в assets/minecraft атлас-источник и "
+      f"{len(BOARD_MODELS)} файла модели платы ({BASE})",
       ("+" + str(quartz_stomped) + " текст. кварца — включены пользователем (host_*.png)"
        if quartz_stomped else "(текстуры кварца не трогаем)"))
+print(f"плата: {len(BOARD_MODELS)} файла моделей -> {NS}:textures/block/board_*.png, атлас покрыл")
 
 missing_model, missing_tex, missing_tex_ref = [], [], 0
 item_defs = 0
@@ -140,7 +232,7 @@ print(f"OK: все {len(comps)}×6 ссылок на модели и текст�
 # Ровно тот класс багов, из-за которого 1.21.11 выбросил 38 строк
 # "Couldn't parse data file": поля формата, которого ванильный разбор не ждёт.
 NS = "electronics"          # тот же префикс, что у Items/Components в плагине
-DP = os.path.join(ROOT, "build", "datapack")
+DP = os.environ.get("ELECTRONICS_DATAPACK_DIR") or os.path.join(ROOT, "build", "datapack")
 RCP = os.path.join(DP, "data", "electronics", "recipe")
 bad = []
 nrec = 0
